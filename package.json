@@ -1,0 +1,39 @@
+{
+  "name": "cencom-concrete-planning",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx scripts/seed.ts",
+    "auth:create-admin": "tsx scripts/bootstrap-admin.ts"
+  },
+  "dependencies": {
+    "better-auth": "^1.7.14",
+    "drizzle-orm": "^0.45.4",
+    "exceljs": "^4.4.0",
+    "lucide-react": "^0.577.0",
+    "next": "^16.4.3",
+    "pg": "^8.21.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tabulator-tables": "^6.7.1",
+    "zod": "^4.6.7",
+    "@next/env": "^16.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.4.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

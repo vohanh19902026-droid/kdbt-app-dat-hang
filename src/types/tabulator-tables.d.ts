@@ -1,0 +1,16 @@
+﻿declare module "tabulator-tables" {
+  export interface CellComponent {
+    getValue(): unknown;
+    getField(): string;
+    getRow(): { getData(): unknown };
+    restoreOldValue(): void;
+  }
+  export class TabulatorFull {
+    constructor(element: HTMLElement, options: {
+      columns?: Array<{ formatter?: string | ((cell: CellComponent) => string); [key: string]: unknown }>;
+      [key: string]: unknown;
+    });
+    on(event: "cellEdited", callback: (cell: CellComponent) => void): void;
+    destroy(): void;
+  }
+}

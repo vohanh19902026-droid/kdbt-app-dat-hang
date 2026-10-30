@@ -1,0 +1,200 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Download, Plus, RefreshCw, Search } from "lucide-react";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
+import "tabulator-tables/dist/css/tabulator.min.css";
+import { statusLabels, type AppRole, type OrderStatus } from "@/lib/types";
+
+type OrderDTO = {
+  id: string; bookingNo: string; customerName: string; salesRepName: string; siteAddress: string;
+  contactName: string | null; contactPhone: string | null; requestedAt: Date; plannedStartAt: Date | null;
+  plannedEndAt: Date | null; quantityM3: number; actualM3: number; grade: string; sandType: string;
+  stoneType: string; pumpRequired: string; pumpOperator: string | null; assignedVehicle: string | null;
+  truckCapacityM3: number | null; pourType: string | null; salesNote: string | null;
+  planningNote: string | null; status: OrderStatus; createdBy: string;
+};
+type Totals = { ordered: number; actual: number; pending: number; ongoing: number };
+const statusTone: Record<OrderStatus, string> = {
+  PENDING: "pending", APPROVED: "approved", SCHEDULED: "scheduled",
+  IN_PROGRESS: "progress", COMPLETED: "completed", CANCELLED: "cancelled",
+};
+const timeVN = (value: Date | string | null) => value
+  ? new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh", hour12: false }).format(new Date(value))
+  : "";
+const numberVN = (value: number) => new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value);
+
+function PlanGrid({ rows, canEdit, onToast }: { rows: OrderDTO[]; canEdit: boolean; onToast: (message: string) => void }) {
+  const host = useRef<HTMLDivElement>(null);
+  const table = useRef<Tabulator | null>(null);
+  useEffect(() => {
+    if (!host.current) return;
+    const data = rows.map((order) => ({
+      ...order, plannedStartTime: timeVN(order.plannedStartAt), plannedEndTime: timeVN(order.plannedEndAt),
+    }));
+    const grid = new Tabulator(host.current, {
+      data, index: "id", layout: "fitDataStretch", height: "calc(100vh - 360px)", minHeight: 290,
+      placeholder: "Chưa có booking trong ngày này.", movableColumns: true, tooltips: true, headerSort: true,
+      columns: [
+        { title: "STT", formatter: "rownum", width: 46, hozAlign: "center", headerSort: false, frozen: true },
+        { title: "XUẤT PHÁT", field: "plannedStartTime", width: 92, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input" },
+        { title: "TG ĐỔ", field: "plannedEndTime", width: 78, hozAlign: "center", editor: canEdit ? "input" : false },
+        { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${cell.getValue()}</b>` },
+        { title: "KHÁCH HÀNG", field: "customerName", width: 145, editor: canEdit ? "input" : false },
+        { title: "ĐỊA CHỈ LIÊN HỆ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
+        { title: "KINH DOANH", field: "salesRepName", width: 112, editor: false },
+        { title: "ĐIỆN THOẠI", field: "contactPhone", width: 105, editor: canEdit ? "input" : false },
+        { title: "KL ĐẶT", field: "quantityM3", width: 72, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
+        { title: "KL THỰC ĐỔ", field: "actualM3", width: 80, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
+        { title: "MÁC", field: "grade", width: 105, editor: canEdit ? "input" : false },
+        { title: "CỐT LIỆU T I", field: "sandType", width: 115, editor: canEdit ? "input" : false, cssClass: "sand-cell" },
+        { title: "CỐT LIỆU T II", field: "stoneType", width: 115, editor: canEdit ? "input" : false, cssClass: "stone-cell" },
+        { title: "XE BƠM", field: "pumpRequired", width: 112, editor: canEdit ? "input" : false },
+        { title: "NHÂN VIÊN BƠM", field: "pumpOperator", width: 120, editor: canEdit ? "input" : false },
+        { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 125, editor: canEdit ? "input" : false, cssClass: "vehicle-cell" },
+        { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false, editorParams: { values: { 5: "5 m³", 7: "7 m³", 10: "10 m³" } }, formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
+        { title: "HM", field: "pourType", width: 86, editor: canEdit ? "input" : false },
+        { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
+          editorParams: { values: Object.fromEntries(Object.entries(statusLabels).map(([key, label]) => [key, label])) },
+          formatter: (cell) => `<span class="status-select ${statusTone[cell.getValue() as OrderStatus]}">${statusLabels[cell.getValue() as OrderStatus]}</span>` },
+        { title: "GHI CHÚ", field: "salesNote", width: 180, editor: canEdit ? "input" : false },
+      ],
+    });
+    table.current = grid;
+    grid.on("cellEdited", async (cell) => {
+      const row = cell.getRow().getData() as OrderDTO & { plannedStartTime: string; plannedEndTime: string };
+      const field = cell.getField();
+      const value = cell.getValue();
+      if ((field === "plannedStartTime" || field === "plannedEndTime") && value && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(value))) {
+        cell.restoreOldValue();
+        onToast("Nhập giờ theo định dạng HH:MM.");
+        return;
+      }
+      const payload: Record<string, unknown> = { [field]: field.includes("Time") ? value || null : value };
+      const response = await fetch(`/api/orders/${row.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        cell.restoreOldValue();
+        onToast(result.error || "Không lưu được thay đổi.");
+        return;
+      }
+      onToast("Đã lưu thay đổi và ghi lịch sử booking.");
+    });
+    return () => { grid.destroy(); table.current = null; };
+  }, [rows, canEdit, onToast]);
+  return <div className="plan-table" ref={host} />;
+}
+
+export function OrdersWorkspace({
+  orders, date, role, totals, view = "orders",
+}: {
+  orders: OrderDTO[]; date: string; role: AppRole; totals: Totals;
+  statusLabels: Record<OrderStatus, string>; view?: string;
+}) {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [showForm, setShowForm] = useState(false);
+  const [toast, setToast] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const planner = ["ADMIN", "PLANNER"].includes(role);
+  const canCreate = ["ADMIN", "PLANNER", "SALES"].includes(role);
+  const visible = useMemo(() => orders.filter((order) =>
+    (status === "ALL" || order.status === status)
+      && `${order.bookingNo} ${order.customerName} ${order.siteAddress} ${order.salesRepName}`.toLowerCase().includes(search.toLowerCase())),
+  [orders, status, search]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(""), 2800);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  async function createOrder(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    const form = new FormData(event.currentTarget);
+    const requestedAt = new Date(`${form.get("date")}T${form.get("time")}:00+07:00`).toISOString();
+    const payload = {
+      customerName: form.get("customerName"), siteAddress: form.get("siteAddress"),
+      contactName: form.get("contactName"), contactPhone: form.get("contactPhone"), requestedAt,
+      quantityM3: form.get("quantityM3"), grade: form.get("grade"), sandType: form.get("sandType"),
+      stoneType: form.get("stoneType"), pumpRequired: form.get("pumpRequired"),
+      truckCapacityM3: form.get("truckCapacityM3"), pourType: form.get("pourType"), salesNote: form.get("salesNote"),
+    };
+    const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const result = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) { setError(result.error || "Không lưu được đơn hàng."); return; }
+    setShowForm(false); setToast(result.message || "Đã tạo booking."); router.refresh();
+  }
+  function exportPlan() {
+    const link = document.createElement("a");
+    link.href = `/api/exports/xlsx?date=${encodeURIComponent(date)}`;
+    link.download = `ke-hoach-${date}.xlsx`;
+    document.body.appendChild(link); link.click(); link.remove();
+  }
+  const dateLabel = new Intl.DateTimeFormat("vi-VN", { dateStyle: "long", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(`${date}T12:00:00+07:00`));
+  return <>
+    <div className="pagehead">
+      <div><div className="eyebrow">{planner ? "ĐIỀU PHỐI SẢN XUẤT" : "ĐẶT HÀNG BÊ TÔNG"} · {dateLabel}</div>
+        <h1>{planner && view === "planning" ? "Bảng kế hoạch cấp hàng" : "Đơn đặt bê tông"}</h1>
+        <div className="sub">{planner ? "Xác nhận booking, sắp xếp giờ cấp và phân công phương tiện." : "Tạo booking và theo dõi tiến độ cấp bê tông của bạn."}</div>
+      </div>
+      <div className="heading-actions">
+        <input type="date" aria-label="Ngày kế hoạch" className="date-input" value={date} onChange={(event) => router.push(`/orders?date=${event.target.value}&view=${view}`)} />
+        {planner && <button className="btn secondary" onClick={exportPlan}><Download size={15} /> Xuất XLSX</button>}
+        {canCreate && <button className="btn" onClick={() => setShowForm(true)}><Plus size={17} /> Tạo booking</button>}
+      </div>
+    </div>
+    <div className="stats">
+      <div className="stat"><div className="stathead">Tổng khối lượng đặt</div><strong>{numberVN(totals.ordered)} <small>m³</small></strong><small>{orders.length} booking trong ngày</small></div>
+      <div className="stat"><div className="stathead">Khối lượng thực đổ</div><strong>{numberVN(totals.actual)} <small>m³</small></strong><small>Ghi nhận của kế hoạch</small></div>
+      <div className="stat"><div className="stathead">Chờ duyệt</div><strong>{totals.pending}</strong><small>Cần xác nhận lịch cấp</small></div>
+      <div className="stat"><div className="stathead">Đang cấp hàng</div><strong>{totals.ongoing}</strong><small>Đang vận chuyển tới công trình</small></div>
+    </div>
+    <div className="toolbar">
+      <div className="filter-row">
+        <select className="pill" value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="ALL">Tất cả trạng thái</option>
+          {Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select>
+        {planner && <button className="pill" onClick={exportPlan}><Download size={14} /> Xuất bảng Excel</button>}
+        <button className="pill" onClick={() => router.refresh()} title="Tải lại"><RefreshCw size={14} /></button>
+      </div>
+      <div className="search-wrap"><Search size={15} /><input className="search" placeholder="Tìm booking, khách hàng, địa chỉ..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
+    </div>
+    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} onToast={setToast} /></div>
+    <div className="desktop-note">{planner
+      ? "Chỉnh trực tiếp giờ, vật liệu, phương tiện hoặc trạng thái. Mỗi thay đổi được lưu và ghi vào lịch sử booking."
+      : "Danh sách chỉ hiển thị booking do bạn tạo. Mã booking được cấp tự động."}</div>
+    {showForm && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowForm(false); }}>
+      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="form-title">
+        <div className="modalhead"><div><div className="eyebrow">ĐẶT LỊCH MỚI</div><h2 id="form-title">Đặt bê tông</h2><div className="sub">Hệ thống tự cấp mã booking khi lưu.</div></div>
+          <button className="close" onClick={() => setShowForm(false)} aria-label="Đóng">×</button></div>
+        <form onSubmit={createOrder}><div className="formgrid">
+          <div className="field"><label>Tên khách hàng *</label><input name="customerName" required minLength={2} maxLength={180} placeholder="VD: Công ty xây dựng ABC" /></div>
+          <div className="field"><label>Người liên hệ</label><input name="contactName" maxLength={120} placeholder="Người nhận tại công trình" /></div>
+          <div className="field full"><label>Địa chỉ công trình *</label><input name="siteAddress" required minLength={3} maxLength={500} placeholder="Địa chỉ giao bê tông" /></div>
+          <div className="field"><label>Điện thoại liên hệ</label><input name="contactPhone" inputMode="tel" maxLength={30} placeholder="09xx xxx xxx" /></div>
+          <div className="field"><label>Khối lượng đặt (m³) *</label><input type="number" name="quantityM3" required min="0.1" max="5000" step="0.1" placeholder="Ví dụ: 25" /></div>
+          <div className="field"><label>Mác bê tông *</label><select name="grade"><option>250 (12+2)</option><option>250R (14+2)</option><option>300 (12+2)</option><option>300R (7+12)</option><option>C30 (12+2)</option><option>B35 (19+1)</option></select></div>
+          <div className="field"><label>Ngày cần cấp *</label><input type="date" name="date" required defaultValue={date} /></div>
+          <div className="field"><label>Giờ cần cấp *</label><input type="time" name="time" required defaultValue="08:00" /></div>
+          <div className="field"><label>Loại xe bơm</label><select name="pumpRequired"><option>Bơm cần 38m</option><option>Bơm 42m</option><option>Bơm 50m</option><option>Bơm 63m</option><option>Bơm tĩnh</option><option>Không bơm</option></select></div>
+          <div className="field"><label>Loại cát</label><select name="sandType"><option>Cát Lộc</option><option>Cát vàng</option><option>Cát nghiền</option><option>Cát sông</option></select></div>
+          <div className="field"><label>Loại đá</label><select name="stoneType"><option>Đá 1x2</option><option>Đá 0.5x1</option><option>Đá 2x4</option><option>Đá mi</option></select></div>
+          <div className="field"><label>Xe chở (m³/chuyến)</label><select name="truckCapacityM3"><option value="5">5 m³/chuyến</option><option value="7">7 m³/chuyến</option><option value="10">10 m³/chuyến</option></select></div>
+          <div className="field"><label>Hạng mục</label><select name="pourType"><option value="Sàn">Sàn</option><option value="Móng">Móng</option><option value="Cột">Cột</option><option value="Dầm">Dầm</option><option value="Tường">Tường</option><option value="Khác">Khác</option></select></div>
+          <div className="field full"><label>Ghi chú thêm</label><textarea name="salesNote" maxLength={1000} placeholder="Vị trí đổ, lưu ý đường vào, liên hệ công trường..." /></div>
+        </div>
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <div className="modalfoot"><button type="button" className="btn secondary" onClick={() => setShowForm(false)}>Hủy</button>
+            <button className="btn" disabled={busy}>{busy ? "Đang lưu..." : "Gửi lệnh đặt hàng →"}</button></div>
+        </form>
+      </section>
+    </div>}
+    {toast && <div className="toast" role="status">{toast}</div>}
+  </>;
+}
