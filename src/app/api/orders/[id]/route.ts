@@ -45,6 +45,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const patch = parsed.data;
   const [existing] = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
   if (!existing) return NextResponse.json({ error: "Không tìm thấy booking." }, { status: 404 });
+  const nextStartAt = patch.plannedStartTime !== undefined
+    ? patch.plannedStartTime ? withVietnamTime(existing.requestedAt, patch.plannedStartTime) : null
+    : existing.plannedStartAt;
+  const nextEndAt = patch.plannedEndTime !== undefined
+    ? patch.plannedEndTime ? withVietnamTime(existing.requestedAt, patch.plannedEndTime) : null
+    : existing.plannedEndAt;
+  if (nextStartAt && nextEndAt && nextEndAt < nextStartAt) {
+    return NextResponse.json({ error: "Giờ đổ phải bằng hoặc sau giờ xuất phát." }, { status: 400 });
+  }
+  const nextStatus = patch.status ?? existing.status;
+  const nextVehicle = patch.assignedVehicle ?? existing.assignedVehicle;
+  if (["SCHEDULED", "IN_PROGRESS", "COMPLETED"].includes(nextStatus)
+    && (!nextStartAt || !nextEndAt || !nextVehicle?.trim())) {
+    return NextResponse.json({ error: "Cần nhập giờ xuất phát, giờ đổ và phương tiện trước khi xếp lịch cấp hàng." }, { status: 400 });
+  }
   if (patch.status && !canTransition(existing.status as OrderStatus, patch.status)) {
     return NextResponse.json({ error: `Không thể chuyển từ ${existing.status} sang ${patch.status}.` }, { status: 409 });
   }
