@@ -4,6 +4,8 @@ import { z } from "zod";
 import { db } from "@/db";
 import { customers, orderEvents, orders, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
+import { isCrossOriginRequest } from "@/lib/request-guard";
+import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 import { statusLabels } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -26,18 +28,17 @@ const createSchema = z.object({
 export async function GET(request: NextRequest) {
   const session = await getApiSession(request.headers);
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
-  const date = request.nextUrl.searchParams.get("date");
-  const conditions = [];
-  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const from = new Date(`${date}T00:00:00+07:00`);
-    conditions.push(gte(orders.requestedAt, from), lt(orders.requestedAt, new Date(from.getTime() + 86_400_000)));
-  }
-  if (session.appRole === "SALES") conditions.push(eq(orders.createdBy, session.user.id));
   if (session.appRole === "ACCOUNTANT") return NextResponse.json({ error: "Phân hệ kế toán chưa được mở." }, { status: 403 });
+  // Luôn giới hạn theo một ngày: tránh tải toàn bộ bảng khi tham số ngày trống hoặc sai.
+  const date = normalizeIsoDate(request.nextUrl.searchParams.get("date"));
+  const { from, to } = vnDateRange(date);
+  const conditions = [gte(orders.requestedAt, from), lt(orders.requestedAt, to)];
+  if (session.appRole === "SALES") conditions.push(eq(orders.createdBy, session.user.id));
   const rows = await db.select({ order: orders, createdByName: user.name }).from(orders)
     .leftJoin(user, eq(orders.createdBy, user.id))
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt));
+    .where(and(...conditions))
+    .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt))
+    .limit(2000);
   return NextResponse.json(rows.map(({ order, createdByName }) => ({
     ...order, createdByName,
     quantityM3: Number(order.quantityM3), actualM3: Number(order.actualM3),
@@ -47,6 +48,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (isCrossOriginRequest(request)) {
+    return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
+  }
   const session = await getApiSession(request.headers);
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
   if (!["ADMIN", "PLANNER", "SALES"].includes(session.appRole)) {

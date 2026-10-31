@@ -6,6 +6,7 @@ import { Download, Plus, RefreshCw, Search } from "lucide-react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import { statusLabels, type AppRole, type OrderStatus } from "@/lib/types";
+import { isValidIsoDate, isValidTime, vnDateOf } from "@/lib/vn-date";
 
 type OrderDTO = {
   id: string; bookingNo: string; customerName: string; salesRepName: string; siteAddress: string;
@@ -13,7 +14,7 @@ type OrderDTO = {
   plannedEndAt: Date | null; quantityM3: number; actualM3: number; grade: string; sandType: string;
   stoneType: string; pumpRequired: string; pumpOperator: string | null; assignedVehicle: string | null;
   truckCapacityM3: number | null; pourType: string | null; salesNote: string | null;
-  planningNote: string | null; status: OrderStatus; createdBy: string;
+  planningNote: string | null; status: OrderStatus; createdBy: string; version: string;
 };
 type Totals = { ordered: number; actual: number; pending: number; ongoing: number };
 const statusTone: Record<OrderStatus, string> = {
@@ -24,6 +25,9 @@ const timeVN = (value: Date | string | null) => value
   ? new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh", hour12: false }).format(new Date(value))
   : "";
 const numberVN = (value: number) => new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value);
+const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+}[character] as string));
 
 function PlanGrid({ rows, canEdit, onToast }: { rows: OrderDTO[]; canEdit: boolean; onToast: (message: string) => void }) {
   const host = useRef<HTMLDivElement>(null);
@@ -31,16 +35,19 @@ function PlanGrid({ rows, canEdit, onToast }: { rows: OrderDTO[]; canEdit: boole
   useEffect(() => {
     if (!host.current) return;
     const data = rows.map((order) => ({
-      ...order, plannedStartTime: timeVN(order.plannedStartAt), plannedEndTime: timeVN(order.plannedEndAt),
+      ...order,
+      plannedDate: order.plannedStartAt ? vnDateOf(new Date(order.plannedStartAt)) : vnDateOf(new Date(order.requestedAt)),
+      plannedStartTime: timeVN(order.plannedStartAt), plannedEndTime: timeVN(order.plannedEndAt),
     }));
     const grid = new Tabulator(host.current, {
       data, index: "id", layout: "fitDataStretch", height: "calc(100vh - 360px)", minHeight: 290,
       placeholder: "Chưa có booking trong ngày này.", movableColumns: true, tooltips: true, headerSort: true,
       columns: [
         { title: "STT", formatter: "rownum", width: 46, hozAlign: "center", headerSort: false, frozen: true },
+        { title: "NGÀY", field: "plannedDate", width: 106, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input", tooltip: "Ngày cấp hàng, định dạng YYYY-MM-DD" },
         { title: "XUẤT PHÁT", field: "plannedStartTime", width: 92, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input" },
         { title: "TG ĐỔ", field: "plannedEndTime", width: 78, hozAlign: "center", editor: canEdit ? "input" : false },
-        { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${cell.getValue()}</b>` },
+        { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${escapeHtml(cell.getValue())}</b>` },
         { title: "KHÁCH HÀNG", field: "customerName", width: 145, editor: canEdit ? "input" : false },
         { title: "ĐỊA CHỈ LIÊN HỆ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
         { title: "KINH DOANH", field: "salesRepName", width: 112, editor: false },
@@ -57,31 +64,56 @@ function PlanGrid({ rows, canEdit, onToast }: { rows: OrderDTO[]; canEdit: boole
         { title: "HM", field: "pourType", width: 86, editor: canEdit ? "input" : false },
         { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
           editorParams: { values: Object.fromEntries(Object.entries(statusLabels).map(([key, label]) => [key, label])) },
-          formatter: (cell) => `<span class="status-select ${statusTone[cell.getValue() as OrderStatus]}">${statusLabels[cell.getValue() as OrderStatus]}</span>` },
+          formatter: (cell) => {
+            const status = cell.getValue() as OrderStatus;
+            return `<span class="status-select ${statusTone[status]}">${escapeHtml(statusLabels[status] ?? status)}</span>`;
+          } },
         { title: "GHI CHÚ", field: "salesNote", width: 180, editor: canEdit ? "input" : false },
       ],
     });
     table.current = grid;
     grid.on("cellEdited", async (cell) => {
-      const row = cell.getRow().getData() as OrderDTO & { plannedStartTime: string; plannedEndTime: string };
+      const row = cell.getRow().getData() as OrderDTO & { plannedStartTime: string; plannedEndTime: string; plannedDate: string };
       const field = cell.getField();
       const value = cell.getValue();
-      if ((field === "plannedStartTime" || field === "plannedEndTime") && value && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(value))) {
+      if ((field === "plannedStartTime" || field === "plannedEndTime") && value && !isValidTime(value)) {
         cell.restoreOldValue();
         onToast("Nhập giờ theo định dạng HH:MM.");
         return;
       }
-      const payload: Record<string, unknown> = { [field]: field.includes("Time") ? value || null : value };
-      const response = await fetch(`/api/orders/${row.id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
+      if (field === "plannedDate" && !isValidIsoDate(value)) {
         cell.restoreOldValue();
-        onToast(result.error || "Không lưu được thay đổi.");
+        onToast("Nhập ngày theo định dạng YYYY-MM-DD.");
         return;
       }
-      onToast("Đã lưu thay đổi và ghi lịch sử booking.");
+      const payload: Record<string, unknown> = {
+        [field]: field.includes("Time") ? value || null : value,
+        version: Number(row.version),
+      };
+      try {
+        const response = await fetch(`/api/orders/${row.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          cell.restoreOldValue();
+          onToast(result.error || "Không lưu được thay đổi.");
+          return;
+        }
+        const saved = result.order as {
+          version: string; requestedAt: string; plannedStartAt: string | null; plannedEndAt: string | null;
+        };
+        cell.getRow().update({
+          version: String(saved.version),
+          plannedDate: saved.plannedStartAt ? vnDateOf(new Date(saved.plannedStartAt)) : vnDateOf(new Date(saved.requestedAt)),
+          plannedStartTime: timeVN(saved.plannedStartAt),
+          plannedEndTime: timeVN(saved.plannedEndAt),
+        });
+        onToast("Đã lưu thay đổi và ghi lịch sử booking.");
+      } catch {
+        cell.restoreOldValue();
+        onToast("Mất kết nối tới máy chủ. Vui lòng thử lại.");
+      }
     });
     return () => { grid.destroy(); table.current = null; };
   }, [rows, canEdit, onToast]);

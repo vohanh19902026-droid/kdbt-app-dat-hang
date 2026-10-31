@@ -8,6 +8,13 @@
 5. Export XLSX có định dạng, bộ lọc, công thức tổng và thiết lập in.
 6. PWA manifest, icon, offline fallback không lưu dữ liệu riêng.
 
+## Đã bổ sung sau MVP (2026-10-31)
+- Dời ngày cấp hàng trên lưới kế hoạch; giữ nguyên giờ khi đổi ngày.
+- Lọc bảng kế hoạch, báo cáo và XLSX theo ngày cấp hàng, fallback ngày yêu cầu.
+- Chống ghi đè bằng version do client gửi; API trả 409 khi phiên bản đã cũ.
+- Validate ngày/giờ chặt ở API và trang; tham số ngày sai không còn làm trang 500.
+- Security headers, CSP production, `no-store` cho API, chặn Origin lạ; index `orders_planning_basis_idx`.
+
 ## Trước khi dùng dữ liệu thật
 - Cấu hình Neon/Vercel secrets và áp dụng `drizzle/0000_initial.sql` hoặc `db:push` lên database thử.
 - Tạo Admin thật, tạo tài khoản từng nhân viên, xác nhận email/tên hiển thị và vai trò.

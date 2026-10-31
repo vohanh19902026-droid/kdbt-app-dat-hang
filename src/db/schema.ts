@@ -107,6 +107,7 @@ export const orders = pgTable("orders", {
   index("orders_requested_at_idx").on(t.requestedAt),
   index("orders_status_requested_idx").on(t.status, t.requestedAt),
   index("orders_creator_created_idx").on(t.createdBy, t.createdAt),
+  index("orders_planning_basis_idx").on(sql`COALESCE(${t.plannedStartAt}, ${t.requestedAt})`),
   uniqueIndex("orders_booking_no_idx").on(t.bookingNo),
 ]);
 

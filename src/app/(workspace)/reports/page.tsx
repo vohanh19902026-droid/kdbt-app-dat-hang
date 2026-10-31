@@ -1,16 +1,17 @@
-import { and, asc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 
 export const runtime = "nodejs";
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const { appRole, user } = await requireSession(["ADMIN", "PLANNER", "ACCOUNTANT"]);
   const params = await searchParams;
-  const date = params.date || new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const from = new Date(`${date}T00:00:00+07:00`);
-  const to = new Date(from.getTime() + 86_400_000);
-  const filters = [gte(orders.requestedAt, from), lt(orders.requestedAt, to)];
+  const date = normalizeIsoDate(params.date);
+  const { from, to } = vnDateRange(date);
+  const plannedAt = sql`COALESCE(${orders.plannedStartAt}, ${orders.requestedAt})`;
+  const filters = [gte(plannedAt, from), lt(plannedAt, to)];
   if (appRole === "ACCOUNTANT") filters.push(eq(orders.createdBy, user.id));
   const rows = await db.select().from(orders).where(and(...filters)).orderBy(asc(orders.customerName));
   const groups = new Map<string, { sales: string; count: number; ordered: number; actual: number }>();

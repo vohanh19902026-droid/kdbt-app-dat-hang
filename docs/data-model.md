@@ -13,6 +13,8 @@
 ## Quy tắc
 - `orders.id` là UUID nội bộ; `booking_no` là mã nhìn thấy, unique và không tái sử dụng.
 - `requested_at` là giờ NVKD yêu cầu; `planned_start_at`/`planned_end_at` là thời gian kế hoạch xác nhận.
+- Kế hoạch được dời ngày bằng cách tính lại hai mốc `planned_start_at`/`planned_end_at`; không thêm cột ngày riêng.
+- Truy vấn theo ngày cấp dùng biểu thức `COALESCE(planned_start_at, requested_at)` và index `orders_planning_basis_idx`.
 - Khối lượng đặt và thực đổ là `numeric(10,2)`; xe/chuyến hỗ trợ 5, 7, 10 m³ và có thể nhập danh mục khác từ lưới.
 - Trạng thái: `PENDING → APPROVED → SCHEDULED → IN_PROGRESS → COMPLETED`; có thể hủy trước khi bắt đầu.
 - Kế hoạch cập nhật audit và dữ liệu booking trong transaction; `version` kiểm tra ghi đồng thời.

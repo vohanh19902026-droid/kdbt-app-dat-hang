@@ -2,7 +2,7 @@
   export interface CellComponent {
     getValue(): unknown;
     getField(): string;
-    getRow(): { getData(): unknown };
+    getRow(): { getData(): unknown; update(data: Record<string, unknown>): void };
     restoreOldValue(): void;
   }
   export class TabulatorFull {

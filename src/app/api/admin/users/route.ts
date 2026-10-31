@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getApiSession } from "@/lib/session";
+import { isCrossOriginRequest } from "@/lib/request-guard";
 
 export const runtime = "nodejs";
 const inputSchema = z.object({
@@ -29,14 +30,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (isCrossOriginRequest(request)) return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
   const access = await adminSession(request);
   if ("error" in access) return access.error;
   const parsed = inputSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Thông tin chưa hợp lệ." }, { status: 400 });
   const data = parsed.data;
+  const initialPassword = data.password;
   try {
     const created = await auth.api.createUser({
-      body: { name: data.name, email: data.email, password: data.password, role: data.appRole === "ADMIN" ? "admin" : "user" },
+      body: { name: data.name, email: data.email, password: initialPassword, role: data.appRole === "ADMIN" ? "admin" : "user" },
       headers: request.headers,
     });
     await db.update(user).set({ appRole: data.appRole, isActive: true, updatedAt: new Date() }).where(eq(user.id, created.user.id));
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (isCrossOriginRequest(request)) return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
   const access = await adminSession(request);
   if ("error" in access) return access.error;
   const parsed = z.object({

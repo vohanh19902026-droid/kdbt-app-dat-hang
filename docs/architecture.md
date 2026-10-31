@@ -28,8 +28,10 @@ Mobile/Desktop Browser
 ## Ranh giới triển khai
 - Pages/middleware không thay thế bảo vệ API: API tự xác minh session, vai trò và trạng thái tài khoản.
 - Kinh doanh chỉ đọc booking do mình tạo; Kế hoạch/Admin thao tác toàn bộ lệnh.
-- Mỗi cập nhật kế hoạch ghi audit event trong cùng transaction với đơn. Cột `version` ngăn cập nhật đè lên phiên bản mới hơn.
+- Bảng kế hoạch, báo cáo và tệp XLSX lọc theo ngày cấp hàng `COALESCE(planned_start_at, requested_at)`; đơn chưa xếp lịch nằm ở ngày yêu cầu.
+- Mỗi cập nhật kế hoạch ghi audit event trong cùng transaction với đơn. Cột `version` ngăn cập nhật đè lên phiên bản mới hơn; trình duyệt gửi version hiện tại khi lưu.
 - Service worker chỉ dự phòng offline screen/icon, không cache trang riêng hoặc API.
+- API ghi dữ liệu kiểm tra Origin; production bật CSP cùng các security header cơ bản, API trả `Cache-Control: no-store`.
 - Không lưu tiền, công nợ hay khối lượng giao thực tế theo từng chuyến trong MVP.
 
 ## Triển khai
