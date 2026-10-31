@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = pathname === "/login" || pathname.startsWith("/api/auth/") || pathname === "/manifest.webmanifest" || pathname === "/icon.svg" || pathname === "/offline.html";
+  // API handlers enforce auth and return JSON status responses for fetch clients.
+  const isPublic = pathname === "/login" || pathname.startsWith("/api/") || pathname === "/manifest.webmanifest" || pathname === "/icon.svg" || pathname === "/offline.html";
   const hasSession = Boolean(getSessionCookie(request));
   if (!isPublic && !hasSession) return NextResponse.redirect(new URL("/login", request.url));
   if (pathname === "/login" && hasSession) return NextResponse.redirect(new URL("/orders", request.url));
