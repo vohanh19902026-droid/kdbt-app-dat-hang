@@ -10,7 +10,7 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 2. Sao chép `.env.example` thành `.env.local`, điền `DATABASE_URL`, `BETTER_AUTH_SECRET` (ít nhất 32 ký tự) và `BETTER_AUTH_URL`.
 3. Chạy toàn bộ `drizzle/0000_initial.sql` trong Neon SQL Editor (hoặc dùng `npm run db:push` trên database trống).
 4. `npm run dev`, mở `http://localhost:3000`.
-5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal.
+5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.
 6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. `npm run db:seed` nạp 12 booking mẫu vào database trống để chạy demo.
 
 Không chạy seed trên database có dữ liệu vận hành. Không đưa `.env.local` hoặc thông tin Neon vào Git/Vercel source.
@@ -19,7 +19,9 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 
 - Tạo database PostgreSQL trên Neon, đặt `DATABASE_URL` và `BETTER_AUTH_SECRET` trong Vercel Environment Variables cho Preview/Production.
 - Đặt `BETTER_AUTH_URL` theo domain deploy. Áp dụng một lần schema `drizzle/0000_initial.sql` trong Neon SQL Editor (hoặc dùng `npm run db:push` từ máy đã cấu hình Neon).
-- Import project lên Vercel, build command `npm run build`, framework Next.js. Sau khi deploy, tạo Admin đầu tiên rồi tạo tài khoản nội bộ.
+- Project hiện đã kết nối Neon và deployment thử nghiệm trên Vercel. URL: <https://kdbt-app-dat-hang-five.vercel.app>.
+- Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` cần là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, chat hoặc ảnh chụp.
+- Sau khi deployment ở trạng thái Ready, tạo Admin đầu tiên rồi tạo tài khoản nội bộ. Để chạy script tạo Admin trên máy cục bộ, cần `DATABASE_URL` trong `.env.local`. Nếu đã đăng nhập Vercel CLI và project đã được link, có thể chạy `npx vercel env pull .env.local --environment production`; file này đã bị loại khỏi Git.
 - PWA cài từ trình duyệt cần HTTPS; service worker chỉ lưu màn offline và icon, không cache trang/API chứa dữ liệu riêng.
 
 ## Quy trình MVP
@@ -40,9 +42,9 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 
 Xem [`docs/base-app-evaluation.md`](docs/base-app-evaluation.md) để biết nền nguồn mở được chọn, những gì được tái sử dụng và phần viết riêng. Mô hình dữ liệu/quyết định kiến trúc nằm ở [`docs/architecture.md`](docs/architecture.md) và [`docs/data-model.md`](docs/data-model.md). License nền Better Auth Starter được giữ tại [`LICENSE-ZEXA`](LICENSE-ZEXA); thông báo thư viện tại [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
-## Đã kiểm tra và giới hạn
+## Trạng thái vận hành hiện tại
 
-- `tsc --noEmit`: pass.
-- Next production compile: phần compile thành công, nhưng bước worker bị môi trường Windows trả `spawn EPERM`; cần xác nhận lại bằng build trên Vercel/Linux.
-- Chưa kết nối Neon/Vercel thực tế do chưa có credential; cần áp dụng schema, khởi tạo Admin, và kiểm thử đồng thời nhiều người dùng trên database thử nghiệm trước khi đưa dữ liệu thật vào.
+- `npm run typecheck`, ESLint cho script khởi tạo Admin, và `npm run build` đã chạy thành công. Build cục bộ được kiểm tra bằng giá trị secret thử nghiệm riêng, không phải secret production.
+- Neon đã có schema và Vercel đã có deployment Ready theo lần triển khai gần nhất.
+- Cần hoàn tất khởi tạo Admin từ máy có `DATABASE_URL` hợp lệ và diễn tập luồng NVKD → kế hoạch → xuất XLSX trước khi nhập dữ liệu vận hành.
 - Mẫu XLSX được dựng theo ảnh tham khảo; độ rộng/nhóm màu có thể điều chỉnh theo workbook gốc nếu có file Excel chuẩn.
