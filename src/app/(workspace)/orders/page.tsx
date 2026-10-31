@@ -14,7 +14,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const {appRole,user}=await requireSession(); const {date,view}=await searchParams; const selectedDate=date||todayVN(); const [start,end]=dateBounds(selectedDate);
   const conditions=[gte(orders.requestedAt,start),lt(orders.requestedAt,new Date(end))];
   if(appRole==="SALES") conditions.push(eq(orders.createdBy,user.id));
-  const rows=await db.select().from(orders).where(and(...conditions)).orderBy(asc(orders.requestedAt));
+  const rows=await db.select().from(orders).where(and(...conditions))
+    .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt));
   const data=rows.map(order=>({...order,quantityM3:Number(order.quantityM3),actualM3:Number(order.actualM3),truckCapacityM3:order.truckCapacityM3?Number(order.truckCapacityM3):null}));
   const totals={ordered:data.reduce((a,o)=>a+o.quantityM3,0),actual:data.reduce((a,o)=>a+o.actualM3,0),pending:data.filter(o=>o.status==="PENDING").length,ongoing:data.filter(o=>o.status==="IN_PROGRESS").length};
   return <OrdersWorkspace orders={data} role={appRole} date={selectedDate} view={view||"orders"} totals={totals} statusLabels={statusLabels}/>;

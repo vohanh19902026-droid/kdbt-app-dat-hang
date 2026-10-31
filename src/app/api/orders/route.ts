@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   const rows = await db.select({ order: orders, createdByName: user.name }).from(orders)
     .leftJoin(user, eq(orders.createdBy, user.id))
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(asc(orders.requestedAt));
+    .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt));
   return NextResponse.json(rows.map(({ order, createdByName }) => ({
     ...order, createdByName,
     quantityM3: Number(order.quantityM3), actualM3: Number(order.actualM3),
