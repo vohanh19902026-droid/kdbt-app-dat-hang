@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts",
+    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/pwa-assets.test.ts",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
     "auth:create-admin": "tsx scripts/bootstrap-admin.ts"
