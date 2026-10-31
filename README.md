@@ -11,7 +11,7 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 3. Chạy toàn bộ `drizzle/0000_initial.sql` trong Neon SQL Editor (hoặc dùng `npm run db:push` trên database trống).
 4. `npm run dev`, mở `http://localhost:3000`.
 5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.
-6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. `npm run db:seed` nạp 12 booking mẫu vào database trống để chạy demo.
+6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. Để nạp 12 booking mẫu, dùng `npm run db:seed -- --allow-demo-data` chỉ với database dành riêng cho thử nghiệm; script từ chối chạy nếu thiếu cờ xác nhận và tự bỏ qua khi database đã có booking.
 
 Không chạy seed trên database có dữ liệu vận hành. Không đưa `.env.local` hoặc thông tin Neon vào Git/Vercel source.
 
