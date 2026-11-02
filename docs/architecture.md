@@ -39,7 +39,7 @@ src/
 ├─ proxy.ts                     chặn/điều hướng request trước khi render page
 └─ types/                       khai báo type bổ sung
 
-drizzle/                        SQL migrations 0000–0002
+drizzle/                        SQL migrations 0000–0004
 scripts/                        migrate DB, tạo Admin, seed demo, smoke/cleanup
 tests/                          unit tests cho nghiệp vụ, ngày, XLSX, bảo vệ request
 public/                         manifest, icons, service worker, offline shell
@@ -96,7 +96,7 @@ flowchart LR
 
 - Chưa có kiểm thử browser end-to-end đăng nhập và thao tác theo từng vai trò; test hiện có chủ yếu là unit, còn demo vừa chạy xác nhận luồng PostgreSQL/XLSX ở mức tích hợp dữ liệu.
 - Không có môi trường Next local riêng đang hoạt động trong phiên này: policy chặn lệnh khởi chạy tiến trình. Server hiện có tại cổng 3000 chưa xác nhận database, nên không dùng để ghi demo.
-- P1/P2 và migration `0002` mới ở commit local; production Neon/Vercel cần áp migration, deploy rồi smoke test theo từng role.
+- P1/P2 và migration `0000`–`0004` đã có trong repo. GitHub đang báo Vercel check thất bại cho commit hiện tại; cần xem log deployment, xác nhận migration áp dụng và chạy smoke test theo từng role trước khi dùng production.
 - Cần workbook Excel gốc để nghiệm thu chính xác độ rộng cột/màu/in trang; hiện chỉ có ảnh tham khảo.
 - Sổ kế toán mới là nhật ký phải thu/thu tiền, chưa có hóa đơn, đối soát hoặc chứng từ giao từng chuyến; PWA offline chỉ là vỏ màn hình, chưa hỗ trợ nhập liệu offline/realtime push.
 

@@ -8,7 +8,7 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 
 1. `npm install`
 2. Sao chép `.env.example` thành `.env.local`, điền `DATABASE_URL`, `BETTER_AUTH_SECRET` (ít nhất 32 ký tự) và `BETTER_AUTH_URL`.
-3. Chạy `drizzle/0000_initial.sql` rồi `drizzle/0001_planning_basis_index.sql` trong Neon SQL Editor (hoặc dùng `npm run db:push` trên database trống).
+3. Chạy `npm run db:migrate` để áp các migration còn thiếu theo thứ tự. Với database trống, lệnh này tạo toàn bộ schema hiện hành; không chạy `db:seed` trên database vận hành.
 4. `npm run dev`, mở `http://localhost:3000`.
 5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.
 6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. Để nạp 12 booking mẫu, dùng `npm run db:seed -- --allow-demo-data` chỉ với database dành riêng cho thử nghiệm; script từ chối chạy nếu thiếu cờ xác nhận và tự bỏ qua khi database đã có booking.
@@ -20,7 +20,7 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 - Project đã được kết nối Neon và deploy trên Vercel. Ứng dụng: <https://kdbt-app-dat-hang-eu1a50fak-vohanh19902026-droid.vercel.app/login>.
 - Vercel cần `DATABASE_URL`, `BETTER_AUTH_SECRET` và `BETTER_AUTH_URL`. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
 - Các migration được quản lý qua `npm run db:migrate`; script áp theo thứ tự, ghi nhận migration đã chạy và có chế độ xem trước `npx tsx scripts/apply-migrations.ts --dry`.
-- Migration `0002_receivable_ledger.sql` bổ sung sổ công nợ; trước khi deploy phiên bản có phân hệ này, chạy `npm run db:migrate` trên Neon.
+- Các schema thay đổi được quản lý bằng `drizzle/0000`–`0004`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng `npx tsx scripts/apply-migrations.ts --dry` để xem trước. Chế độ dry-run chỉ đọc database.
 - Admin đầu tiên đã được tạo trên database theo biên bản triển khai ngày 2026-11-02. Không lưu mật khẩu tài khoản trong repo. Admin đăng nhập và tạo tài khoản nội bộ ở `/admin/users`; người dùng có thể tự đổi mật khẩu trong menu tài khoản.
 - PWA cài từ trình duyệt cần HTTPS; service worker chỉ lưu màn offline và icon, không cache trang/API chứa dữ liệu riêng.
 
@@ -44,11 +44,11 @@ Xem [`docs/base-app-evaluation.md`](docs/base-app-evaluation.md) để biết n�
 
 ## Trạng thái vận hành hiện tại
 
-- Bản production theo nhật ký triển khai đang ở commit `ac0d07b`. P1/P2 hiện tiếp tục trong workspace local; thay đổi mới chưa được đưa lên production.
-- Lần kiểm tra local ngày 2026-11-02: `npm run typecheck`, `npm run lint`, `npm test` (31/31), `npm run build` và `npm audit` (0 lỗ hổng) đều đạt.
+- Repo công khai trên GitHub đã đồng bộ tới commit `cd8c475`. Lần kiểm tra trạng thái commit qua GitHub báo Vercel check `failure`; deployment hiện hành và log build cần được xác minh trong Vercel trước khi coi bản production đã cập nhật.
+- Lần kiểm tra local ngày 2026-11-02: `npm run typecheck`, `npm run lint`, `npm test` (32/32), `npm run build` và `npm audit` (0 lỗ hổng) đều đạt.
 - Demo PostgreSQL thử nghiệm đã xác nhận tạo booking tự tăng mã, xếp lịch/gán xe, ghi audit và xuất XLSX có booking/phương tiện; bản ghi kiểm tra phát sinh đã được dọn. 12 booking mẫu còn trong cụm PostgreSQL thử nghiệm đã dừng, không thuộc production.
-- Nhật ký triển khai ngày 2026-11-02 ghi nhận migration đã áp lên Neon, Admin đã khởi tạo, deployment production Ready, `/api/health` trả 200 với database `up`, 16/16 smoke kiểm tra HTTP production đạt và dữ liệu smoke đã được dọn.
+- Nhật ký cũ ngày 2026-11-02 ghi nhận một deployment và smoke test production trước đó đạt; kết quả này không xác nhận deployment hiện tại hoặc trạng thái migration hiện thời.
 - Ứng dụng có security headers, CSP production, chặn Origin lạ trên API ghi dữ liệu và giới hạn truy vấn theo ngày. `/orders` đã được sửa lỗi SSR của Tabulator; có health check, error/loading boundary, lịch sử booking, báo cáo khoảng ngày và đổi mật khẩu tự phục vụ.
-- P1/P2 đã được triển khai trong workspace: giới hạn đăng nhập 5 lần/phút (bộ đếm in-memory theo instance Vercel), structured error logs không ghi message/secret, và phân hệ sổ công nợ. Cần chạy migration `0002_receivable_ledger.sql` và deploy phiên bản mới thì màn công nợ mới hoạt động trên production.
+- P1/P2 có trong mã nguồn: giới hạn đăng nhập 5 lần/phút (bộ đếm in-memory theo instance Vercel), structured error logs không ghi message/secret, phân hệ sổ công nợ, hồ sơ nhân viên và quyền lọc công nợ theo NVKD. Chưa xác nhận chúng đã được triển khai thành công trên production.
 - Trước khi nhập dữ liệu vận hành: Admin cần đăng nhập, đặt mật khẩu riêng, tạo tài khoản NV kế hoạch/NVKD; chủ hệ thống cần xác nhận backup/restore Neon và diễn tập với nhân viên.
 - Mẫu XLSX được dựng theo ảnh tham khảo; độ rộng/nhóm màu có thể điều chỉnh theo workbook gốc nếu có file Excel chuẩn.

@@ -17,7 +17,7 @@
 - Phân hệ công nợ: `ADMIN`/`ACCOUNTANT` xem số dư và ghi khoản phải thu/tiền thu, VND số nguyên, gắn khách hàng/booking/chứng từ, lọc ngày tối đa 92 ngày.
 - Kế toán xuất XLSX sổ công nợ theo khoảng ngày đã lọc; file gồm tổng kỳ, số dư khách hàng và giao dịch chi tiết. Chỉ `ADMIN`/`ACCOUNTANT` được xuất.
 - Sổ append-only: không sửa/xóa giao dịch; điều chỉnh bằng khoản đối ứng. Không tự suy ra doanh thu từ khối lượng, không lập hóa đơn hay thay thế phần mềm kế toán.
-- Migration mới: `drizzle/0002_receivable_ledger.sql`.
+- Các migration hiện hành: `drizzle/0000`–`0004` (schema ban đầu, chỉ mục lịch, sổ công nợ, thiết lập/hồ sơ nhân viên và gán NVKD phụ trách khách hàng).
 
 ## Kiểm tra local
 
@@ -26,6 +26,7 @@
 - `npm test` — 32/32 đạt, có kiểm tra workbook công nợ mở lại được.
 - `npm run build` — đạt.
 - `npm audit` — 0 vulnerabilities sau khi pin phiên bản vá tương thích cho `esbuild`, `minimatch` và `uuid`; giữ nguyên `exceljs@4.4.0`.
+- Kiểm tra lại trong phiên hiện tại: typecheck, lint, build và 32/32 bài test đều đạt; migration dry-run trên PostgreSQL thử nghiệm `cencom_accounting_test` chỉ đọc và báo các migration `0000`–`0004` đã áp dụng.
 - Migration `0002` đã chạy thành công trên PostgreSQL thử nghiệm cô lập; tích hợp ghi khoản phải thu/thu tiền, tổng theo kỳ, số dư và danh sách giao dịch đều đạt.
 - Demo PostgreSQL cô lập có 12 booking mẫu; đã tạo thêm booking qua sequence, xếp lịch/gán xe, ghi audit và mở lại XLSX để xác nhận có mã booking/phương tiện. Bản ghi demo phát sinh được dọn sau kiểm tra.
 - Smoke browser/API trên Next production build chạy local tại cổng 3100: 16/16 đạt (login, tạo/xếp booking, stale version, audit events, XLSX, Origin/RBAC, render các trang); booking và khách `SMOKE-` đã dọn, 12 booking mẫu còn lại để xem giao diện.
@@ -34,8 +35,8 @@
 
 ## Bước triển khai còn lại
 
-- Phiên bản production hiện theo nhật ký ở commit `ac0d07b`; P1/P2 trên đây chưa được deploy.
-- Trước deploy, chạy `npm run db:migrate` trên Neon để áp `0002_receivable_ledger.sql`, sau đó deploy commit mới.
+- GitHub ghi nhận Vercel check của commit `cd8c475` là `failure`; deployment hiện hành và log build chưa được xác minh.
+- Khi truy cập được đúng project Vercel, kiểm tra log deploy và biến môi trường, xác nhận trạng thái từng migration trên đúng Neon database, rồi mới triển khai lại.
 - Sau deploy, chạy smoke test API/frontend với tài khoản `ADMIN` và `ACCOUNTANT`, thử ghi hai giao dịch đối ứng, kiểm tra phép tính số dư và quyền `PLANNER`/`SALES` bị chặn.
 - Admin tạo tài khoản NV kế hoạch/NVKD và nhân viên diễn tập booking → xếp lịch → xuất XLSX trên thiết bị thật.
 - Đối chiếu cột/màu/độ rộng XLSX với workbook gốc; hiện chỉ có ảnh tham khảo. Xác nhận backup/restore Neon.

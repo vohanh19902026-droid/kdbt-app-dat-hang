@@ -40,18 +40,26 @@ async function main(): Promise<void> {
   const client = await pool.connect();
 
   try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS _app_migrations (
-        filename text PRIMARY KEY,
-        applied_at timestamptz NOT NULL DEFAULT now()
-      )
-    `);
+    if (!DRY_RUN) {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS _app_migrations (
+          filename text PRIMARY KEY,
+          applied_at timestamptz NOT NULL DEFAULT now()
+        )
+      `);
+    }
 
-    const applied = new Set<string>(
-      (await client.query<{ filename: string }>("SELECT filename FROM _app_migrations")).rows.map(
-        (row) => row.filename,
-      ),
+    const migrationTable = await client.query<{ name: string | null }>(
+      "SELECT to_regclass($1) AS name",
+      ["_app_migrations"],
     );
+    const applied = new Set<string>();
+    if (migrationTable.rows[0]?.name) {
+      const rows = await client.query<{ filename: string }>(
+        "SELECT filename FROM _app_migrations",
+      );
+      for (const row of rows.rows) applied.add(row.filename);
+    }
 
     const dir = path.join(process.cwd(), "drizzle");
     const files = (await readdir(dir))
