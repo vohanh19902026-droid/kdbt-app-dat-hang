@@ -52,12 +52,26 @@ async function main() {
   }
 
   const [{ db }, schema] = await Promise.all([import("../src/db"), import("../src/db/schema")]);
-  const prompt = createInterface({ input: stdin, output: stdout });
-  try {
-    const name = (await prompt.question("Tên quản trị viên: ")).trim();
-    const email = (await prompt.question("Email đăng nhập: ")).trim().toLowerCase();
+
+  // Chế độ không tương tác (CI/deploy): đọc từ biến môi trường, không ghi mật khẩu ra log.
+  const envMode = Boolean(process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD);
+  let name: string;
+  let email: string;
+  let password: string;
+
+  if (envMode) {
+    name = (process.env.ADMIN_NAME || "Quản trị viên").trim();
+    email = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+    password = process.env.ADMIN_PASSWORD || "";
+  } else {
+    const prompt = createInterface({ input: stdin, output: stdout });
+    name = (await prompt.question("Tên quản trị viên: ")).trim();
+    email = (await prompt.question("Email đăng nhập: ")).trim().toLowerCase();
     prompt.close();
-    const password = await questionHidden("Mật khẩu (tối thiểu 10 ký tự, không hiển thị): ");
+    password = await questionHidden("Mật khẩu (tối thiểu 10 ký tự, không hiển thị): ");
+  }
+
+  try {
     if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10) {
       throw new Error("Tên, email hoặc mật khẩu không hợp lệ.");
     }
@@ -72,7 +86,6 @@ async function main() {
     });
     console.log(`Đã tạo Admin ${email}. Đăng nhập để cấp tài khoản nhân viên.`);
   } finally {
-    prompt.close();
     await db.$client.end();
   }
 }

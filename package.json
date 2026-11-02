@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts",
     "db:push": "drizzle-kit push",
+    "db:migrate": "tsx scripts/apply-migrations.ts",
     "db:seed": "tsx scripts/seed.ts",
     "auth:create-admin": "tsx scripts/bootstrap-admin.ts"
   },
