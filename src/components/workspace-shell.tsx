@@ -42,7 +42,8 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
   async function changePassword(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordBusy(true); setPasswordError(""); setPasswordNotice("");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const currentPassword = String(form.get("currentPassword") ?? "");
     const newPassword = String(form.get("newPassword") ?? "");
     const confirmPassword = String(form.get("confirmPassword") ?? "");
@@ -56,14 +57,25 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
         return;
       }
       setPasswordNotice("Đã đổi mật khẩu. Các thiết bị khác đã bị đăng xuất.");
-      event.currentTarget.reset();
+      formElement.reset();
     } catch {
       setPasswordError("Mất kết nối tới máy chủ. Vui lòng thử lại.");
     } finally {
       setPasswordBusy(false);
     }
   }
-  const mobileNav = role === "ADMIN" ? ["/orders", "/planning", "/accounting", "/admin/settings"] : nav.slice(0, 4).map((item) => item.href);
+  const mobileNav = role === "ADMIN"
+    ? ["/orders", "/planning", "/accounting", "/admin/users", "/admin/settings"]
+    : nav.slice(0, 4).map((item) => item.href);
+  const mobileLabels: Record<string, string> = {
+    "/orders": "Đơn hàng",
+    "/planning": "Kế hoạch",
+    "/accounting": "Công nợ",
+    "/admin/users": "Tài khoản",
+    "/admin/settings": "Cài đặt",
+    "/reports": "Tổng hợp",
+    "/customers": "Khách hàng",
+  };
   return <div className={`shell ${settings.themeMode === "dark" ? "theme-dark" : ""}`} style={themeStyle} data-theme={settings.themeMode}>
     <aside className="sidebar">
       <div className="brand"><div className="brandmark">{settings.companyName.slice(0, 1).toUpperCase()}</div><div className="brandname">{settings.companyName}<small>{settings.companySubtitle}</small></div></div>
@@ -77,7 +89,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
       </header>
       <section className="content">{children}</section>
     </main>
-    <nav className="mobile-tabs">{mobileNav.map((href) => { const item = nav.find((entry) => entry.href === href); return item ? <Link key={item.href} className={pathname === item.href ? "active" : ""} href={item.href}><item.icon size={18} />{href === "/admin/settings" ? "Cài đặt" : item.label.split(" ")[0]}</Link> : null; })}</nav>
+    <nav className="mobile-tabs">{mobileNav.map((href) => { const item = nav.find((entry) => entry.href === href); return item ? <Link key={item.href} className={pathname === item.href ? "active" : ""} href={item.href}><item.icon size={18} />{mobileLabels[href] ?? item.label}</Link> : null; })}</nav>
     {showPassword && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowPassword(false); }}>
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="password-title">
         <div className="modalhead">
