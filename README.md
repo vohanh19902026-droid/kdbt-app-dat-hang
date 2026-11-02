@@ -15,9 +15,12 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 
 Không chạy seed trên database có dữ liệu vận hành. Không đưa `.env.local` hoặc thông tin Neon vào Git/Vercel source.
 
-## Triển khai thử trên Vercel + Neon
+## Triển khai Vercel + Neon
 
-- Project đã được kết nối Neon và deploy trên Vercel. Ứng dụng: <https://kdbt-app-dat-hang-eu1a50fak-vohanh19902026-droid.vercel.app/login>.
+- Ứng dụng production: <https://kdbt-app-dat-hang-five.vercel.app/login>.
+- Repo công khai: <https://github.com/vohanh19902026-droid/kdbt-app-dat-hang>.
+- Bản production đã xác minh dùng commit `f65dfc2`; `/api/health` trả `status: ok`, `database: up`.
+- Database production hiện chỉ có tài khoản Admin khởi tạo; chưa có tài khoản nhân viên, khách hàng hoặc booking. Không dùng dữ liệu mẫu trên production.
 - Vercel cần `DATABASE_URL`, `BETTER_AUTH_SECRET` và `BETTER_AUTH_URL`. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
 - Các migration được quản lý qua `npm run db:migrate`; script áp theo thứ tự, ghi nhận migration đã chạy và có chế độ xem trước `npx tsx scripts/apply-migrations.ts --dry`.
 - Các schema thay đổi được quản lý bằng `drizzle/0000`–`0004`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng `npx tsx scripts/apply-migrations.ts --dry` để xem trước. Chế độ dry-run chỉ đọc database.
@@ -44,11 +47,11 @@ Xem [`docs/base-app-evaluation.md`](docs/base-app-evaluation.md) để biết n�
 
 ## Trạng thái vận hành hiện tại
 
-- Repo công khai trên GitHub đã đồng bộ tới commit `cd8c475`. Lần kiểm tra trạng thái commit qua GitHub báo Vercel check `failure`; deployment hiện hành và log build cần được xác minh trong Vercel trước khi coi bản production đã cập nhật.
-- Lần kiểm tra local ngày 2026-11-02: `npm run typecheck`, `npm run lint`, `npm test` (32/32), `npm run build` và `npm audit` (0 lỗ hổng) đều đạt.
-- Demo PostgreSQL thử nghiệm đã xác nhận tạo booking tự tăng mã, xếp lịch/gán xe, ghi audit và xuất XLSX có booking/phương tiện; bản ghi kiểm tra phát sinh đã được dọn. 12 booking mẫu còn trong cụm PostgreSQL thử nghiệm đã dừng, không thuộc production.
-- Nhật ký cũ ngày 2026-11-02 ghi nhận một deployment và smoke test production trước đó đạt; kết quả này không xác nhận deployment hiện tại hoặc trạng thái migration hiện thời.
+- Repo công khai trên GitHub đã đồng bộ tới commit `f65dfc2`; deployment Vercel tương ứng ở trạng thái Ready. Health check production xác nhận kết nối Neon hoạt động.
+- Lần kiểm tra local ngày 2026-11-02: `npm run typecheck`, `npm run lint`, `npm test` và `npm run build` đều đạt.
+- UAT local với 13 booking đã xác nhận mã booking, xếp lịch, phương tiện, lịch sử và công nợ. Workbook theo source hiện tại có sheet `Kế hoạch cấp`, 22 cột, gồm ghi chú kinh doanh/kế hoạch, loại bơm, giờ yêu cầu và trạng thái.
+- Database production giữ sạch dữ liệu thử nghiệm: chỉ có Admin, chưa có nhân viên, khách hàng hay booking. Dùng `/admin/users` để tạo tài khoản theo danh sách nhân sự thật trước khi vận hành.
 - Ứng dụng có security headers, CSP production, chặn Origin lạ trên API ghi dữ liệu và giới hạn truy vấn theo ngày. `/orders` đã được sửa lỗi SSR của Tabulator; có health check, error/loading boundary, lịch sử booking, báo cáo khoảng ngày và đổi mật khẩu tự phục vụ.
-- P1/P2 có trong mã nguồn: giới hạn đăng nhập 5 lần/phút (bộ đếm in-memory theo instance Vercel), structured error logs không ghi message/secret, phân hệ sổ công nợ, hồ sơ nhân viên và quyền lọc công nợ theo NVKD. Chưa xác nhận chúng đã được triển khai thành công trên production.
-- Trước khi nhập dữ liệu vận hành: Admin cần đăng nhập, đặt mật khẩu riêng, tạo tài khoản NV kế hoạch/NVKD; chủ hệ thống cần xác nhận backup/restore Neon và diễn tập với nhân viên.
+- P1/P2 đã có trên bản đang chạy: giới hạn đăng nhập 5 lần/phút (bộ đếm in-memory theo instance Vercel), structured error logs không ghi message/secret, phân hệ sổ công nợ, hồ sơ nhân viên và quyền lọc công nợ theo NVKD.
+- Trước khi nhập dữ liệu vận hành: Admin cần đặt mật khẩu riêng, tạo tài khoản NV kế hoạch/NVKD và kế toán theo nhân sự thật, rồi kiểm tra backup/restore Neon và diễn tập với nhân viên.
 - Mẫu XLSX được dựng theo ảnh tham khảo; độ rộng/nhóm màu có thể điều chỉnh theo workbook gốc nếu có file Excel chuẩn.

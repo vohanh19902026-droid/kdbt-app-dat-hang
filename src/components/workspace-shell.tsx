@@ -19,6 +19,7 @@ const accentTokens = {
 export function WorkspaceShell({ children, userName, email, role, settings }: { children: React.ReactNode; userName: string; email: string; role: AppRole; settings: AppSettings }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [showMobileAccountMenu, setShowMobileAccountMenu] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordNotice, setPasswordNotice] = useState("");
@@ -29,6 +30,12 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     "--font-scale": String(settings.fontScale / 100),
     fontFamily: settings.fontFamily === "system" ? "system-ui, sans-serif" : settings.fontFamily === "manrope" ? "Manrope, sans-serif" : "'DM Sans', sans-serif",
   } as React.CSSProperties;
+  function openPasswordForm() {
+    setShowMobileAccountMenu(false);
+    setShowPassword(true);
+    setPasswordError("");
+    setPasswordNotice("");
+  }
   const nav = [
     { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: role !== "ACCOUNTANT" },
     { href: "/planning", label: "Bảng kế hoạch", icon: LayoutDashboard, show: ["ADMIN", "PLANNER"].includes(role) },
@@ -81,11 +88,14 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
       <div className="brand"><div className="brandmark">{settings.companyName.slice(0, 1).toUpperCase()}</div><div className="brandname">{settings.companyName}<small>{settings.companySubtitle}</small></div></div>
       <div className="navlabel">Không gian làm việc</div>
       <nav className="nav">{nav.map((item) => <Link key={item.href} className={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""} href={item.href}><item.icon className="ico" size={17} />{item.label}</Link>)}</nav>
-      <div className="sidebottom"><div className="avatar">{userName.slice(0, 1).toLocaleUpperCase("vi-VN")}</div><div className="user-copy"><b>{userName}</b><small>{roleLabels[role]}</small><span>{email}</span><button className="nav" onClick={() => { setShowPassword(true); setPasswordError(""); setPasswordNotice(""); }}><KeyRound size={15} /> Đổi mật khẩu</button><button className="nav logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div></div>
+      <div className="sidebottom"><div className="avatar">{userName.slice(0, 1).toLocaleUpperCase("vi-VN")}</div><div className="user-copy"><b>{userName}</b><small>{roleLabels[role]}</small><span>{email}</span><button className="nav" onClick={openPasswordForm}><KeyRound size={15} /> Đổi mật khẩu</button><button className="nav logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div></div>
     </aside>
     <main className="main">
       <header className="topbar"><div className="crumb">{settings.companyName} <span style={{ color: "#adb6ae" }}> / </span><strong>{nav.find((item) => item.href === pathname)?.label || "Điều hành"}</strong></div>
-        <div className="top-actions"><div className="role-select">{roleLabels[role]}</div><div className="date-select">{new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date())}</div></div>
+        <div className="top-actions"><div className="role-select">{roleLabels[role]}</div><div className="date-select">{new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date())}</div>
+          <button type="button" className="mobile-account-trigger" aria-expanded={showMobileAccountMenu} aria-controls="mobile-account-menu" onClick={() => setShowMobileAccountMenu((open) => !open)}>{userName}</button>
+          {showMobileAccountMenu && <div className="mobile-account-menu" id="mobile-account-menu" role="group" aria-label="Thao tác tài khoản"><div className="account-identity"><b>{userName}</b><span>{roleLabels[role]} · {email}</span></div><button type="button" onClick={openPasswordForm}><KeyRound size={15} /> Đổi mật khẩu</button><button type="button" className="logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div>}
+        </div>
       </header>
       <section className="content">{children}</section>
     </main>

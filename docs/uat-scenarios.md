@@ -41,7 +41,7 @@ Mật khẩu tạm chỉ được gửi trong báo cáo phiên, không lưu tron
 1. Ở vai trò Kế hoạch, xuất bảng cho ngày 02/11/2026.
 2. Mở file bằng ExcelJS để kiểm tra cấu trúc và dữ liệu.
 
-**Đạt khi:** workbook có sheet `Kế hoạch cấp`, 20 dòng, 18 cột; chứa `BOOK-7445` và phương tiện `Xe bồn UAT 7m3`.
+**Đạt khi:** workbook có sheet `Kế hoạch cấp`, 20 dòng, 22 cột; chứa `BOOK-7445`, phương tiện `Xe bồn UAT 7m3`, hai cột ghi chú, loại xe bơm, giờ yêu cầu và trạng thái.
 
 ### UAT-04 — Kế toán ghi công nợ và xuất sổ
 
@@ -65,7 +65,7 @@ Mật khẩu tạm chỉ được gửi trong báo cáo phiên, không lưu tron
 | --- | --- | --- |
 | UAT-01 | Đạt | UI tạo booking `BOOK-7445`, hiện 16,5 m³ và trạng thái chờ duyệt. |
 | UAT-02 | Đạt | Bảng kế hoạch và lịch sử ghi giờ 14:45–16:00, phương tiện, hai bước trạng thái. |
-| UAT-03 | Đạt | `E:\Du lieu C\Downloads\ke-hoach-cap-be-tong-2026-11-02.xlsx`; mở lại thành công. |
+| UAT-03 | Đạt ở source hiện tại | Tạo workbook từ 13 booking của database UAT, mở lại bằng ExcelJS: sheet `Kế hoạch cấp`, 20 dòng, 22 cột, có `BOOK-7445` và các trường mới. File kiểm tra: `D:\Temp\kdbt-plan-uat-current-source.xlsx`. |
 | UAT-04 | Đạt | UI: 25.000.000₫ / 10.000.000₫ / 15.000.000₫; XLSX `E:\Du lieu C\Downloads\so-cong-no-2026-11-01-den-2026-11-02.xlsx` mở lại thành công. |
 | UAT-05 | Đạt | Kế hoạch xuất công nợ: 403; Kế toán xuất kế hoạch: 403. |
 
@@ -90,3 +90,9 @@ Mật khẩu tạm chỉ được gửi trong báo cáo phiên, không lưu tron
 | Kiểm tra trực quan trang công nợ | Đạt | Trang đã tải hoàn chỉnh sau khi khởi động lại Next production local; ảnh chụp trong phiên thể hiện tổng số liệu và form công nợ. |
 
 Không lưu lại thay đổi cài đặt trong lượt UAT này. Database dùng là PostgreSQL local ở cổng 55432.
+
+## Đối chiếu bản hiện hành
+
+- Production đang chạy commit `f65dfc2`; `/api/health` xác nhận Neon đang kết nối.
+- Local PostgreSQL UAT giữ dữ liệu mô phỏng riêng, không dùng Neon production.
+- Lưu ý: tiến trình Next `start` đang mở tại `127.0.0.1:3100` có thể còn phục vụ build cũ. Trong lần đối chiếu ngày 02/11/2026, nút xuất trên tiến trình đó tạo XLSX 18 cột; source hiện tại tạo đủ 22 cột. Hãy dừng và khởi động lại tiến trình local sau mỗi lần build để UI và tệp xuất cùng phiên bản.
