@@ -41,6 +41,22 @@ export function vnDateRange(date: string): { from: Date; to: Date } {
   return { from, to: new Date(from.getTime() + 86_400_000) };
 }
 
+/** Cộng/trừ số ngày trên chuỗi YYYY-MM-DD, tính theo lịch UTC để không lệch múi giờ. */
+export function addIsoDays(date: string, days: number): string {
+  if (!isValidIsoDate(date) || !Number.isInteger(days)) throw new RangeError("INVALID_DATE");
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Giới hạn khoảng ngày tối đa; nếu ngày kết thúc trước ngày bắt đầu thì lấy đúng một ngày. */
+export function clampIsoDateRange(from: string, to: string, maxDays: number) {
+  if (!isValidIsoDate(from) || !isValidIsoDate(to)) throw new RangeError("INVALID_DATE");
+  if (!Number.isInteger(maxDays) || maxDays < 1) throw new RangeError("INVALID_RANGE");
+  const end = to < from ? from : to;
+  const span = Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000) + 1;
+  const clamped = span > maxDays;
+  return { from, to: clamped ? addIsoDays(from, maxDays - 1) : end, clamped };
+}
+
 /** Ngày Việt Nam của một mốc thời gian, định dạng YYYY-MM-DD. */
 export function vnDateOf(value: Date): string {
   if (Number.isNaN(value.getTime())) throw new RangeError("INVALID_DATE");

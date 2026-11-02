@@ -31,6 +31,14 @@ $ npm test
 exit code: 0 — 23 test PASS
 
 2026-11-02
+$ npm test (sau khi thêm báo cáo khoảng ngày)
+exit code: 0 — 25 test PASS
+
+2026-11-02
+$ npx tsx scripts/.tmp-e2e3.ts (báo cáo khoảng ngày)
+exit code: 0 — 10 passed, 0 failed
+
+2026-11-02
 $ npm run build
 exit code: 0 — Next.js 16.4.3, 14 route
 

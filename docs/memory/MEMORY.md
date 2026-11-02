@@ -49,3 +49,9 @@
 - Quyết định: Better Auth bắt buộc header `Origin` khớp `BETTER_AUTH_URL` cho `sign-in/email`; client phải gửi Origin (browser tự gửi).
 - Lý do: thiếu Origin trả 403 `MISSING_OR_NULL_ORIGIN`; đây là chống CSRF mặc định.
 - Tác động: test E2E phải đặt `origin: BASE`; preview deployment khác domain sẽ không đăng nhập được cho tới khi thêm domain vào `trustedOrigins`.
+
+## 2026-11-02
+
+- Quyết định: Báo cáo sản lượng lọc theo khoảng `from`/`to`, tối đa 92 ngày, dùng `clampIsoDateRange`; bỏ lọc `createdBy` sai dành cho ACCOUNTANT.
+- Lý do: báo cáo một ngày không đủ cho tổng kết tuần/tháng; vai trò kế toán không tạo booking nên lọc theo người tạo luôn ra rỗng.
+- Tác động: `reports/page.tsx`, `vn-date.ts` (`addIsoDays`, `clampIsoDateRange`), 2 unit test mới; trang vẫn chặn SALES.

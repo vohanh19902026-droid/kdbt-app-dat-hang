@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  combineVnDateTime, isValidIsoDate, isValidTime, normalizeIsoDate, todayVN,
+  addIsoDays, clampIsoDateRange, combineVnDateTime, isValidIsoDate, isValidTime, normalizeIsoDate, todayVN,
   vnDateOf, vnDateRange, vnTimeOf,
 } from "../src/lib/vn-date";
 
@@ -45,4 +45,26 @@ test("combineVnDateTime only accepts real dates and HH:MM time", () => {
   assert.equal(combineVnDateTime("2026-02-30", "09:15"), null);
   assert.equal(isValidTime("23:59"), true);
   assert.equal(isValidTime("7:05"), false);
+});
+
+test("addIsoDays crosses month and year boundaries", () => {
+  assert.equal(addIsoDays("2026-12-31", 1), "2027-01-01");
+  assert.equal(addIsoDays("2026-03-01", -1), "2026-02-28");
+  assert.equal(addIsoDays("2024-02-28", 1), "2024-02-29");
+  assert.throws(() => addIsoDays("2026-02-30", 1), RangeError);
+  assert.throws(() => addIsoDays("2026-01-01", 1.5), RangeError);
+});
+
+test("clampIsoDateRange keeps short ranges and caps long ones", () => {
+  assert.deepEqual(clampIsoDateRange("2026-11-01", "2026-11-30", 92), {
+    from: "2026-11-01", to: "2026-11-30", clamped: false,
+  });
+  assert.deepEqual(clampIsoDateRange("2026-11-01", "2027-06-01", 92), {
+    from: "2026-11-01", to: "2027-01-31", clamped: true,
+  });
+  // Ngày kết thúc trước ngày bắt đầu thì thu về đúng ngày bắt đầu, không ném lỗi.
+  assert.deepEqual(clampIsoDateRange("2026-11-10", "2026-11-01", 92), {
+    from: "2026-11-10", to: "2026-11-10", clamped: false,
+  });
+  assert.throws(() => clampIsoDateRange("2026-11-01", "2026-11-02", 0), RangeError);
 });
