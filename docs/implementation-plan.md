@@ -5,7 +5,7 @@
 - Đăng nhập nội bộ và phân quyền Admin, Kế hoạch, Kinh doanh, Kế toán.
 - NVKD tạo booking trên điện thoại; mã booking được PostgreSQL cấp tự động.
 - Kế hoạch duyệt booking, chỉnh giờ cấp, giao phương tiện và theo dõi lịch sử trên bảng desktop.
-- Xuất bảng kế hoạch `.xlsx` theo mẫu nghiệp vụ; Kế toán/Admin ghi sổ công nợ và xuất sổ.
+- Xuất bảng kế hoạch `.xlsx` theo mẫu nghiệp vụ; Kế toán/Admin quản lý sổ công nợ và xuất sổ. NVKD xem công nợ khách hàng được giao, ghi nhận tiền đã thu và xuất dữ liệu trong phạm vi phụ trách.
 - PWA có thể cài trên điện thoại/tablet; các trang và API mang dữ liệu không được lưu vào cache offline.
 - Admin quản lý tài khoản/hồ sơ nhân viên, thương hiệu/giao diện và danh mục mác, cát, đá, bơm, dung tích xe, hạng mục.
 - Báo cáo sản lượng phân biệt khách hàng theo nhân viên kinh doanh phụ trách.

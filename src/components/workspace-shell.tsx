@@ -43,7 +43,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     { href: "/customers", label: "Khách hàng", icon: Users, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/admin/users", label: "Tài khoản & phân quyền", icon: Settings2, show: role === "ADMIN" },
     { href: "/admin/settings", label: "Cài đặt", icon: Settings2, show: role === "ADMIN" },
-    { href: "/accounting", label: "Công nợ", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" },
+    { href: "/accounting", label: "Công nợ", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" || role === "SALES" },
   ].filter((item) => item.show);
   async function signOut() { await authClient.signOut(); router.replace("/login"); router.refresh(); }
   async function changePassword(event: React.FormEvent<HTMLFormElement>) {

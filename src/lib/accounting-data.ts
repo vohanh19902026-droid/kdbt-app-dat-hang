@@ -16,15 +16,16 @@ export function defaultAccountingRange() {
   return { from: `${today.slice(0, 7)}-01`, to: today };
 }
 
-export async function getAccountingData(rawFrom: string, rawTo: string, salesRepId: string | null = null, options: { exportAllEntries?: boolean } = {}) {
+export async function getAccountingData(rawFrom: string, rawTo: string, salesRepId: string | null = null, options: { exportAllEntries?: boolean; ownerSalesRepId?: string } = {}) {
   if (!isValidIsoDate(rawFrom) || !isValidIsoDate(rawTo)) throw new RangeError("INVALID_ACCOUNTING_RANGE");
   const range = clampIsoDateRange(rawFrom, rawTo, ACCOUNTING_MAX_RANGE_DAYS);
   const from = vnDateRange(range.from).from;
   const to = vnDateRange(range.to).to;
 
-  const salesRepCondition = salesRepId === UNASSIGNED_SALES_REP
+  const selectedSalesRepCondition = salesRepId === UNASSIGNED_SALES_REP
     ? isNull(customers.salesRepId)
     : salesRepId ? eq(customers.salesRepId, salesRepId) : undefined;
+  const salesRepCondition = and(selectedSalesRepCondition, options.ownerSalesRepId ? eq(customers.salesRepId, options.ownerSalesRepId) : undefined);
   const [periodTotals] = await db.select({ chargesVnd: chargeSum, paymentsVnd: paymentSum })
     .from(receivableEntries).innerJoin(customers, eq(receivableEntries.customerId, customers.id))
     .where(and(gte(receivableEntries.occurredAt, from), lt(receivableEntries.occurredAt, to), salesRepCondition));
@@ -74,16 +75,16 @@ export async function getAccountingData(rawFrom: string, rawTo: string, salesRep
   }
 
   const activeCustomers = await db.select({ id: customers.id, name: customers.name })
-    .from(customers).where(eq(customers.isActive, true)).orderBy(asc(customers.name)).limit(1000);
+    .from(customers).where(and(eq(customers.isActive, true), options.ownerSalesRepId ? eq(customers.salesRepId, options.ownerSalesRepId) : undefined)).orderBy(asc(customers.name)).limit(1000);
   const salesReps = await db.select({ id: user.id, name: user.name, isActive: user.isActive })
-    .from(user).where(eq(user.appRole, "SALES")).orderBy(asc(user.name));
+    .from(user).where(and(eq(user.appRole, "SALES"), options.ownerSalesRepId ? eq(user.id, options.ownerSalesRepId) : undefined)).orderBy(asc(user.name));
   const recentOrders = await db.select({
     id: orders.id,
     customerId: orders.customerId,
     bookingNo: orders.bookingNo,
     customerName: orders.customerName,
-  }).from(orders)
-    .where(and(isNotNull(orders.customerId), ne(orders.status, "CANCELLED")))
+  }).from(orders).innerJoin(customers, eq(orders.customerId, customers.id))
+    .where(and(isNotNull(orders.customerId), ne(orders.status, "CANCELLED"), options.ownerSalesRepId ? eq(customers.salesRepId, options.ownerSalesRepId) : undefined))
     .orderBy(desc(orders.createdAt)).limit(500);
 
   const balancesWithBalance = balances.map((row) => ({
