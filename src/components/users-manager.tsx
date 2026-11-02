@@ -15,13 +15,19 @@ export function UsersManager({ users }: { users: UserRow[] }) {
   const router = useRouter();
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
-    const response = await fetch("/api/admin/users", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))),
-    });
-    const result = await response.json().catch(() => ({})); setBusy(false);
-    if (!response.ok) { setError(result.error || "Không tạo được tài khoản."); return; }
-    setOpen(false); router.refresh();
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget))),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(result.error || "Không tạo được tài khoản."); return; }
+      setOpen(false); router.refresh();
+    } catch {
+      setError("Mất kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function update(id: string, patch: Record<string, unknown>) {
     const response = await fetch("/api/admin/users", {
@@ -49,8 +55,8 @@ export function UsersManager({ users }: { users: UserRow[] }) {
     {open && <div className="overlay"><section className="modal" role="dialog" aria-modal="true"><div className="modalhead"><div><div className="eyebrow">TÀI KHOẢN NHÂN VIÊN</div><h2>Tạo người dùng</h2><div className="sub">Tài khoản có thể đăng nhập ngay sau khi tạo.</div></div><button className="close" onClick={() => setOpen(false)} aria-label="Đóng">×</button></div>
       <form onSubmit={create}><div className="formgrid"><div className="field"><label>Họ tên *</label><input name="name" minLength={2} maxLength={100} required /></div>
         <div className="field"><label>Email đăng nhập *</label><input name="email" type="email" required /></div>
-        <div className="field"><label>Mật khẩu tạm *</label><input name="password" type="password" minLength={10} required /><small className="muted">Tối thiểu 10 ký tự</small></div>
-        <div className="field"><label>Vai trò *</label><select name="appRole">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></div>
+        <div className="field"><label>Mật khẩu tạm *</label><input name="password" type="password" minLength={10} required /><small className="muted">Tối thiểu 10 ký tự. Gửi riêng cho nhân viên và hướng dẫn họ đổi sau khi đăng nhập.</small></div>
+        <div className="field"><label>Vai trò *</label><select name="appRole" defaultValue="SALES">{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></div>
         <div className="field"><label>Mã nhân viên</label><input name="employeeCode" maxLength={40} /></div>
         <div className="field"><label>Số điện thoại</label><input name="phone" type="tel" maxLength={30} /></div>
         <div className="field"><label>Bộ phận</label><input name="department" maxLength={80} /></div>
