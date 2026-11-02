@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
   const rows = await db.select().from(orders)
     .where(and(gte(plannedAt, from), lt(plannedAt, to)))
     .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt))
-    .limit(5000);
+    .limit(5001);
+  if (rows.length > 5000) {
+    return NextResponse.json({ error: "Ngày này có hơn 5.000 booking. Không thể xuất đầy đủ trong một file; vui lòng liên hệ quản trị viên." }, { status: 400 });
+  }
   const workbook = createPlanWorkbook(date, from, rows);
   const buffer = await workbook.xlsx.writeBuffer();
   const filename = `ke-hoach-cap-be-tong-${date}.xlsx`;

@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { statusLabels, type OrderStatus } from "@/lib/types";
 
 export type PlanExportOrder = {
   bookingNo: string;
@@ -6,6 +7,7 @@ export type PlanExportOrder = {
   siteAddress: string;
   salesRepName: string;
   contactPhone: string | null;
+  requestedAt: Date;
   plannedStartAt: Date | null;
   plannedEndAt: Date | null;
   quantityM3: string;
@@ -13,6 +15,7 @@ export type PlanExportOrder = {
   grade: string;
   sandType: string;
   stoneType: string;
+  pumpRequired: string;
   pumpOperator: string | null;
   assignedVehicle: string | null;
   truckCapacityM3: string | null;
@@ -40,7 +43,11 @@ const columns = [
   { header: "Phương tiện", key: "vehicle", width: 18 },
   { header: "Xe chở / chuyến", key: "capacity", width: 15 },
   { header: "HM", key: "pourType", width: 12 },
-  { header: "Ghi chú", key: "note", width: 22 },
+  { header: "Ghi chú kinh doanh", key: "salesNote", width: 22 },
+  { header: "Ghi chú kế hoạch", key: "planningNote", width: 22 },
+  { header: "Loại xe bơm", key: "pumpRequired", width: 16 },
+  { header: "Ngày giờ yêu cầu", key: "requestedAt", width: 19 },
+  { header: "Trạng thái", key: "status", width: 18 },
 ];
 
 const timeVN = (value: Date | null) => value
@@ -100,7 +107,10 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
       order.customerName, order.siteAddress, order.salesRepName, order.contactPhone || "",
       Number(order.quantityM3), Number(order.actualM3), order.grade, order.sandType, order.stoneType,
       order.pumpOperator || "", order.assignedVehicle || "",
-      order.truckCapacityM3 ? `${order.truckCapacityM3} m³/chuyến` : "", order.pourType || "", order.salesNote || order.planningNote || "",
+      order.truckCapacityM3 ? `${order.truckCapacityM3} m³/chuyến` : "", order.pourType || "", order.salesNote || "", order.planningNote || "",
+      order.pumpRequired,
+      new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(order.requestedAt),
+      statusLabels[order.status as OrderStatus] ?? order.status,
     ]);
     row.height = 24;
     row.eachCell((cell, column) => {
@@ -122,8 +132,8 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
   });
   const totalRow = sheet.addRow([
     "TỔNG CỘNG", "", "", "", "", "", "", "",
-    { formula: `SUM(I7:I${Math.max(7, 6 + rows.length)})`, result: total },
-    { formula: `SUM(J7:J${Math.max(7, 6 + rows.length)})`, result: actual }, "", "", "", "", "", "", "", "",
+    rows.length ? { formula: `SUM(I7:I${6 + rows.length})`, result: total } : 0,
+    rows.length ? { formula: `SUM(J7:J${6 + rows.length})`, result: actual } : 0,
   ]);
   totalRow.height = 25;
   totalRow.eachCell((cell) => {

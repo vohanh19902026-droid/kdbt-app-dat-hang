@@ -110,7 +110,8 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
                 const status = cell.getValue() as OrderStatus;
                 return `<span class="status-select ${statusTone[status]}">${escapeHtml(statusLabels[status] ?? status)}</span>`;
               } },
-            { title: "GHI CHÚ", field: "salesNote", width: 180, editor: canEdit ? "input" : false },
+            { title: "GHI CHÚ KINH DOANH", field: "salesNote", width: 180, editor: false },
+            { title: "GHI CHÚ KẾ HOẠCH", field: "planningNote", width: 200, editor: canEdit ? "input" : false },
           ],
         });
         grid.on("cellEdited", async (cell) => {
