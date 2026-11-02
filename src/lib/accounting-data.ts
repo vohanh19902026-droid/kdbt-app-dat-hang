@@ -5,6 +5,7 @@ import { clampIsoDateRange, isValidIsoDate, todayVN, vnDateRange } from "@/lib/v
 import { summarizeReceivableEntries } from "@/lib/receivables";
 
 export const ACCOUNTING_MAX_RANGE_DAYS = 92;
+export const ACCOUNTING_EXPORT_MAX_ENTRIES = 100_000;
 const zero = "0";
 export const UNASSIGNED_SALES_REP = "unassigned";
 const chargeSum = sql<string>`COALESCE(SUM(CASE WHEN ${receivableEntries.entryType} = 'CHARGE' THEN ${receivableEntries.amountVnd} ELSE 0 END), 0)::text`;
@@ -15,7 +16,7 @@ export function defaultAccountingRange() {
   return { from: `${today.slice(0, 7)}-01`, to: today };
 }
 
-export async function getAccountingData(rawFrom: string, rawTo: string, salesRepId: string | null = null) {
+export async function getAccountingData(rawFrom: string, rawTo: string, salesRepId: string | null = null, options: { exportAllEntries?: boolean } = {}) {
   if (!isValidIsoDate(rawFrom) || !isValidIsoDate(rawTo)) throw new RangeError("INVALID_ACCOUNTING_RANGE");
   const range = clampIsoDateRange(rawFrom, rawTo, ACCOUNTING_MAX_RANGE_DAYS);
   const from = vnDateRange(range.from).from;
@@ -65,8 +66,12 @@ export async function getAccountingData(rawFrom: string, rawTo: string, salesRep
     .leftJoin(entryCreator, eq(receivableEntries.createdBy, entryCreator.id))
     .leftJoin(salesRepUser, eq(customers.salesRepId, salesRepUser.id))
     .where(and(gte(receivableEntries.occurredAt, from), lt(receivableEntries.occurredAt, to), salesRepCondition))
-    .orderBy(desc(receivableEntries.occurredAt), desc(receivableEntries.createdAt))
-    .limit(1001);
+    .orderBy(desc(receivableEntries.occurredAt), desc(receivableEntries.createdAt), desc(receivableEntries.id))
+    .limit(options.exportAllEntries ? ACCOUNTING_EXPORT_MAX_ENTRIES + 1 : 1001);
+
+  if (options.exportAllEntries && entries.length > ACCOUNTING_EXPORT_MAX_ENTRIES) {
+    throw new RangeError("ACCOUNTING_EXPORT_TOO_LARGE");
+  }
 
   const activeCustomers = await db.select({ id: customers.id, name: customers.name })
     .from(customers).where(eq(customers.isActive, true)).orderBy(asc(customers.name)).limit(1000);
@@ -89,7 +94,7 @@ export async function getAccountingData(rawFrom: string, rawTo: string, salesRep
     ]),
   }));
   const totalBalance = balancesWithBalance.reduce((sum, row) => sum + BigInt(row.balanceVnd), 0n);
-  const maxEntriesReached = entries.length > 1000;
+  const maxEntriesReached = !options.exportAllEntries && entries.length > 1000;
 
   return {
     period: { from: range.from, to: range.to, clamped: range.clamped, maxDays: ACCOUNTING_MAX_RANGE_DAYS },
@@ -103,7 +108,7 @@ export async function getAccountingData(rawFrom: string, rawTo: string, salesRep
       ? "Chưa phân công"
       : salesReps.find((rep) => rep.id === salesRepId)?.name ?? "Tất cả nhân viên",
     recentOrders,
-    entries: entries.slice(0, 1000).map((row) => ({ ...row, occurredAt: row.occurredAt.toISOString(), createdAt: row.createdAt.toISOString() })),
+    entries: (options.exportAllEntries ? entries : entries.slice(0, 1000)).map((row) => ({ ...row, occurredAt: row.occurredAt.toISOString(), createdAt: row.createdAt.toISOString() })),
     maxEntriesReached,
   };
 }

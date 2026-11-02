@@ -112,15 +112,11 @@ export function AccountingLedger({ initialData }: { initialData: LedgerData }) {
 
   const periodCharges = data?.periodTotals.chargesVnd ?? "0";
   const periodPayments = data?.periodTotals.paymentsVnd ?? "0";
-  const exportSalesLabel = salesRepId === "unassigned" ? "chua-phan-cong"
-    : salesRepId ? data?.salesReps.find((rep) => rep.id === salesRepId)?.name ?? "nhan-vien"
-      : "tat-ca-nvkd";
-  const exportSalesSlug = exportSalesLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "tat-ca-nvkd";
   return <div className="ledger-page">
     <div className="pagehead">
       <div><div className="eyebrow">SỔ THEO DÕI THU KHÁCH HÀNG</div><h1>Công nợ khách hàng</h1><div className="sub">Ghi nhận khoản phải thu và tiền đã thu theo khách hàng; không tự tính giá từ khối lượng bê tông.</div></div>
       <div className="heading-actions">
-        <a className="btn secondary" href={`/api/accounting/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${salesRepId ? `&salesRepId=${encodeURIComponent(salesRepId)}` : ""}`} download={`so-cong-no-${from}-den-${to}-${exportSalesSlug}.xlsx`}>Xuất XLSX</a>
+        <a className="btn secondary" href={`/api/accounting/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${salesRepId ? `&salesRepId=${encodeURIComponent(salesRepId)}` : ""}`}>Xuất XLSX</a>
         <form className="filter-row ledger-filter" onSubmit={(event) => { event.preventDefault(); void load(from, to, salesRepId); }}>
           <label className="sub">Từ ngày <input className="date-input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} required /></label>
           <label className="sub">Đến ngày <input className="date-input" type="date" value={to} onChange={(event) => setTo(event.target.value)} required /></label>
