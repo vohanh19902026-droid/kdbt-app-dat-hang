@@ -10,7 +10,7 @@
       columns?: Array<{ formatter?: string | ((cell: CellComponent) => string); [key: string]: unknown }>;
       [key: string]: unknown;
     });
-    on(event: "cellEdited", callback: (cell: CellComponent) => void): void;
+    on(event: string, callback: (cell: CellComponent) => void): void;
     destroy(): void;
   }
 }

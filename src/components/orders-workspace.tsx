@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Plus, RefreshCw, Search } from "lucide-react";
-import { TabulatorFull as Tabulator } from "tabulator-tables";
+import type { TabulatorFull } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import { statusLabels, type AppRole, type OrderStatus } from "@/lib/types";
 import { isValidIsoDate, isValidTime, vnDateOf } from "@/lib/vn-date";
@@ -17,6 +17,36 @@ type OrderDTO = {
   planningNote: string | null; status: OrderStatus; createdBy: string; version: string;
 };
 type Totals = { ordered: number; actual: number; pending: number; ongoing: number };
+type HistoryEvent = {
+  id: string; eventType: string; eventLabel: string; fieldName: string | null;
+  oldValue: string | null; newValue: string | null; createdAt: string; actorName: string | null;
+};
+const fieldLabels: Record<string, string> = {
+  plannedDate: "Ngày cấp", plannedStartAt: "Giờ xuất phát", plannedEndAt: "Giờ đổ",
+  quantityM3: "KL đặt", actualM3: "KL thực đổ", grade: "Mác", sandType: "Cốt liệu I",
+  stoneType: "Cốt liệu II", contactPhone: "Điện thoại", pumpOperator: "NV bơm",
+  pumpRequired: "Xe bơm", assignedVehicle: "Phương tiện", truckCapacityM3: "Xe chở",
+  planningNote: "Ghi chú kế hoạch", pourType: "Hạng mục", customerName: "Khách hàng",
+  siteAddress: "Địa chỉ", salesNote: "Ghi chú", status: "Trạng thái",
+};
+const timeOfDayVN = (value: string) => new Intl.DateTimeFormat("vi-VN", {
+  hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh", hour12: false,
+}).format(new Date(value));
+const dateTimeVN = (value: string) => new Intl.DateTimeFormat("vi-VN", {
+  dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh", hour12: false,
+}).format(new Date(value));
+const dateOnlyVN = (value: string) => new Intl.DateTimeFormat("vi-VN", {
+  dateStyle: "short", timeZone: "Asia/Ho_Chi_Minh",
+}).format(new Date(value));
+const formatEventValue = (field: string | null, value: string | null) => {
+  if (value === null || value === "") return "—";
+  if (field === "plannedStartAt" || field === "plannedEndAt") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : `${timeOfDayVN(value)} · ${dateOnlyVN(value)}`;
+  }
+  if (field === "status") return statusLabels[value as OrderStatus] ?? value;
+  return value;
+};
 const statusTone: Record<OrderStatus, string> = {
   PENDING: "pending", APPROVED: "approved", SCHEDULED: "scheduled",
   IN_PROGRESS: "progress", COMPLETED: "completed", CANCELLED: "cancelled",
@@ -29,94 +59,117 @@ const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[character] as string));
 
-function PlanGrid({ rows, canEdit, onToast }: { rows: OrderDTO[]; canEdit: boolean; onToast: (message: string) => void }) {
+function PlanGrid({ rows, canEdit, onToast, onHistory }: {
+  rows: OrderDTO[]; canEdit: boolean; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void;
+}) {
   const host = useRef<HTMLDivElement>(null);
-  const table = useRef<Tabulator | null>(null);
   useEffect(() => {
-    if (!host.current) return;
-    const data = rows.map((order) => ({
-      ...order,
-      plannedDate: order.plannedStartAt ? vnDateOf(new Date(order.plannedStartAt)) : vnDateOf(new Date(order.requestedAt)),
-      plannedStartTime: timeVN(order.plannedStartAt), plannedEndTime: timeVN(order.plannedEndAt),
-    }));
-    const grid = new Tabulator(host.current, {
-      data, index: "id", layout: "fitDataStretch", height: "calc(100vh - 360px)", minHeight: 290,
-      placeholder: "Chưa có booking trong ngày này.", movableColumns: true, tooltips: true, headerSort: true,
-      columns: [
-        { title: "STT", formatter: "rownum", width: 46, hozAlign: "center", headerSort: false, frozen: true },
-        { title: "NGÀY", field: "plannedDate", width: 106, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input", tooltip: "Ngày cấp hàng, định dạng YYYY-MM-DD" },
-        { title: "XUẤT PHÁT", field: "plannedStartTime", width: 92, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input" },
-        { title: "TG ĐỔ", field: "plannedEndTime", width: 78, hozAlign: "center", editor: canEdit ? "input" : false },
-        { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${escapeHtml(cell.getValue())}</b>` },
-        { title: "KHÁCH HÀNG", field: "customerName", width: 145, editor: canEdit ? "input" : false },
-        { title: "ĐỊA CHỈ LIÊN HỆ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
-        { title: "KINH DOANH", field: "salesRepName", width: 112, editor: false },
-        { title: "ĐIỆN THOẠI", field: "contactPhone", width: 105, editor: canEdit ? "input" : false },
-        { title: "KL ĐẶT", field: "quantityM3", width: 72, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
-        { title: "KL THỰC ĐỔ", field: "actualM3", width: 80, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
-        { title: "MÁC", field: "grade", width: 105, editor: canEdit ? "input" : false },
-        { title: "CỐT LIỆU T I", field: "sandType", width: 115, editor: canEdit ? "input" : false, cssClass: "sand-cell" },
-        { title: "CỐT LIỆU T II", field: "stoneType", width: 115, editor: canEdit ? "input" : false, cssClass: "stone-cell" },
-        { title: "XE BƠM", field: "pumpRequired", width: 112, editor: canEdit ? "input" : false },
-        { title: "NHÂN VIÊN BƠM", field: "pumpOperator", width: 120, editor: canEdit ? "input" : false },
-        { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 125, editor: canEdit ? "input" : false, cssClass: "vehicle-cell" },
-        { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false, editorParams: { values: { 5: "5 m³", 7: "7 m³", 10: "10 m³" } }, formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
-        { title: "HM", field: "pourType", width: 86, editor: canEdit ? "input" : false },
-        { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
-          editorParams: { values: Object.fromEntries(Object.entries(statusLabels).map(([key, label]) => [key, label])) },
-          formatter: (cell) => {
-            const status = cell.getValue() as OrderStatus;
-            return `<span class="status-select ${statusTone[status]}">${escapeHtml(statusLabels[status] ?? status)}</span>`;
-          } },
-        { title: "GHI CHÚ", field: "salesNote", width: 180, editor: canEdit ? "input" : false },
-      ],
-    });
-    table.current = grid;
-    grid.on("cellEdited", async (cell) => {
-      const row = cell.getRow().getData() as OrderDTO & { plannedStartTime: string; plannedEndTime: string; plannedDate: string };
-      const field = cell.getField();
-      const value = cell.getValue();
-      if ((field === "plannedStartTime" || field === "plannedEndTime") && value && !isValidTime(value)) {
-        cell.restoreOldValue();
-        onToast("Nhập giờ theo định dạng HH:MM.");
-        return;
-      }
-      if (field === "plannedDate" && !isValidIsoDate(value)) {
-        cell.restoreOldValue();
-        onToast("Nhập ngày theo định dạng YYYY-MM-DD.");
-        return;
-      }
-      const payload: Record<string, unknown> = {
-        [field]: field.includes("Time") ? value || null : value,
-        version: Number(row.version),
-      };
+    const element = host.current;
+    if (!element) return;
+    let disposed = false;
+    let grid: TabulatorFull | null = null;
+
+    async function mountGrid(target: HTMLDivElement) {
       try {
-        const response = await fetch(`/api/orders/${row.id}`, {
-          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+        // Tabulator chạm document ngay khi module được nạp, nên chỉ import ở phía trình duyệt.
+        const { TabulatorFull: Tabulator } = await import("tabulator-tables");
+        if (disposed) return;
+        const data = rows.map((order) => ({
+          ...order,
+          plannedDate: order.plannedStartAt ? vnDateOf(new Date(order.plannedStartAt)) : vnDateOf(new Date(order.requestedAt)),
+          plannedStartTime: timeVN(order.plannedStartAt), plannedEndTime: timeVN(order.plannedEndAt),
+        }));
+        grid = new Tabulator(target, {
+          data, index: "id", layout: "fitDataStretch", height: "calc(100vh - 360px)", minHeight: 290,
+          placeholder: "Chưa có booking trong ngày này.", movableColumns: true, tooltips: true, headerSort: true,
+          columns: [
+            { title: "STT", formatter: "rownum", width: 46, hozAlign: "center", headerSort: false, frozen: true },
+            { title: "NGÀY", field: "plannedDate", width: 106, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input", tooltip: "Ngày cấp hàng, định dạng YYYY-MM-DD" },
+            { title: "XUẤT PHÁT", field: "plannedStartTime", width: 92, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input" },
+            { title: "TG ĐỔ", field: "plannedEndTime", width: 78, hozAlign: "center", editor: canEdit ? "input" : false },
+            { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${escapeHtml(cell.getValue())}</b>` },
+            { title: "KHÁCH HÀNG", field: "customerName", width: 145, editor: canEdit ? "input" : false },
+            { title: "ĐỊA CHỈ LIÊN HỆ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
+            { title: "KINH DOANH", field: "salesRepName", width: 112, editor: false },
+            { title: "ĐIỆN THOẠI", field: "contactPhone", width: 105, editor: canEdit ? "input" : false },
+            { title: "KL ĐẶT", field: "quantityM3", width: 72, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
+            { title: "KL THỰC ĐỔ", field: "actualM3", width: 80, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
+            { title: "MÁC", field: "grade", width: 105, editor: canEdit ? "input" : false },
+            { title: "CỐT LIỆU T I", field: "sandType", width: 115, editor: canEdit ? "input" : false, cssClass: "sand-cell" },
+            { title: "CỐT LIỆU T II", field: "stoneType", width: 115, editor: canEdit ? "input" : false, cssClass: "stone-cell" },
+            { title: "XE BƠM", field: "pumpRequired", width: 112, editor: canEdit ? "input" : false },
+            { title: "NHÂN VIÊN BƠM", field: "pumpOperator", width: 120, editor: canEdit ? "input" : false },
+            { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 125, editor: canEdit ? "input" : false, cssClass: "vehicle-cell" },
+            { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false, editorParams: { values: { 5: "5 m³", 7: "7 m³", 10: "10 m³" } }, formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
+            { title: "HM", field: "pourType", width: 86, editor: canEdit ? "input" : false },
+            { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
+              editorParams: { values: Object.fromEntries(Object.entries(statusLabels).map(([key, label]) => [key, label])) },
+              formatter: (cell) => {
+                const status = cell.getValue() as OrderStatus;
+                return `<span class="status-select ${statusTone[status]}">${escapeHtml(statusLabels[status] ?? status)}</span>`;
+              } },
+            { title: "GHI CHÚ", field: "salesNote", width: 180, editor: canEdit ? "input" : false },
+          ],
         });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          cell.restoreOldValue();
-          onToast(result.error || "Không lưu được thay đổi.");
-          return;
-        }
-        const saved = result.order as {
-          version: string; requestedAt: string; plannedStartAt: string | null; plannedEndAt: string | null;
-        };
-        cell.getRow().update({
-          version: String(saved.version),
-          plannedDate: saved.plannedStartAt ? vnDateOf(new Date(saved.plannedStartAt)) : vnDateOf(new Date(saved.requestedAt)),
-          plannedStartTime: timeVN(saved.plannedStartAt),
-          plannedEndTime: timeVN(saved.plannedEndAt),
+        grid.on("cellClick", (cell) => {
+          if (cell.getField() === "bookingNo") onHistory(cell.getRow().getData() as OrderDTO);
         });
-        onToast("Đã lưu thay đổi và ghi lịch sử booking.");
-      } catch {
-        cell.restoreOldValue();
-        onToast("Mất kết nối tới máy chủ. Vui lòng thử lại.");
+        grid.on("cellEdited", async (cell) => {
+          const row = cell.getRow().getData() as OrderDTO & { plannedStartTime: string; plannedEndTime: string; plannedDate: string };
+          const field = cell.getField();
+          const value = cell.getValue();
+          if ((field === "plannedStartTime" || field === "plannedEndTime") && value && !isValidTime(value)) {
+            cell.restoreOldValue();
+            onToast("Nhập giờ theo định dạng HH:MM.");
+            return;
+          }
+          if (field === "plannedDate" && !isValidIsoDate(value)) {
+            cell.restoreOldValue();
+            onToast("Nhập ngày theo định dạng YYYY-MM-DD.");
+            return;
+          }
+          const payload: Record<string, unknown> = {
+            [field]: field.includes("Time") ? value || null : value,
+            version: Number(row.version),
+          };
+          try {
+            const response = await fetch(`/api/orders/${row.id}`, {
+              method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              cell.restoreOldValue();
+              onToast(result.error || "Không lưu được thay đổi.");
+              return;
+            }
+            const saved = result.order as {
+              version: string; requestedAt: string; plannedStartAt: string | null; plannedEndAt: string | null;
+            };
+            cell.getRow().update({
+              version: String(saved.version),
+              plannedDate: saved.plannedStartAt ? vnDateOf(new Date(saved.plannedStartAt)) : vnDateOf(new Date(saved.requestedAt)),
+              plannedStartTime: timeVN(saved.plannedStartAt),
+              plannedEndTime: timeVN(saved.plannedEndAt),
+            });
+            onToast("Đã lưu thay đổi và ghi lịch sử booking.");
+          } catch {
+            cell.restoreOldValue();
+            onToast("Mất kết nối tới máy chủ. Vui lòng thử lại.");
+          }
+        });
+      } catch (error) {
+        console.error("plan_grid_init_failed", error);
+        if (!disposed) onToast("Không tải được bảng điều phối. Vui lòng tải lại trang.");
       }
-    });
-    return () => { grid.destroy(); table.current = null; };
-  }, [rows, canEdit, onToast]);
+    }
+
+    void mountGrid(element);
+    return () => {
+      disposed = true;
+      grid?.destroy();
+      grid = null;
+    };
+  }, [rows, canEdit, onToast, onHistory]);
   return <div className="plan-table" ref={host} />;
 }
 
@@ -133,6 +186,23 @@ export function OrdersWorkspace({
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<{ order: OrderDTO; rows: HistoryEvent[]; loading: boolean; error: string } | null>(null);
+  const openHistory = useCallback(async (order: OrderDTO) => {
+    setHistory({ order, rows: [], loading: true, error: "" });
+    try {
+      const response = await fetch(`/api/orders/${order.id}/events`);
+      const result = await response.json().catch(() => ({}));
+      setHistory((current) => {
+        if (!current || current.order.id !== order.id) return current;
+        if (!response.ok) return { order, rows: [], loading: false, error: result.error || "Không tải được lịch sử thay đổi." };
+        return { order, rows: Array.isArray(result.events) ? result.events : [], loading: false, error: "" };
+      });
+    } catch {
+      setHistory((current) => current && current.order.id === order.id
+        ? { order, rows: [], loading: false, error: "Mất kết nối tới máy chủ. Vui lòng thử lại." }
+        : current);
+    }
+  }, []);
   const planner = ["ADMIN", "PLANNER"].includes(role);
   const canCreate = ["ADMIN", "PLANNER", "SALES"].includes(role);
   const visible = useMemo(() => orders.filter((order) =>
@@ -197,7 +267,7 @@ export function OrdersWorkspace({
       </div>
       <div className="search-wrap"><Search size={15} /><input className="search" placeholder="Tìm booking, khách hàng, địa chỉ..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
     </div>
-    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} onToast={setToast} /></div>
+    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} onToast={setToast} onHistory={openHistory} /></div>
     <div className="desktop-note">{planner
       ? "Chỉnh trực tiếp giờ, vật liệu, phương tiện hoặc trạng thái. Mỗi thay đổi được lưu và ghi vào lịch sử booking."
       : "Danh sách chỉ hiển thị booking do bạn tạo. Mã booking được cấp tự động."}</div>
@@ -225,6 +295,33 @@ export function OrdersWorkspace({
           <div className="modalfoot"><button type="button" className="btn secondary" onClick={() => setShowForm(false)}>Hủy</button>
             <button className="btn" disabled={busy}>{busy ? "Đang lưu..." : "Gửi lệnh đặt hàng →"}</button></div>
         </form>
+      </section>
+    </div>}
+    {history && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setHistory(null); }}>
+      <section className="modal history-modal" role="dialog" aria-modal="true" aria-labelledby="history-title">
+        <div className="modalhead">
+          <div>
+            <div className="eyebrow">LỊCH SỬ THAY ĐỔI</div>
+            <h2 id="history-title">{history.order.bookingNo}</h2>
+            <div className="sub">{history.order.customerName}</div>
+          </div>
+          <button className="close" onClick={() => setHistory(null)} aria-label="Đóng">×</button>
+        </div>
+        {history.loading && <p className="sub" role="status">Đang tải lịch sử…</p>}
+        {history.error && <div className="form-error" role="alert">{history.error}</div>}
+        {!history.loading && !history.error && history.rows.length === 0 && <p className="sub">Chưa có thay đổi nào được ghi cho booking này.</p>}
+        {history.rows.length > 0 && <div className="history-scroll">
+          <table className="history-table">
+            <thead><tr><th>Thời điểm</th><th>Người thực hiện</th><th>Nội dung</th><th>Trước</th><th>Sau</th></tr></thead>
+            <tbody>{history.rows.map((event) => <tr key={event.id}>
+              <td className="nowrap">{dateTimeVN(event.createdAt)}</td>
+              <td>{event.actorName ?? "—"}</td>
+              <td>{event.eventLabel}{event.fieldName ? ` · ${fieldLabels[event.fieldName] ?? event.fieldName}` : ""}</td>
+              <td>{formatEventValue(event.fieldName, event.oldValue)}</td>
+              <td>{formatEventValue(event.fieldName, event.newValue)}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>}
       </section>
     </div>}
     {toast && <div className="toast" role="status">{toast}</div>}

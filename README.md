@@ -44,8 +44,9 @@ Xem [`docs/base-app-evaluation.md`](docs/base-app-evaluation.md) để biết n�
 
 ## Trạng thái vận hành hiện tại
 
-- `npm run typecheck`, ESLint, `npm test` (23 bài) và `npm run build` đã chạy thành công ngày 2026-10-31. Build cục bộ được kiểm tra bằng giá trị secret thử nghiệm riêng, không phải secret production.
+- `npm run typecheck`, ESLint, `npm test` (23 bài) và `npm run build` đã chạy thành công ngày 2026-11-02. Build cục bộ được kiểm tra bằng giá trị secret thử nghiệm riêng, không phải secret production.
+- E2E HTTP trên bản production với PostgreSQL tạm: 37/37 kiểm tra P0 (đăng nhập, RBAC, tạo booking, dời ngày, chống ghi đè, xuất XLSX) và 14/14 kiểm tra P1 (health check, lịch sử thay đổi, chặn truy cập trái quyền).
 - Ứng dụng đã có security headers, CSP ở production, chặn Origin lạ trên API ghi dữ liệu và giới hạn truy vấn theo ngày.
-- Neon đã có schema và Vercel đã có deployment Ready theo lần triển khai gần nhất; cần chạy thêm `drizzle/0001_planning_basis_index.sql` cho database hiện hữu.
-- Cần hoàn tất khởi tạo Admin từ máy có `DATABASE_URL` hợp lệ và diễn tập luồng NVKD → kế hoạch → xuất XLSX trước khi nhập dữ liệu vận hành. Máy hiện tại chỉ có `VERCEL_OIDC_TOKEN`, chưa có `DATABASE_URL`.
+- Đã sửa lỗi SSR khiến `/orders` trả HTTP 500: Tabulator được nạp động trong `useEffect`. Thêm `GET /api/health`, error/loading boundary và màn hình lịch sử thay đổi booking.
+- Vercel project `cencom-os/kdbt-app-dat-hang` đã link nhưng **chưa có biến môi trường**; cần đặt `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` rồi chạy 2 migration, tạo Admin và `vercel --prod`.
 - Mẫu XLSX được dựng theo ảnh tham khảo; độ rộng/nhóm màu có thể điều chỉnh theo workbook gốc nếu có file Excel chuẩn.
