@@ -9,10 +9,11 @@
 - PWA có thể cài trên điện thoại/tablet; các trang và API mang dữ liệu không được lưu vào cache offline.
 - Admin quản lý tài khoản/hồ sơ nhân viên, thương hiệu/giao diện và danh mục mác, cát, đá, bơm, dung tích xe, hạng mục.
 - Báo cáo sản lượng phân biệt khách hàng theo nhân viên kinh doanh phụ trách.
+- Admin có thể tải mẫu CSV UTF-8, xem trước tối đa 200 khách/lần, ghép chủ sở hữu theo email/mã NVKD đang hoạt động, bỏ qua khách trùng và nhập hợp lệ theo một yêu cầu có kiểm tra quyền.
 
 ## Bằng chứng kỹ thuật gần nhất
 
-- `npm test`: 39/39 đạt.
+- `npm test`: 45/45 đạt trước cập nhật lọc NVKD đang hoạt động trong phần xem trước nhập CSV; cần chạy lại sau thay đổi.
 - `npm run lint`: đạt.
 - `npm run typecheck`: đạt.
 - `npm run build`: đạt với Next.js 16.4.3.

@@ -83,6 +83,20 @@ body { min-height:100vh; }
 .customer-modal { width:min(640px,100%); }
 .customer-active { grid-column:1/-1;display:flex;align-items:center;gap:8px;color:#46554a;font-size:12px; }
 .customer-active input { accent-color:var(--green); }
+  .customer-import-success { margin:14px 0 0; }
+  .customer-import-modal { width:min(920px,100%);max-height:min(90vh,920px);overflow:auto; }
+  .customer-import-tools { display:flex;gap:9px;align-items:center;margin:16px 0; }
+  .customer-import-file { position:relative;overflow:hidden; }
+  .customer-import-file input { position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer; }
+  .customer-import-summary { margin:12px 0;font-size:12px;font-weight:700;color:var(--green); }
+  .customer-import-preview { overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:9px; }
+  .customer-import-preview table { width:100%;min-width:760px;border-collapse:collapse;font-size:11px; }
+  .customer-import-preview th,.customer-import-preview td { padding:9px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line); }
+  .customer-import-preview th { position:sticky;top:0;background:#f4f6f2;color:var(--muted);font-size:9px;letter-spacing:.04em; }
+  .customer-import-errors { max-height:140px;overflow:auto;padding:10px 12px;background:#fff2ef;color:#9f2d21;border-radius:8px;font-size:12px; }
+  .customer-import-error { color:#a13227; }
+  .customer-import-duplicate { color:#805b15; }
+  .customer-import-ready { color:#276d49;font-weight:700; }
 @media(max-width:680px){.ledger-stats{grid-template-columns:1fr}.ledger-filter{width:100%;display:grid;grid-template-columns:1fr 1fr}.ledger-filter button{grid-column:1/-1;width:100%;justify-content:center}.ledger-filter label{min-width:0}.ledger-filter .date-input{width:100%}.ledger-panel{padding:15px}.ledger-submit{grid-column:1/-1}.ledger-submit .btn{width:100%;min-height:44px;justify-content:center}}
 @media(max-width:680px){.customer-stats{grid-template-columns:1fr 1fr}.customer-stats .stat:last-child{grid-column:1/-1}.customer-toolbar{align-items:stretch}.customer-search{min-width:0;width:100%}.customer-toolbar>.muted{text-align:right}.customer-grid{min-width:850px}}
 @media(max-width:680px){.heading-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.heading-actions .btn{grid-column:1/-1;justify-content:center}.date-input{width:100%;min-width:0}.login-card{padding:23px}.toast{left:15px;right:15px;bottom:76px}.tabulator{font-size:10px!important}}

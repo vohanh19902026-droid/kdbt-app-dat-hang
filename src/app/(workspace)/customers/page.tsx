@@ -15,7 +15,7 @@ export default async function CustomersPage() {
       .from(customers).leftJoin(user, eq(customers.salesRepId, user.id))
       .orderBy(asc(customers.name), asc(customers.id)),
     appRole === "ADMIN"
-      ? db.select({ id: user.id, name: user.name, employeeCode: user.employeeCode, isActive: user.isActive }).from(user)
+      ? db.select({ id: user.id, name: user.name, email: user.email, employeeCode: user.employeeCode, isActive: user.isActive }).from(user)
         .where(eq(user.appRole, "SALES")).orderBy(asc(user.name))
       : Promise.resolve([]),
   ]);
