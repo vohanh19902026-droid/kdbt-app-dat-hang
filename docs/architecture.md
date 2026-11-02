@@ -1,7 +1,7 @@
 # Kiến trúc
 
 ## Mục tiêu
-Một Next.js web app responsive dùng chung trên desktop và điện thoại. Nhân viên kinh doanh tạo booking; kế hoạch xác nhận, xếp giờ, gán xe; Admin quản lý tài khoản. Điện thoại có thể cài PWA. Kế toán được để chỗ cho giai đoạn sau.
+Một Next.js web app responsive dùng chung trên desktop và điện thoại. Nhân viên kinh doanh tạo booking; kế hoạch xác nhận, xếp giờ, gán xe; Admin quản lý tài khoản. Điện thoại có thể cài PWA. Kế toán/Admin có sổ ghi khoản phải thu và thu tiền cơ bản.
 
 ## Stack
 - Next.js App Router trên Vercel.
@@ -22,6 +22,7 @@ Mobile/Desktop Browser
                                    ├─ orders / booking sequence
                                    ├─ customers / materials
                                    ├─ order_events audit trail
+                                   ├─ receivable_entries append-only ledger
                                    └─ Better Auth user/session/account
 ```
 
@@ -32,7 +33,9 @@ Mobile/Desktop Browser
 - Mỗi cập nhật kế hoạch ghi audit event trong cùng transaction với đơn. Cột `version` ngăn cập nhật đè lên phiên bản mới hơn; trình duyệt gửi version hiện tại khi lưu.
 - Service worker chỉ dự phòng offline screen/icon, không cache trang riêng hoặc API.
 - API ghi dữ liệu kiểm tra Origin; production bật CSP cùng các security header cơ bản, API trả `Cache-Control: no-store`.
-- Không lưu tiền, công nợ hay khối lượng giao thực tế theo từng chuyến trong MVP.
+- Auth endpoint sign-in/email giới hạn 5 lần/phút với storage in-memory mặc định; giới hạn tính theo instance serverless, nên cần shared storage nếu mở rộng quy mô.
+- Sổ công nợ chỉ mở cho `ADMIN`/`ACCOUNTANT`; API tự xác thực session/RBAC/Origin, số tiền là integer VND, bút toán append-only. Backend errors log JSON đã lược thông tin nhạy cảm.
+- Chưa lưu giá bê tông, tự động lập phải thu từ đơn hàng, hóa đơn hoặc khối lượng giao từng chuyến.
 
 ## Triển khai
 Cấu hình `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`; chạy schema SQL/Drizzle push một lần trên database trống; tạo Admin; deploy Next.js lên Vercel. Xem `README.md`.

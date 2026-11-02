@@ -1,34 +1,43 @@
 # Lộ trình triển khai
 
-## Đã hoàn thành cho bản MVP
+## Đã hoàn thành trong MVP
 
-1. Nền Next.js + Better Auth + Drizzle/PostgreSQL, deploy Vercel + Neon.
+1. Next.js + Better Auth + Drizzle/PostgreSQL, deploy Vercel + Neon.
 2. Đăng nhập nội bộ, khởi tạo Admin, quản lý tài khoản và vai trò Admin/Kế hoạch/Kinh doanh/Kế toán.
-3. Tạo booking trên mobile, mã booking tự tăng trong PostgreSQL, dữ liệu NVKD được giới hạn theo người tạo.
-4. Bảng kế hoạch Tabulator chỉnh trực tiếp ngày/giờ, thông tin đơn, vật liệu, phương tiện và trạng thái; ghi lịch sử, phát hiện xung đột cập nhật.
+3. Tạo booking trên mobile, mã booking tự tăng trong PostgreSQL, dữ liệu NVKD giới hạn theo người tạo.
+4. Bảng kế hoạch Tabulator chỉnh ngày/giờ, thông tin đơn, vật liệu, phương tiện và trạng thái; audit và phát hiện xung đột cập nhật.
 5. Xuất XLSX có định dạng, bộ lọc, tổng khối lượng và thiết lập in ngang A3.
 6. PWA cài đặt được; service worker chỉ lưu vỏ offline, không cache dữ liệu riêng.
-7. Bảo mật nền: CSP/headers, chặn Origin lạ cho API ghi, API `no-store`, rate limit đăng nhập theo cấu hình Better Auth.
-8. Vận hành: migration có ghi nhận phiên bản, health check, màn hình lỗi/loading, lịch sử booking, báo cáo nhiều ngày và đổi mật khẩu tự phục vụ.
+7. Health check, error/loading boundary, lịch sử booking, báo cáo nhiều ngày và đổi mật khẩu tự phục vụ.
 
-## Đã triển khai và kiểm tra ngày 2026-11-02
+## P1/P2 vừa hoàn thiện trong workspace
 
-- Neon được provision, migration đã áp và tài khoản Admin đầu tiên đã tạo.
-- Production deploy trên Vercel; health check trả trạng thái database `up`.
-- Smoke test production ghi nhận 16/16 kiểm tra thành công; dữ liệu smoke đã được dọn.
-- Kiểm tra mã nguồn local: typecheck, lint, 25/25 unit test và production build đều thành công.
-- Nhánh `main` đồng bộ với `origin/main` tại commit `ac0d07b` khi tiếp nhận bàn giao.
+- Better Auth giới hạn endpoint đăng nhập ở 5 lần/phút; bộ đếm mặc định lưu trong bộ nhớ từng instance.
+- Backend log lỗi dạng JSON, chỉ gồm tên sự kiện/loại lỗi/request id; không ghi nội dung lỗi thô hay dữ liệu đăng nhập.
+- Phân hệ công nợ: `ADMIN`/`ACCOUNTANT` xem số dư và ghi khoản phải thu/tiền thu, VND số nguyên, gắn khách hàng/booking/chứng từ, lọc ngày tối đa 92 ngày.
+- Sổ append-only: không sửa/xóa giao dịch; điều chỉnh bằng khoản đối ứng. Không tự suy ra doanh thu từ khối lượng, không lập hóa đơn hay thay thế phần mềm kế toán.
+- Migration mới: `drizzle/0002_receivable_ledger.sql`.
 
-## Việc cần hoàn tất trước khi đưa vào vận hành thường xuyên
+## Kiểm tra local
 
-- Admin đăng nhập, đổi mật khẩu khởi tạo sang mật khẩu riêng, rồi tạo tài khoản NV kế hoạch/NVKD và xác nhận vai trò.
-- Diễn tập quy trình booking → xếp lịch → xuất XLSX trên điện thoại và desktop với nhân viên thực tế.
-- Đối chiếu cột, màu, độ rộng và nội dung XLSX với workbook gốc; hiện mẫu được dựng theo ảnh tham khảo, chưa có file Excel nguồn để so khớp.
-- Kiểm tra quy trình backup/restore Neon và thống nhất người phụ trách theo dõi uptime/health.
+- `npm run typecheck` — đạt.
+- `npm run lint` — đạt.
+- `npm test` — 31/31 đạt.
+- `npm run build` — đạt.
+- `npm audit` — 0 vulnerabilities sau khi pin phiên bản vá tương thích cho `esbuild`, `minimatch` và `uuid`; giữ nguyên `exceljs@4.4.0`.
+- Migration `0002` đã chạy thành công trên PostgreSQL thử nghiệm cô lập; tích hợp ghi khoản phải thu/thu tiền, tổng theo kỳ, số dư và danh sách giao dịch đều đạt.
+- Demo PostgreSQL cô lập có 12 booking mẫu; đã tạo thêm booking qua sequence, xếp lịch/gán xe, ghi audit và mở lại XLSX để xác nhận có mã booking/phương tiện. Bản ghi demo phát sinh được dọn sau kiểm tra.
 
-## Ngoài phạm vi MVP / giai đoạn tiếp theo
+## Bước triển khai còn lại
 
-- Công nợ/kế toán, hóa đơn và đối soát.
+- Phiên bản production hiện theo nhật ký ở commit `ac0d07b`; P1/P2 trên đây chưa được deploy.
+- Trước deploy, chạy `npm run db:migrate` trên Neon để áp `0002_receivable_ledger.sql`, sau đó deploy commit mới.
+- Sau deploy, chạy smoke test API/frontend với tài khoản `ADMIN` và `ACCOUNTANT`, thử ghi hai giao dịch đối ứng, kiểm tra phép tính số dư và quyền `PLANNER`/`SALES` bị chặn.
+- Admin tạo tài khoản NV kế hoạch/NVKD và nhân viên diễn tập booking → xếp lịch → xuất XLSX trên thiết bị thật.
+- Đối chiếu cột/màu/độ rộng XLSX với workbook gốc; hiện chỉ có ảnh tham khảo. Xác nhận backup/restore Neon.
+
+## Phạm vi giai đoạn sau
+
+- Hóa đơn, đối soát thuế, phân bổ một khoản thu cho nhiều hóa đơn và quy trình duyệt/xóa bút toán.
 - Phiếu giao theo chuyến, gán tài xế, cập nhật khối lượng thực đổ.
-- Realtime push, cấu hình danh mục vật liệu/xe từ giao diện, nhập booking hàng loạt.
-- Dashboard nhiều trạm và báo cáo quản trị nâng cao.
+- Realtime push, cấu hình danh mục từ UI, nhập booking hàng loạt và dashboard nhiều trạm.

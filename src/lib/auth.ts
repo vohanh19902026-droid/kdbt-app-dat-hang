@@ -25,6 +25,17 @@ export const auth = betterAuth({
     minPasswordLength: 10,
     maxPasswordLength: 128,
   },
+  // Better Auth stores limits in memory by default. Keep login attempts low
+  // for this small internal app; use shared storage if it scales to many instances.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    storage: "memory",
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+    },
+  },
   user: {
     additionalFields: {
       appRole: { type: "string", required: false, defaultValue: "SALES", input: false },

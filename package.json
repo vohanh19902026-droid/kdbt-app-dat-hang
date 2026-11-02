@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts",
+    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx scripts/apply-migrations.ts",
     "db:seed": "tsx scripts/seed.ts",
@@ -37,5 +37,12 @@
     "eslint-config-next": "^16.4.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1",
+    "esbuild": "^0.28.2",
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }

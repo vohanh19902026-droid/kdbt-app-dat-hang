@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 
 export const appRoleEnum = pgEnum("app_role", ["ADMIN", "PLANNER", "SALES", "ACCOUNTANT"]);
 export const orderStatusEnum = pgEnum("order_status", ["PENDING", "APPROVED", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
+export const receivableEntryTypeEnum = pgEnum("receivable_entry_type", ["CHARGE", "PAYMENT"]);
 export const bookingNumberSeq = pgSequence("booking_number_seq", { startWith: 7431 });
 
 // Better Auth tables; appRole is separate from its internal account-management role.
@@ -121,6 +122,25 @@ export const orderEvents = pgTable("order_events", {
   newValue: text("new_value"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("order_events_order_created_idx").on(t.orderId, t.createdAt)]);
+
+// Append-only customer receivable ledger. Amounts are integer Vietnamese dong;
+// corrections should be recorded as a compensating entry, never edited away.
+export const receivableEntries = pgTable("receivable_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  customerId: uuid("customer_id").notNull().references(() => customers.id, { onDelete: "restrict" }),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  entryType: receivableEntryTypeEnum("entry_type").notNull(),
+  amountVnd: decimal("amount_vnd", { precision: 15, scale: 0 }).notNull(),
+  referenceNo: text("reference_no"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+  note: text("note"),
+  createdBy: text("created_by").notNull().references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("receivable_entries_customer_date_idx").on(t.customerId, t.occurredAt),
+  index("receivable_entries_date_idx").on(t.occurredAt),
+  index("receivable_entries_order_idx").on(t.orderId),
+]);
 
 export const materials = pgTable("materials", {
   id: uuid("id").defaultRandom().primaryKey(),

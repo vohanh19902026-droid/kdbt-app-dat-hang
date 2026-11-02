@@ -7,6 +7,7 @@ import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 import { statusLabels } from "@/lib/types";
+import { logServerError } from "@/lib/server-logger";
 
 export const runtime = "nodejs";
 const createSchema = z.object({
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ order: created, message: `Đã tạo booking ${created.bookingNo}` }, { status: 201 });
   } catch (error) {
-    console.error("create_order_failed", error);
+    logServerError("create_order_failed", error, request);
     return NextResponse.json({ error: "Chưa lưu được đơn hàng. Vui lòng thử lại." }, { status: 500 });
   }
 }

@@ -15,12 +15,12 @@ export function WorkspaceShell({ children, userName, email, role }: { children: 
   const [passwordNotice, setPasswordNotice] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
   const nav = [
-    { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: true },
+    { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: role !== "ACCOUNTANT" },
     { href: "/planning", label: "Bảng kế hoạch", icon: LayoutDashboard, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/reports", label: "Tổng hợp sản lượng", icon: ChartColumn, show: role !== "SALES" },
     { href: "/customers", label: "Khách hàng", icon: Users, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/admin/users", label: "Tài khoản & phân quyền", icon: Settings2, show: role === "ADMIN" },
-    { href: "/accounting", label: "Công nợ · sắp có", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" },
+    { href: "/accounting", label: "Công nợ", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" },
   ].filter((item) => item.show);
   async function signOut() { await authClient.signOut(); router.replace("/login"); router.refresh(); }
   async function changePassword(event: React.FormEvent<HTMLFormElement>) {

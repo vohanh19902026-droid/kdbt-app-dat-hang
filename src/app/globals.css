@@ -50,4 +50,24 @@ body { min-height:100vh; }
 .history-table .nowrap { white-space:nowrap; }
 .form-error { color:#a64242; font-size:11px; margin-top:8px; }
 .muted { color:var(--muted); }
+.ledger-panel { padding:20px; margin-bottom:22px; border:1px solid var(--line); border-radius:13px; background:#fff; }
+.ledger-panel-head,.ledger-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:15px; }
+.ledger-panel h2,.ledger-section h2 { font:800 16px Manrope,sans-serif; margin:0; }
+.ledger-panel p { margin:5px 0 0; color:var(--muted); font-size:11px; }
+.ledger-form { align-items:end; }
+.ledger-submit { display:flex; justify-content:flex-end; }
+.ledger-filter { justify-content:flex-end; }
+.ledger-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.ledger-stats .stat strong { font-size:clamp(16px,2vw,22px); overflow-wrap:anywhere; }
+.ledger-section { margin-top:23px; }
+.ledger-grid { min-width:900px; }
+.ledger-grid td { vertical-align:top; }
+.ledger-badge { display:inline-flex; padding:4px 8px; border-radius:99px; font-size:10px; font-weight:700; }
+.ledger-badge.charge { background:#fff2dd; color:#9a641c; }
+.ledger-badge.payment { background:#e4f3e8; color:#2d744a; }
+.ledger-amount { font-weight:700; font-variant-numeric:tabular-nums; }
+.ledger-debt { color:#a64242!important; font-weight:800; }
+.ledger-note-cell { white-space:normal!important; min-width:180px; max-width:280px; }
+.ledger-message { margin:0 0 12px; }
+@media(max-width:680px){.ledger-stats{grid-template-columns:1fr}.ledger-filter{width:100%;display:grid;grid-template-columns:1fr 1fr}.ledger-filter button{grid-column:1/-1;width:100%;justify-content:center}.ledger-filter label{min-width:0}.ledger-filter .date-input{width:100%}.ledger-panel{padding:15px}.ledger-submit{grid-column:1/-1}.ledger-submit .btn{width:100%;min-height:44px;justify-content:center}}
 @media(max-width:680px){.heading-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.heading-actions .btn{grid-column:1/-1;justify-content:center}.date-input{width:100%;min-width:0}.login-card{padding:23px}.toast{left:15px;right:15px;bottom:76px}.tabulator{font-size:10px!important}}

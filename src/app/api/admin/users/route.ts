@@ -6,6 +6,7 @@ import { user } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
+import { logServerError } from "@/lib/server-logger";
 
 export const runtime = "nodejs";
 const inputSchema = z.object({
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     await db.update(user).set({ appRole: data.appRole, isActive: true, updatedAt: new Date() }).where(eq(user.id, created.user.id));
     return NextResponse.json({ id: created.user.id, name: data.name, email: data.email, appRole: data.appRole }, { status: 201 });
   } catch (error) {
-    console.error("admin_create_user_failed", error);
+    logServerError("admin_create_user_failed", error, request);
     return NextResponse.json({ error: "Không tạo được tài khoản. Email có thể đã tồn tại." }, { status: 400 });
   }
 }

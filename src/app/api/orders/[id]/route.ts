@@ -9,6 +9,7 @@ import { resolvePlanningTimes } from "@/lib/planning-schedule";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { isValidIsoDate, vnDateOf } from "@/lib/vn-date";
 import type { OrderStatus } from "@/lib/types";
+import { logServerError } from "@/lib/server-logger";
 
 export const runtime = "nodejs";
 const patchSchema = z.object({
@@ -135,7 +136,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (error instanceof Error && error.message === "CONCURRENT_UPDATE") {
       return NextResponse.json({ error: "Đơn vừa được người khác cập nhật. Tải lại bảng rồi thử lại." }, { status: 409 });
     }
-    console.error("update_order_failed", error);
+    logServerError("update_order_failed", error, request);
     return NextResponse.json({ error: "Không cập nhật được booking." }, { status: 500 });
   }
 }

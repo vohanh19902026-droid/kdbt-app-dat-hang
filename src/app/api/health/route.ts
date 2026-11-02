@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
+import { logServerError } from "@/lib/server-logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function GET() {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    console.error("health_check_failed", error instanceof Error ? error.message : "unknown");
+    logServerError("health_check_failed", error);
     return NextResponse.json(
       { status: "degraded", database: "down" },
       { status: 503, headers: { "Cache-Control": "no-store" } },
