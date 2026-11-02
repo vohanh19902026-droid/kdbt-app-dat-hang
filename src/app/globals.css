@@ -1,4 +1,5 @@
 @import "../../styles.css";
+@import "./admin-settings.css";
 
 .nav a { width:100%;border:0;background:transparent;color:#d2e1d8;padding:12px;border-radius:9px;text-align:left;display:flex;align-items:center;gap:12px;font-size:13px;margin:3px 0;text-decoration:none; }
 .nav a:hover,.nav a.active { background:#ffffff18;color:white; }
@@ -57,6 +58,7 @@ body { min-height:100vh; }
 .ledger-form { align-items:end; }
 .ledger-submit { display:flex; justify-content:flex-end; }
 .ledger-filter { justify-content:flex-end; }
+.ledger-owner-select { min-width:145px; max-width:190px; border:1px solid var(--line); border-radius:7px; padding:7px 9px; background:#fff; color:inherit; font:inherit; }
 .ledger-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .ledger-stats .stat strong { font-size:clamp(16px,2vw,22px); overflow-wrap:anywhere; }
 .ledger-section { margin-top:23px; }

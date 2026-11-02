@@ -1,4 +1,5 @@
 import { and, asc, eq, gte, lt, sql } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
@@ -10,6 +11,8 @@ export const runtime = "nodejs";
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ date?: string; view?: string }> }) {
   const { appRole, user } = await requireSession();
+  // Kế toán chỉ dùng phân hệ công nợ; không để redirect từ trang bị cấm làm lộ danh sách booking.
+  if (appRole === "ACCOUNTANT") redirect("/accounting?denied=1");
   const { date, view } = await searchParams;
   const selectedDate = normalizeIsoDate(date);
   const { from, to } = vnDateRange(selectedDate);

@@ -1,13 +1,14 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/db";
-import { customers, orders, receivableEntries } from "@/db/schema";
+import { customers, orders, receivableEntries, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { isValidIsoDate } from "@/lib/vn-date";
 import { logServerError } from "@/lib/server-logger";
 import { canAccessReceivables, receivableEntrySchema } from "@/lib/receivables";
-import { defaultAccountingRange, getAccountingData } from "@/lib/accounting-data";
+import { defaultAccountingRange, getAccountingData, UNASSIGNED_SALES_REP } from "@/lib/accounting-data";
 
 export const runtime = "nodejs";
 
@@ -19,16 +20,43 @@ export async function GET(request: NextRequest) {
   const defaults = defaultAccountingRange();
   const from = request.nextUrl.searchParams.get("from") ?? defaults.from;
   const to = request.nextUrl.searchParams.get("to") ?? defaults.to;
+  const salesRepId = request.nextUrl.searchParams.get("salesRepId") || null;
   if (!isValidIsoDate(from) || !isValidIsoDate(to)) {
     return NextResponse.json({ error: "Khoảng ngày không hợp lệ." }, { status: 400 });
   }
+  if (salesRepId && salesRepId !== UNASSIGNED_SALES_REP && !z.string().min(1).max(128).safeParse(salesRepId).success) {
+    return NextResponse.json({ error: "Nhân viên kinh doanh không hợp lệ." }, { status: 400 });
+  }
   try {
-    const data = await getAccountingData(from, to);
+    const data = await getAccountingData(from, to, salesRepId);
+    if (salesRepId && salesRepId !== UNASSIGNED_SALES_REP && !data.salesReps.some((rep) => rep.id === salesRepId)) {
+      return NextResponse.json({ error: "Không tìm thấy nhân viên kinh doanh." }, { status: 400 });
+    }
     return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     logServerError("accounting_list_failed", error, request);
     return NextResponse.json({ error: "Không tải được sổ công nợ." }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
+}
+
+export async function PATCH(request: NextRequest) {
+  if (isCrossOriginRequest(request)) return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
+  const session = await getApiSession(request.headers);
+  if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
+  if (!canAccessReceivables(session.appRole)) return NextResponse.json({ error: "Chỉ Kế toán hoặc Admin được phân công khách hàng." }, { status: 403 });
+  const schema = z.object({ customerId: z.uuid(), salesRepId: z.string().max(128) });
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Thông tin phân công chưa hợp lệ." }, { status: 400 });
+  const { customerId, salesRepId } = parsed.data;
+  if (salesRepId) {
+    const [rep] = await db.select({ id: user.id }).from(user)
+      .where(and(eq(user.id, salesRepId), eq(user.appRole, "SALES"), eq(user.isActive, true))).limit(1);
+    if (!rep) return NextResponse.json({ error: "Chỉ được giao cho nhân viên kinh doanh đang hoạt động." }, { status: 400 });
+  }
+  const [customer] = await db.update(customers).set({ salesRepId: salesRepId || null, updatedAt: new Date() })
+    .where(eq(customers.id, customerId)).returning({ id: customers.id });
+  if (!customer) return NextResponse.json({ error: "Không tìm thấy khách hàng." }, { status: 404 });
+  return NextResponse.json({ ok: true });
 }
 
 export async function POST(request: NextRequest) {

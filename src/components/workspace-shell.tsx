@@ -6,20 +6,36 @@ import { ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { roleLabels, type AppRole } from "@/lib/types";
+import type { AppSettings } from "@/lib/app-settings";
 
-export function WorkspaceShell({ children, userName, email, role }: { children: React.ReactNode; userName: string; email: string; role: AppRole }) {
+const accentTokens = {
+  green: { green: "#174b3b", green2: "#23694e", mint: "#e6f1e9", orange: "#f0a44c" },
+  blue: { green: "#1e477b", green2: "#2f68ae", mint: "#e6effb", orange: "#f2b24a" },
+  purple: { green: "#523080", green2: "#7147a6", mint: "#f0eafa", orange: "#e8aa55" },
+  red: { green: "#773333", green2: "#a44747", mint: "#faeaea", orange: "#e8ae56" },
+  amber: { green: "#705018", green2: "#997025", mint: "#f8f0d9", orange: "#e8a143" },
+} as const;
+
+export function WorkspaceShell({ children, userName, email, role, settings }: { children: React.ReactNode; userName: string; email: string; role: AppRole; settings: AppSettings }) {
   const pathname = usePathname();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordNotice, setPasswordNotice] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
+  const accent = accentTokens[settings.accentColor] || accentTokens.green;
+  const themeStyle = {
+    "--green": accent.green, "--green2": accent.green2, "--mint": accent.mint, "--orange": accent.orange,
+    "--font-scale": String(settings.fontScale / 100),
+    fontFamily: settings.fontFamily === "system" ? "system-ui, sans-serif" : settings.fontFamily === "manrope" ? "Manrope, sans-serif" : "'DM Sans', sans-serif",
+  } as React.CSSProperties;
   const nav = [
     { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: role !== "ACCOUNTANT" },
     { href: "/planning", label: "Bảng kế hoạch", icon: LayoutDashboard, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/reports", label: "Tổng hợp sản lượng", icon: ChartColumn, show: role !== "SALES" },
     { href: "/customers", label: "Khách hàng", icon: Users, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/admin/users", label: "Tài khoản & phân quyền", icon: Settings2, show: role === "ADMIN" },
+    { href: "/admin/settings", label: "Cài đặt", icon: Settings2, show: role === "ADMIN" },
     { href: "/accounting", label: "Công nợ", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" },
   ].filter((item) => item.show);
   async function signOut() { await authClient.signOut(); router.replace("/login"); router.refresh(); }
@@ -47,20 +63,21 @@ export function WorkspaceShell({ children, userName, email, role }: { children: 
       setPasswordBusy(false);
     }
   }
-  return <div className="shell">
+  const mobileNav = role === "ADMIN" ? ["/orders", "/planning", "/accounting", "/admin/settings"] : nav.slice(0, 4).map((item) => item.href);
+  return <div className={`shell ${settings.themeMode === "dark" ? "theme-dark" : ""}`} style={themeStyle} data-theme={settings.themeMode}>
     <aside className="sidebar">
-      <div className="brand"><div className="brandmark">C</div><div className="brandname">CENCOM<small>ĐIỀU PHỐI BÊ TÔNG</small></div></div>
+      <div className="brand"><div className="brandmark">{settings.companyName.slice(0, 1).toUpperCase()}</div><div className="brandname">{settings.companyName}<small>{settings.companySubtitle}</small></div></div>
       <div className="navlabel">Không gian làm việc</div>
       <nav className="nav">{nav.map((item) => <Link key={item.href} className={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""} href={item.href}><item.icon className="ico" size={17} />{item.label}</Link>)}</nav>
       <div className="sidebottom"><div className="avatar">{userName.slice(0, 1).toLocaleUpperCase("vi-VN")}</div><div className="user-copy"><b>{userName}</b><small>{roleLabels[role]}</small><span>{email}</span><button className="nav" onClick={() => { setShowPassword(true); setPasswordError(""); setPasswordNotice(""); }}><KeyRound size={15} /> Đổi mật khẩu</button><button className="nav logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="crumb">CENCOM <span style={{ color: "#adb6ae" }}> / </span><strong>{nav.find((item) => item.href === pathname)?.label || "Điều hành"}</strong></div>
+      <header className="topbar"><div className="crumb">{settings.companyName} <span style={{ color: "#adb6ae" }}> / </span><strong>{nav.find((item) => item.href === pathname)?.label || "Điều hành"}</strong></div>
         <div className="top-actions"><div className="role-select">{roleLabels[role]}</div><div className="date-select">{new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date())}</div></div>
       </header>
       <section className="content">{children}</section>
     </main>
-    <nav className="mobile-tabs">{nav.slice(0, 4).map((item) => <Link key={item.href} className={pathname === item.href ? "active" : ""} href={item.href}><item.icon size={18} />{item.label.split(" ")[0]}</Link>)}</nav>
+    <nav className="mobile-tabs">{mobileNav.map((href) => { const item = nav.find((entry) => entry.href === href); return item ? <Link key={item.href} className={pathname === item.href ? "active" : ""} href={item.href}><item.icon size={18} />{href === "/admin/settings" ? "Cài đặt" : item.label.split(" ")[0]}</Link> : null; })}</nav>
     {showPassword && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowPassword(false); }}>
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="password-title">
         <div className="modalhead">

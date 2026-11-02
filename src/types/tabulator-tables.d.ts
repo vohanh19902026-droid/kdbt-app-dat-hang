@@ -7,7 +7,11 @@
   }
   export class TabulatorFull {
     constructor(element: HTMLElement, options: {
-      columns?: Array<{ formatter?: string | ((cell: CellComponent) => string); [key: string]: unknown }>;
+      columns?: Array<{
+        formatter?: string | ((cell: CellComponent) => string);
+        cellClick?: (event: MouseEvent, cell: CellComponent) => void;
+        [key: string]: unknown;
+      }>;
       [key: string]: unknown;
     });
     on(event: string, callback: (cell: CellComponent) => void): void;

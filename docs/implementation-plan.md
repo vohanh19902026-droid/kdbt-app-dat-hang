@@ -15,6 +15,7 @@
 - Better Auth giới hạn endpoint đăng nhập ở 5 lần/phút; bộ đếm mặc định lưu trong bộ nhớ từng instance.
 - Backend log lỗi dạng JSON, chỉ gồm tên sự kiện/loại lỗi/request id; không ghi nội dung lỗi thô hay dữ liệu đăng nhập.
 - Phân hệ công nợ: `ADMIN`/`ACCOUNTANT` xem số dư và ghi khoản phải thu/tiền thu, VND số nguyên, gắn khách hàng/booking/chứng từ, lọc ngày tối đa 92 ngày.
+- Kế toán xuất XLSX sổ công nợ theo khoảng ngày đã lọc; file gồm tổng kỳ, số dư khách hàng và giao dịch chi tiết. Chỉ `ADMIN`/`ACCOUNTANT` được xuất.
 - Sổ append-only: không sửa/xóa giao dịch; điều chỉnh bằng khoản đối ứng. Không tự suy ra doanh thu từ khối lượng, không lập hóa đơn hay thay thế phần mềm kế toán.
 - Migration mới: `drizzle/0002_receivable_ledger.sql`.
 
@@ -22,11 +23,14 @@
 
 - `npm run typecheck` — đạt.
 - `npm run lint` — đạt.
-- `npm test` — 31/31 đạt.
+- `npm test` — 32/32 đạt, có kiểm tra workbook công nợ mở lại được.
 - `npm run build` — đạt.
 - `npm audit` — 0 vulnerabilities sau khi pin phiên bản vá tương thích cho `esbuild`, `minimatch` và `uuid`; giữ nguyên `exceljs@4.4.0`.
 - Migration `0002` đã chạy thành công trên PostgreSQL thử nghiệm cô lập; tích hợp ghi khoản phải thu/thu tiền, tổng theo kỳ, số dư và danh sách giao dịch đều đạt.
 - Demo PostgreSQL cô lập có 12 booking mẫu; đã tạo thêm booking qua sequence, xếp lịch/gán xe, ghi audit và mở lại XLSX để xác nhận có mã booking/phương tiện. Bản ghi demo phát sinh được dọn sau kiểm tra.
+- Smoke browser/API trên Next production build chạy local tại cổng 3100: 16/16 đạt (login, tạo/xếp booking, stale version, audit events, XLSX, Origin/RBAC, render các trang); booking và khách `SMOKE-` đã dọn, 12 booking mẫu còn lại để xem giao diện.
+- UAT trực tiếp qua giao diện ngày 02/11/2026: tạo ba user local theo vai trò Kinh doanh/Kế hoạch/Kế toán, chạy booking → điều phối → công nợ → xuất hai file XLSX; quyền xuất chéo bị chặn 403. Kịch bản và bằng chứng tại [uat-scenarios.md](uat-scenarios.md). Tài khoản, booking và sổ UAT được giữ trong database thử nghiệm local.
+- UAT phát hiện và sửa callback `cellClick` của Tabulator khiến lịch sử booking không mở; đã xác nhận lại trên UI. Đưa `nextCookies()` về cuối danh sách plugin Better Auth để loại cảnh báo thứ tự.
 
 ## Bước triển khai còn lại
 

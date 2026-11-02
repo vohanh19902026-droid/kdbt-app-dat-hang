@@ -42,6 +42,6 @@ export const auth = betterAuth({
       isActive: { type: "boolean", required: false, defaultValue: true, input: false },
     },
   },
-  plugins: [nextCookies(), admin({ defaultRole: "user", adminRoles: ["admin"] })],
+  plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), nextCookies()],
   trustedOrigins: process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : ["http://localhost:3000"],
 });

@@ -87,7 +87,8 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
             { title: "NGÀY", field: "plannedDate", width: 106, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input", tooltip: "Ngày cấp hàng, định dạng YYYY-MM-DD" },
             { title: "XUẤT PHÁT", field: "plannedStartTime", width: 92, hozAlign: "center", editor: canEdit ? "input" : false, headerFilter: "input" },
             { title: "TG ĐỔ", field: "plannedEndTime", width: 78, hozAlign: "center", editor: canEdit ? "input" : false },
-            { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${escapeHtml(cell.getValue())}</b>` },
+            { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${escapeHtml(cell.getValue())}</b>`,
+              cellClick: (_event, cell) => onHistory(cell.getRow().getData() as OrderDTO) },
             { title: "KHÁCH HÀNG", field: "customerName", width: 145, editor: canEdit ? "input" : false },
             { title: "ĐỊA CHỈ LIÊN HỆ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
             { title: "KINH DOANH", field: "salesRepName", width: 112, editor: false },
@@ -110,9 +111,6 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
               } },
             { title: "GHI CHÚ", field: "salesNote", width: 180, editor: canEdit ? "input" : false },
           ],
-        });
-        grid.on("cellClick", (cell) => {
-          if (cell.getField() === "bookingNo") onHistory(cell.getRow().getData() as OrderDTO);
         });
         grid.on("cellEdited", async (cell) => {
           const row = cell.getRow().getData() as OrderDTO & { plannedStartTime: string; plannedEndTime: string; plannedDate: string };

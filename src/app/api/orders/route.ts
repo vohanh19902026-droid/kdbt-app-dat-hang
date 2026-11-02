@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
@@ -62,11 +62,16 @@ export async function POST(request: NextRequest) {
   const data = parsed.data;
   try {
     const created = await db.transaction(async (tx) => {
-      const found = await tx.select({ id: customers.id }).from(customers)
+      const found = await tx.select({ id: customers.id, salesRepId: customers.salesRepId }).from(customers)
         .where(and(eq(customers.name, data.customerName), data.contactPhone ? eq(customers.phone, data.contactPhone) : undefined)).limit(1);
       const customerId = found[0]?.id || (await tx.insert(customers).values({
         name: data.customerName, phone: data.contactPhone || null, defaultAddress: data.siteAddress,
+        salesRepId: session.appRole === "SALES" ? session.user.id : null,
       }).returning({ id: customers.id }))[0].id;
+      if (found[0] && !found[0].salesRepId && session.appRole === "SALES") {
+        await tx.update(customers).set({ salesRepId: session.user.id, updatedAt: new Date() })
+          .where(and(eq(customers.id, found[0].id), isNull(customers.salesRepId)));
+      }
       const [order] = await tx.insert(orders).values({
         customerId, customerName: data.customerName, salesRepName: session.user.name,
         siteAddress: data.siteAddress, contactName: data.contactName || null,

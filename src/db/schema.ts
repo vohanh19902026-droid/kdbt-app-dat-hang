@@ -1,6 +1,6 @@
 import {
   boolean, decimal, index, pgEnum, pgSequence, pgTable, text, timestamp,
-  uniqueIndex, uuid,
+  uniqueIndex, uuid, jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -24,6 +24,17 @@ export const user = pgTable("user", {
   banExpires: timestamp("ban_expires", { withTimezone: true }),
   appRole: appRoleEnum("app_role").default("SALES").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  employeeCode: text("employee_code"),
+  phone: text("phone"),
+  department: text("department"),
+  monthlyTargetM3: decimal("monthly_target_m3", { precision: 10, scale: 2 }),
+});
+
+export const appSettings = pgTable("app_settings", {
+  id: text("id").primaryKey().default("default"),
+  values: jsonb("settings_json").$type<Record<string, unknown>>().notNull(),
+  updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const session = pgTable("session", {
@@ -68,10 +79,11 @@ export const customers = pgTable("customers", {
   name: text("name").notNull(),
   phone: text("phone"),
   defaultAddress: text("default_address"),
+  salesRepId: text("sales_rep_id").references(() => user.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
-}, (t) => [index("customers_name_idx").on(t.name)]);
+}, (t) => [index("customers_name_idx").on(t.name), index("customers_sales_rep_idx").on(t.salesRepId)]);
 
 export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
