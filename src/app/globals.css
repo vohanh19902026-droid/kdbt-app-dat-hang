@@ -71,7 +71,20 @@ body { min-height:100vh; }
 .ledger-debt { color:#a64242!important; font-weight:800; }
 .ledger-note-cell { white-space:normal!important; min-width:180px; max-width:280px; }
 .ledger-message { margin:0 0 12px; }
+.customer-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.customer-toolbar { margin-top:20px; }
+.customer-search { display:flex;align-items:center;gap:9px;min-width:min(520px,100%);padding:0 12px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted); }
+.customer-search input { width:100%;min-width:0;border:0;outline:0;padding:10px 0;background:transparent;color:inherit;font-size:12px; }
+.customer-grid { min-width:860px; }
+.customer-state { display:inline-flex;padding:4px 8px;border-radius:99px;font-size:10px;font-weight:700; }
+.customer-state.is-active { background:#e4f3e8;color:#2d744a; }
+.customer-state.is-paused { background:#f1f2f0;color:#69736b; }
+.customer-edit { padding:7px 9px;font-size:10px;white-space:nowrap; }
+.customer-modal { width:min(640px,100%); }
+.customer-active { grid-column:1/-1;display:flex;align-items:center;gap:8px;color:#46554a;font-size:12px; }
+.customer-active input { accent-color:var(--green); }
 @media(max-width:680px){.ledger-stats{grid-template-columns:1fr}.ledger-filter{width:100%;display:grid;grid-template-columns:1fr 1fr}.ledger-filter button{grid-column:1/-1;width:100%;justify-content:center}.ledger-filter label{min-width:0}.ledger-filter .date-input{width:100%}.ledger-panel{padding:15px}.ledger-submit{grid-column:1/-1}.ledger-submit .btn{width:100%;min-height:44px;justify-content:center}}
+@media(max-width:680px){.customer-stats{grid-template-columns:1fr 1fr}.customer-stats .stat:last-child{grid-column:1/-1}.customer-toolbar{align-items:stretch}.customer-search{min-width:0;width:100%}.customer-toolbar>.muted{text-align:right}.customer-grid{min-width:850px}}
 @media(max-width:680px){.heading-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.heading-actions .btn{grid-column:1/-1;justify-content:center}.date-input{width:100%;min-width:0}.login-card{padding:23px}.toast{left:15px;right:15px;bottom:76px}.tabulator{font-size:10px!important}}
 
 .mobile-account-trigger,.mobile-account-menu { display:none; }

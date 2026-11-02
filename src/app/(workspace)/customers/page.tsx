@@ -1,15 +1,24 @@
-import { asc } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { customers } from "@/db/schema";
+import { customers, user } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { CustomersManager } from "@/components/customers-manager";
 
 export const runtime = "nodejs";
+
 export default async function CustomersPage() {
-  await requireSession(["ADMIN", "PLANNER"]);
-  const rows = await db.select().from(customers).orderBy(asc(customers.name));
-  return <><div className="pagehead"><div><div className="eyebrow">DANH MỤC DỮ LIỆU</div><h1>Khách hàng</h1><div className="sub">Thông tin khách hàng được ghi nhận khi phát sinh booking.</div></div></div>
-    <div className="tablewrap"><table className="grid"><thead><tr><th>KHÁCH HÀNG</th><th>ĐIỆN THOẠI</th><th>ĐỊA CHỈ MẶC ĐỊNH</th><th>TRẠNG THÁI</th></tr></thead><tbody>
-      {rows.map((customer) => <tr key={customer.id}><td>{customer.name}</td><td>{customer.phone || "—"}</td><td>{customer.defaultAddress || "—"}</td><td>{customer.isActive ? "Đang hoạt động" : "Ngừng"}</td></tr>)}
-    </tbody></table>{rows.length === 0 && <div className="empty">Danh mục sẽ tự tạo khi nhận đơn đầu tiên.</div>}</div>
-  </>;
+  const { appRole } = await requireSession(["ADMIN", "PLANNER"]);
+  const [rows, salesUsers] = await Promise.all([
+    db.select({ id: customers.id, name: customers.name, phone: customers.phone,
+      defaultAddress: customers.defaultAddress, salesRepId: customers.salesRepId,
+      salesRepName: user.name, isActive: customers.isActive, createdAt: customers.createdAt })
+      .from(customers).leftJoin(user, eq(customers.salesRepId, user.id))
+      .orderBy(asc(customers.name), asc(customers.id)),
+    appRole === "ADMIN"
+      ? db.select({ id: user.id, name: user.name, employeeCode: user.employeeCode, isActive: user.isActive }).from(user)
+        .where(eq(user.appRole, "SALES")).orderBy(asc(user.name))
+      : Promise.resolve([]),
+  ]);
+  return <CustomersManager customers={rows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }))}
+    salesUsers={salesUsers} canManage={appRole === "ADMIN"} />;
 }
