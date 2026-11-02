@@ -5,10 +5,10 @@
 | Module | Nội dung | Mốc cập nhật |
 |---|---|---|
 | `MEMORY.md` | Quyết định lâu dài, append-only | 2026-10-31 |
-| `CONTEXT.md` | Morning brief + bằng chứng lệnh đã chạy | 2026-10-31 |
+| `CONTEXT.md` | Trạng thái triển khai + bằng chứng kiểm tra local | 2026-11-02 |
 | `docs/architecture.md` | Stack, luồng request, ranh giới triển khai | 2026-10-31 |
 | `docs/data-model.md` | Bảng, quy tắc dữ liệu, giai đoạn sau | 2026-10-31 |
-| `docs/implementation-plan.md` | Phạm vi MVP và việc trước khi dùng dữ liệu thật | 2026-10-31 |
+| `docs/implementation-plan.md` | MVP đã deploy, UAT còn lại, phạm vi giai đoạn sau | 2026-11-02 |
 
 ## Quy tắc khi đụng giới hạn
 

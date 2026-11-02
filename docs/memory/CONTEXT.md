@@ -1,51 +1,22 @@
-# CONTEXT — Morning Brief (reset MỖI phiên)
+# CONTEXT — Morning Brief (reset mỗi phiên)
 
-> Giới hạn: 40 dòng. Trạng thái HIỆN TẠI; lịch sử dài hạn ở `MEMORY.md`.
+> Trạng thái mới nhất; quyết định dài hạn ở `MEMORY.md`.
 
 ## Phiên: 2026-11-02
 
-- Việc đang làm: P0/P1 trước deploy — dựng PostgreSQL test riêng, chạy E2E thật trên bản production, sửa lỗi chặn deploy.
-- Nhánh / module đụng tới: `main`; `src/components/orders-workspace.tsx`, `src/app/api/health/route.ts`, `src/app/api/orders/[id]/events/route.ts`, `(workspace)/error.tsx`, `(workspace)/loading.tsx`, `globals.css`.
-- Phát hiện quan trọng: `/orders` từng trả 500 ở SSR vì `tabulator-tables` chạm `document` ngay khi nạp module. Đã chuyển sang `await import("tabulator-tables")` trong `useEffect`.
-- Phát hiện phụ: Better Auth từ chối `sign-in/email` khi thiếu header `Origin` (`MISSING_OR_NULL_ORIGIN`, HTTP 403); có rate limit 429 khi thử nhiều lần.
-- Đã làm: cluster test `initdb` port 55432 (DB `cencom_test`), áp 2 migration, tạo Admin + Sales test (mật khẩu ngoài repo), seed 12 booking; E2E HTTP 37/37 + P1 14/14 + báo cáo 10/10 PASS; thêm health check, error/loading boundary, API + modal lịch sử `order_events`, báo cáo khoảng ngày, đổi mật khẩu tự phục vụ.
-- Chặn deploy: project Vercel `cencom-os/kdbt-app-dat-hang` đã link nhưng **chưa có biến môi trường nào**; máy chưa có `DATABASE_URL` Neon. Cần Chủ tịch cấp chuỗi Neon (hoặc API key Neon) để chạy migration + tạo Admin + `vercel --prod`.
-- Rủi ro đang theo dõi: pool `pg` max 5 trên serverless khi đông người dùng; preview deployment khác domain sẽ bị chặn sign-in do `trustedOrigins`.
+- Mục tiêu: hoàn thiện MVP đặt hàng/điều phối bê tông và bàn giao để bắt đầu UAT.
+- Repo: nhánh `main`, `origin/main` tại `ac0d07b` lúc nhận tệp handoff; workspace có hai script smoke chưa theo dõi: `scripts/smoke-production.ts`, `scripts/cleanup-smoke.ts`.
+- Ứng dụng đã deploy trên Vercel; domain đăng nhập: `https://kdbt-app-dat-hang-eu1a50fak-vohanh19902026-droid.vercel.app/login`.
+- Nhật ký phiên triển khai ghi nhận Neon được tạo, migration áp dụng, Admin đầu tiên được khởi tạo, health production 200/database up, smoke production 16/16 PASS và dữ liệu smoke đã dọn.
+- Local kiểm tra lại: `npm run typecheck`, `npm run lint`, `npm test` (25 PASS), `npm run build` đều exit 0.
+- Tệp `.env.local` chứa biến môi trường Neon/Vercel; tuyệt đối không in giá trị, gửi ra chat hoặc commit. Chỉ liệt kê tên khóa khi cần.
+- Chưa hoàn tất UAT do nhân viên: Admin cần đăng nhập/đổi mật khẩu, tạo tài khoản NV kế hoạch/NVKD, kiểm thử nghiệp vụ trên thiết bị thật.
+- XLSX hiện dựa theo ảnh; chưa có workbook gốc để so khớp chính xác. Công nợ/kế toán, hóa đơn và đối soát là giai đoạn sau.
+- Trước đây CUA bị từ chối đọc Vercel bởi policy origin. Không vòng qua bằng CLI/API, CDP thô hoặc trình duyệt khác; nếu còn cần thao tác trang, dùng đúng quyền được cấp và tuân thủ kết quả policy.
 
-## BẰNG CHỨNG (lệnh thật đã chạy)
+## Bằng chứng kiểm tra local (2026-11-02)
 
-2026-11-02
-$ npx tsx scripts/.tmp-e2e.ts (bản production, DB test)
-exit code: 0 — 37 passed, 0 failed
-
-2026-11-02
-$ npx tsx scripts/.tmp-e2e2.ts (health + lịch sử)
-exit code: 0 — 14 passed, 0 failed
-
-2026-11-02
-$ npm run typecheck && npm run lint
-exit code: 0
-
-2026-11-02
-$ npm test
-exit code: 0 — 23 test PASS
-
-2026-11-02
-$ npm test (sau khi thêm báo cáo khoảng ngày)
-exit code: 0 — 25 test PASS
-
-2026-11-02
-$ npx tsx scripts/.tmp-e2e3.ts (báo cáo khoảng ngày)
-exit code: 0 — 10 passed, 0 failed
-
-2026-11-02
-$ npx tsx scripts/.tmp-e2e4.ts (đổi mật khẩu)
-6 passed, 2 lỗi 429 do rate limit khi gọi liên tiếp; đã xác nhận riêng: đổi mật khẩu 200, mật khẩu cũ bị từ chối, mật khẩu mới đăng nhập 200, khôi phục 200
-
-2026-11-02
-$ npm run build
-exit code: 0 — Next.js 16.4.3, 14 route
-
-2026-11-02
-$ GET /api/health
-HTTP 200 — {"status":"ok","database":"up","latencyMs":23}
+- `npm run typecheck` — exit 0.
+- `npm run lint` — exit 0.
+- `npm test` — 25/25 pass.
+- `npm run build` — exit 0, Next.js 16.4.3.
