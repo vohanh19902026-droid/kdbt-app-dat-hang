@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { loginErrorMessage } from "@/lib/login-error";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,10 +14,15 @@ export default function LoginPage() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
-    const result = await authClient.signIn.email({ email, password });
-    setBusy(false);
-    if (result.error) { setError("Tài khoản hoặc mật khẩu chưa đúng. Vui lòng thử lại."); return; }
-    router.replace("/orders"); router.refresh();
+    try {
+      const result = await authClient.signIn.email({ email, password });
+      if (result.error) { setError(loginErrorMessage(result.error.status)); return; }
+      router.replace("/orders"); router.refresh();
+    } catch {
+      setError(loginErrorMessage());
+    } finally {
+      setBusy(false);
+    }
   }
 
   return <main className="login-bg"><section className="login-card">
