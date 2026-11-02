@@ -6,6 +6,7 @@ import { customers, orders } from "@/db/schema";
 import { OrdersWorkspace } from "@/components/orders-workspace";
 import { statusLabels } from "@/lib/types";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
+import { getAppSettings } from "@/lib/app-settings";
 
 export const runtime = "nodejs";
 
@@ -23,13 +24,15 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     : sql<Date>`${orders.requestedAt}`;
   const conditions = [gte(basis, from), lt(basis, to)];
   if (appRole === "SALES") conditions.push(eq(orders.createdBy, user.id));
-  const rows = await db.select().from(orders).where(and(...conditions))
-    .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt))
-    .limit(2000);
-  const customerOptions = await db.select({ id: customers.id, name: customers.name, phone: customers.phone, address: customers.defaultAddress })
-    .from(customers)
-    .where(and(eq(customers.isActive, true), appRole === "SALES" ? or(eq(customers.salesRepId, user.id), isNull(customers.salesRepId)) : undefined))
-    .orderBy(asc(customers.name), asc(customers.id));
+  const [rows, customerOptions, settings] = await Promise.all([
+    db.select().from(orders).where(and(...conditions))
+      .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt)).limit(2000),
+    db.select({ id: customers.id, name: customers.name, phone: customers.phone, address: customers.defaultAddress })
+      .from(customers)
+      .where(and(eq(customers.isActive, true), appRole === "SALES" ? or(eq(customers.salesRepId, user.id), isNull(customers.salesRepId)) : undefined))
+      .orderBy(asc(customers.name), asc(customers.id)),
+    getAppSettings(),
+  ]);
   const data = rows.map((order) => ({
     ...order,
     quantityM3: Number(order.quantityM3),
@@ -42,5 +45,5 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     pending: data.filter((order) => order.status === "PENDING").length,
     ongoing: data.filter((order) => order.status === "IN_PROGRESS").length,
   };
-  return <OrdersWorkspace orders={data} customerOptions={customerOptions} role={appRole} date={selectedDate} view={view || "orders"} totals={totals} statusLabels={statusLabels} />;
+  return <OrdersWorkspace orders={data} customerOptions={customerOptions} catalog={settings.catalog} role={appRole} date={selectedDate} view={view || "orders"} totals={totals} statusLabels={statusLabels} />;
 }

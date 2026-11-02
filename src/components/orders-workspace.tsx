@@ -7,6 +7,7 @@ import type { TabulatorFull } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import { statusLabels, type AppRole, type OrderStatus } from "@/lib/types";
 import { isValidIsoDate, isValidTime, vnDateOf } from "@/lib/vn-date";
+import type { ProductCatalog } from "@/lib/product-catalog";
 
 type OrderDTO = {
   id: string; bookingNo: string; customerName: string; salesRepName: string; siteAddress: string;
@@ -174,9 +175,9 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
 }
 
 export function OrdersWorkspace({
-  orders, customerOptions, date, role, totals, view = "orders",
+  orders, customerOptions, catalog, date, role, totals, view = "orders",
 }: {
-  orders: OrderDTO[]; customerOptions: CustomerOption[]; date: string; role: AppRole; totals: Totals;
+  orders: OrderDTO[]; customerOptions: CustomerOption[]; catalog: ProductCatalog; date: string; role: AppRole; totals: Totals;
   statusLabels: Record<OrderStatus, string>; view?: string;
 }) {
   const router = useRouter();
@@ -290,14 +291,14 @@ export function OrdersWorkspace({
           <div className="field full"><label>Địa chỉ công trình *</label><input key={`address-${selectedCustomerId}`} name="siteAddress" required minLength={3} maxLength={500} defaultValue={selectedCustomer?.address ?? ""} placeholder="Địa chỉ giao bê tông" /></div>
           <div className="field"><label>Điện thoại liên hệ</label><input key={`phone-${selectedCustomerId}`} name="contactPhone" inputMode="tel" maxLength={30} defaultValue={selectedCustomer?.phone ?? ""} placeholder="09xx xxx xxx" /></div>
           <div className="field"><label>Khối lượng đặt (m³) *</label><input type="number" name="quantityM3" required min="0.1" max="5000" step="0.1" placeholder="Ví dụ: 25" /></div>
-          <div className="field"><label>Mác bê tông *</label><input name="grade" list="concrete-grades" required placeholder="VD: 250 (12+2)" /><datalist id="concrete-grades"><option value="250 (12+2)" /><option value="250R (14+2)" /><option value="300 (12+2)" /><option value="300R (7+12)" /><option value="C30 (12+2)" /><option value="B35 (19+1)" /></datalist></div>
+          <div className="field"><label>Mác bê tông *</label><input name="grade" list="concrete-grades" required placeholder="Chọn hoặc nhập mác" /><datalist id="concrete-grades">{catalog.grades.map((value) => <option key={value} value={value} />)}</datalist></div>
           <div className="field"><label>Ngày cần cấp *</label><input type="date" name="date" required defaultValue={date} /></div>
           <div className="field"><label>Giờ cần cấp *</label><input type="time" name="time" required defaultValue="08:00" /></div>
-          <div className="field"><label>Loại xe bơm</label><select name="pumpRequired"><option>Bơm cần 38m</option><option>Bơm 42m</option><option>Bơm 50m</option><option>Bơm 63m</option><option>Bơm tĩnh</option><option>Không bơm</option></select></div>
-          <div className="field"><label>Loại cát *</label><input name="sandType" list="sand-types" required placeholder="Chọn hoặc nhập loại cát" /><datalist id="sand-types"><option value="Cát Lộc" /><option value="Cát vàng" /><option value="Cát nghiền" /><option value="Cát sông" /></datalist></div>
-          <div className="field"><label>Loại đá *</label><input name="stoneType" list="stone-types" required placeholder="Chọn hoặc nhập loại đá" /><datalist id="stone-types"><option value="Đá 1x2" /><option value="Đá 0.5x1" /><option value="Đá 2x4" /><option value="Đá mi" /></datalist></div>
-          <div className="field"><label>Xe chở (m³/chuyến)</label><select name="truckCapacityM3"><option value="5">5 m³/chuyến</option><option value="7">7 m³/chuyến</option><option value="10">10 m³/chuyến</option></select></div>
-          <div className="field"><label>Hạng mục</label><select name="pourType"><option value="Sàn">Sàn</option><option value="Móng">Móng</option><option value="Cột">Cột</option><option value="Dầm">Dầm</option><option value="Tường">Tường</option><option value="Khác">Khác</option></select></div>
+          <div className="field"><label>Loại xe bơm</label><select name="pumpRequired">{catalog.pumpTypes.map((value) => <option key={value}>{value}</option>)}</select></div>
+          <div className="field"><label>Loại cát *</label><input name="sandType" list="sand-types" required placeholder="Chọn hoặc nhập loại cát" /><datalist id="sand-types">{catalog.sandTypes.map((value) => <option key={value} value={value} />)}</datalist></div>
+          <div className="field"><label>Loại đá *</label><input name="stoneType" list="stone-types" required placeholder="Chọn hoặc nhập loại đá" /><datalist id="stone-types">{catalog.stoneTypes.map((value) => <option key={value} value={value} />)}</datalist></div>
+          <div className="field"><label>Xe chở (m³/chuyến)</label><select name="truckCapacityM3">{catalog.truckCapacitiesM3.map((value) => <option key={value} value={value}>{value} m³/chuyến</option>)}</select></div>
+          <div className="field"><label>Hạng mục</label><select name="pourType">{catalog.pourTypes.map((value) => <option key={value}>{value}</option>)}</select></div>
           <div className="field full"><label>Ghi chú thêm</label><textarea name="salesNote" maxLength={1000} placeholder="Vị trí đổ, lưu ý đường vào, liên hệ công trường..." /></div>
         </div>
           {error && <div className="form-error" role="alert">{error}</div>}

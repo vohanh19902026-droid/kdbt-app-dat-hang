@@ -18,7 +18,8 @@
 .settings-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .settings-field{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:12px;color:#4e5d53;font-weight:600}
 .settings-field.full{grid-column:1/-1}.settings-field>span{display:flex;justify-content:space-between;gap:10px}
-.settings-field input:not([type=range]),.settings-field select{width:100%;border:1px solid #dfe6de;border-radius:8px;padding:10px 11px;background:white;color:#25352b;font-size:12px}
+.settings-field input:not([type=range]),.settings-field select,.settings-field textarea{width:100%;border:1px solid #dfe6de;border-radius:8px;padding:10px 11px;background:white;color:#25352b;font-size:12px}
+.settings-field textarea{min-height:118px;resize:vertical;font:500 12px/1.6 ui-monospace,Consolas,monospace}.catalog-form-grid .settings-field small{line-height:1.5}
 .settings-field input[type=range]{width:100%;accent-color:var(--green)}.settings-field small{font-size:10px;font-weight:400;color:var(--muted)}
 .color-field{margin-top:19px}.color-options{display:flex;flex-wrap:wrap;gap:8px}
 .color-options button{border:1px solid var(--line);border-radius:9px;padding:8px 10px;display:flex;align-items:center;gap:7px;background:white;color:#435148;font-size:11px}
@@ -33,7 +34,7 @@
 .theme-dark{background:#171b19;color:#e5ece7;--line:#353c37;--muted:#a2aea6}
 .theme-dark .sidebar{background:#111d18}.theme-dark .topbar,.theme-dark .stat,.theme-dark .settings-card,.theme-dark .ledger-panel,.theme-dark .tablewrap{background:#202622;color:#e5ece7;border-color:#353c37}
 .theme-dark .topbar{border-bottom-color:#353c37}.theme-dark .crumb,.theme-dark .crumb strong,.theme-dark .settings-card-head p,.theme-dark .settings-section-intro p,.theme-dark .stathead,.theme-dark .stat small,.theme-dark .sub,.theme-dark .settings-field{color:#b6c1ba}
-.theme-dark .date-select,.theme-dark .role-select,.theme-dark .pill,.theme-dark .search,.theme-dark .date-input,.theme-dark .settings-field input:not([type=range]),.theme-dark .settings-field select,.theme-dark .color-options button{background:#292f2b;color:#e5ece7;border-color:#414943}
+.theme-dark .date-select,.theme-dark .role-select,.theme-dark .pill,.theme-dark .search,.theme-dark .date-input,.theme-dark .settings-field input:not([type=range]),.theme-dark .settings-field select,.theme-dark .settings-field textarea,.theme-dark .color-options button{background:#292f2b;color:#e5ece7;border-color:#414943}
 .theme-dark .grid th{background:#29312c;color:#cbd6ce;border-color:#414943}.theme-dark .grid td{color:#d7e0da;border-color:#343c36}.theme-dark .grid tr:hover td{background:#29312c}
 .theme-dark .mobile-tabs{background:#202622;border-color:#353c37}.theme-dark .mobile-tabs a{color:#a2aea6}.theme-dark .settings-tabs button{color:#b6c1ba}.theme-dark .settings-roadmap article,.theme-dark .settings-preview{background:#292f2b;color:#e5ece7;border-color:#414943}
 .theme-dark .settings-roadmap article b{color:#e5ece7}.theme-dark .settings-roadmap article p,.theme-dark .settings-roadmap article span{color:#b6c1ba}.theme-dark .settings-note{background:#292f2b;color:#b6c1ba}

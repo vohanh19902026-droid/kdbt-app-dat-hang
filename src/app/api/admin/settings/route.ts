@@ -5,7 +5,8 @@ import { db } from "@/db";
 import { appSettings } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
-import { defaultAppSettings } from "@/lib/app-settings";
+import { defaultAppSettings, normalizeAppSettings } from "@/lib/app-settings";
+import { productCatalogSchema } from "@/lib/product-catalog";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,7 @@ const settingsSchema = z.object({
   accentColor: z.enum(["green", "blue", "purple", "red", "amber"]),
   fontFamily: z.enum(["dm-sans", "manrope", "system"]),
   fontScale: z.number().int().min(85).max(125),
+  catalog: productCatalogSchema,
 });
 
 async function authorize(request: NextRequest) {
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
   const auth = await authorize(request);
   if ("response" in auth) return auth.response;
   const [row] = await db.select({ settings: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).limit(1);
-  return NextResponse.json({ ...defaultAppSettings, ...(row?.settings ?? {}) });
+  return NextResponse.json(normalizeAppSettings(row?.settings));
 }
 
 export async function PUT(request: NextRequest) {

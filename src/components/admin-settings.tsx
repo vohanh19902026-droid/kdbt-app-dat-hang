@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Check, Palette, Shield, Users, Wallet } from "lucide-react";
+import { Building2, Check, Palette, Shield, Users, Wallet, Boxes } from "lucide-react";
 import { UsersManager } from "@/components/users-manager";
 import type { AppSettings } from "@/lib/app-settings";
 import type { AppRole } from "@/lib/types";
@@ -10,13 +10,14 @@ import type { AppRole } from "@/lib/types";
 type AdminUser = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null };
 type SalesVolume = { salesRepName: string; bookedM3: string };
 type FinanceSummary = { bookedThisMonthM3: string; chargesThisMonthVnd: string; outstandingVnd: string };
-type Section = "appearance" | "company" | "accounts" | "business" | "roadmap";
+type Section = "appearance" | "company" | "accounts" | "business" | "catalog" | "roadmap";
 
 const sectionInfo: { id: Section; label: string; icon: typeof Palette }[] = [
   { id: "appearance", label: "Giao diện", icon: Palette },
   { id: "company", label: "Doanh nghiệp", icon: Building2 },
   { id: "accounts", label: "Tài khoản & nhân sự", icon: Users },
   { id: "business", label: "Kinh doanh & công nợ", icon: Wallet },
+  { id: "catalog", label: "Danh mục đặt hàng", icon: Boxes },
   { id: "roadmap", label: "Khác", icon: Shield },
 ];
 
@@ -97,6 +98,20 @@ export function AdminSettings({ initialSettings, users, salesVolumes, financeSum
       </section>
       <div className="settings-note">Công nợ được theo dõi theo khách hàng. Trong sổ Công nợ, Admin/Kế toán có thể phân công NVKD phụ trách và lọc, xuất XLSX theo người phụ trách hiện tại.</div>
     </>}
+
+    {section === "catalog" && <section className="settings-card"><div className="settings-card-head"><div><h2>Danh mục cho booking mới</h2><p>Quản trị viên có thể sửa danh sách dùng trong form đặt hàng mà không cần cập nhật mã nguồn. Mỗi dòng là một lựa chọn.</p></div></div>
+      <div className="settings-form-grid catalog-form-grid">
+        {([
+          ["grades", "Mác bê tông"], ["sandTypes", "Loại cát"], ["stoneTypes", "Loại đá"],
+          ["pumpTypes", "Loại xe bơm"], ["truckCapacitiesM3", "Dung tích xe chở (m³/chuyến)"], ["pourTypes", "Hạng mục đổ"],
+        ] as const).map(([key, label]) => <label className="settings-field" key={key}><span>{label}</span><textarea rows={5} value={settings.catalog[key].join("\n")} onChange={(event) => {
+          const values = event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+          const parsed = key === "truckCapacitiesM3" ? values.map(Number).filter((value) => Number.isFinite(value) && value > 0) : values;
+          setSettings((current) => ({ ...current, catalog: { ...current.catalog, [key]: parsed } }));
+          setMessage(""); setError("");
+        }} /><small>Danh mục không được trống hoặc lặp. Các booking cũ giữ nguyên thông tin đã lưu.</small></label>)}
+      </div>
+    </section>}
 
     {section === "roadmap" && <div className="settings-card"><div className="settings-card-head"><div><h2>Các nhóm cài đặt nên bổ sung tiếp</h2><p>Mẫu SaaS thường tách quyền truy cập theo vai trò và gom phần tùy biến workspace vào một trung tâm quản trị.[1][2]</p></div></div>
       <div className="settings-roadmap"><article><b>Danh mục nghiệp vụ</b><p>Mác bê tông, cát/đá, loại bơm, phương tiện, dung tích xe, cách tính ca và trạng thái đơn.</p><span>Ưu tiên kế tiếp · cần gắn các danh mục vào biểu mẫu và bảng kế hoạch</span></article><article><b>Thông báo</b><p>Thông báo đơn mới, thay đổi lịch, nhắc xác nhận và cấu hình email/web push.</p><span>Ưu tiên kế tiếp · hiện chưa kết nối nhà cung cấp gửi tin</span></article><article><b>Bảo mật và nhật ký</b><p>Chính sách mật khẩu, phiên đăng nhập, nhật ký thao tác Admin, xuất danh sách và lưu trữ dữ liệu.</p><span>Ưu tiên cao trước khi mở SaaS cho nhiều doanh nghiệp</span></article><article><b>Gói dịch vụ và tích hợp</b><p>Giới hạn người dùng, chi nhánh, dung lượng và kết nối kế toán/hóa đơn.</p><span>Để sau khi chuyển sang kiến trúc nhiều doanh nghiệp</span></article></div>
