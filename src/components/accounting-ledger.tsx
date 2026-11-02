@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { formatVnd } from "@/lib/receivables";
-import type { AppRole } from "@/lib/types";
 
 type EntryType = "CHARGE" | "PAYMENT";
 type CustomerOption = { id: string; name: string };
@@ -31,8 +30,7 @@ function dateLabel(iso: string): string {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(iso));
 }
 
-export function AccountingLedger({ initialData, role }: { initialData: LedgerData; role: AppRole }) {
-  const isSales = role === "SALES";
+export function AccountingLedger({ initialData }: { initialData: LedgerData }) {
   const [from, setFrom] = useState(initialData.period.from);
   const [to, setTo] = useState(initialData.period.to);
   const [salesRepId, setSalesRepId] = useState(initialData.salesRepFilter ?? "");
@@ -41,7 +39,7 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [entryType, setEntryType] = useState<EntryType>(isSales ? "PAYMENT" : "CHARGE");
+  const [entryType, setEntryType] = useState<EntryType>("CHARGE");
   const [customerId, setCustomerId] = useState("");
   const [orderId, setOrderId] = useState("");
   const [amountVnd, setAmountVnd] = useState("");
@@ -116,13 +114,13 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
   const periodPayments = data?.periodTotals.paymentsVnd ?? "0";
   return <div className="ledger-page">
     <div className="pagehead">
-      <div><div className="eyebrow">SỔ THEO DÕI THU KHÁCH HÀNG</div><h1>{isSales ? "Công nợ khách hàng của tôi" : "Công nợ khách hàng"}</h1><div className="sub">{isSales ? "Theo dõi khách hàng được giao và ghi nhận tiền đã thu. Báo lại kế toán để điều chỉnh khoản phải thu." : "Ghi nhận khoản phải thu và tiền đã thu theo khách hàng; không tự tính giá từ khối lượng bê tông."}</div></div>
+      <div><div className="eyebrow">SỔ THEO DÕI THU KHÁCH HÀNG</div><h1>Công nợ khách hàng</h1><div className="sub">Ghi nhận khoản phải thu và tiền đã thu theo khách hàng; không tự tính giá từ khối lượng bê tông.</div></div>
       <div className="heading-actions">
         <a className="btn secondary" href={`/api/accounting/export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${salesRepId ? `&salesRepId=${encodeURIComponent(salesRepId)}` : ""}`}>Xuất XLSX</a>
         <form className="filter-row ledger-filter" onSubmit={(event) => { event.preventDefault(); void load(from, to, salesRepId); }}>
           <label className="sub">Từ ngày <input className="date-input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} required /></label>
           <label className="sub">Đến ngày <input className="date-input" type="date" value={to} onChange={(event) => setTo(event.target.value)} required /></label>
-          {!isSales && <label className="sub">NVKD phụ trách <select className="date-input" value={salesRepId} onChange={(event) => setSalesRepId(event.target.value)}><option value="">Tất cả nhân viên</option><option value="unassigned">Chưa phân công</option>{data?.salesReps.map((rep) => <option key={rep.id} value={rep.id}>{rep.name}{rep.isActive ? "" : " (ngừng hoạt động)"}</option>)}</select></label>}
+          <label className="sub">NVKD phụ trách <select className="date-input" value={salesRepId} onChange={(event) => setSalesRepId(event.target.value)}><option value="">Tất cả nhân viên</option><option value="unassigned">Chưa phân công</option>{data?.salesReps.map((rep) => <option key={rep.id} value={rep.id}>{rep.name}{rep.isActive ? "" : " (ngừng hoạt động)"}</option>)}</select></label>
           <button className="btn secondary" disabled={busy}>{busy ? "Đang tải…" : "Lọc"}</button>
         </form>
       </div>
@@ -139,9 +137,9 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
     </div>
 
     <section className="ledger-panel">
-      <div className="ledger-panel-head"><div><h2>{isSales ? "Ghi nhận tiền đã thu" : "Ghi sổ giao dịch"}</h2><p>{isSales ? "Chỉ ghi khoản tiền đã thực nhận. Không ghi khoản phải thu hoặc sửa phân công khách hàng." : "Giao dịch đã lưu không thể sửa/xóa; ghi bút toán đối ứng để điều chỉnh."}</p></div></div>
+      <div className="ledger-panel-head"><div><h2>Ghi sổ giao dịch</h2><p>Giao dịch đã lưu không thể sửa/xóa; ghi bút toán đối ứng để điều chỉnh.</p></div></div>
       <form className="formgrid ledger-form" onSubmit={saveEntry}>
-        {!isSales && <div className="field"><label htmlFor="ledger-type">Loại giao dịch *</label><select id="ledger-type" value={entryType} onChange={(event) => setEntryType(event.target.value as EntryType)}><option value="CHARGE">Ghi tăng khoản phải thu</option><option value="PAYMENT">Ghi nhận tiền đã thu</option></select></div>}
+        <div className="field"><label htmlFor="ledger-type">Loại giao dịch *</label><select id="ledger-type" value={entryType} onChange={(event) => setEntryType(event.target.value as EntryType)}><option value="CHARGE">Ghi tăng khoản phải thu</option><option value="PAYMENT">Ghi nhận tiền đã thu</option></select></div>
         <div className="field"><label htmlFor="ledger-customer">Khách hàng *</label><select id="ledger-customer" value={customerId} onChange={(event) => { setCustomerId(event.target.value); setOrderId(""); }} required><option value="">Chọn khách hàng</option>{data?.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></div>
         <div className="field"><label htmlFor="ledger-order">Booking liên quan</label><select id="ledger-order" value={orderId} onChange={(event) => setOrderId(event.target.value)} disabled={!customerId}><option value="">Không gắn booking</option>{filteredOrders.map((order) => <option key={order.id} value={order.id}>{order.bookingNo} · {order.customerName}</option>)}</select></div>
         <div className="field"><label htmlFor="ledger-amount">Số tiền (VND) *</label><input id="ledger-amount" type="number" min="1" max="999999999999999" step="1" inputMode="numeric" value={amountVnd} onChange={(event) => setAmountVnd(event.target.value)} required /></div>
@@ -156,7 +154,7 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
     <section className="ledger-section">
       <div className="ledger-section-head"><h2>Số dư theo khách hàng</h2><span className="sub">Toàn bộ lịch sử ghi sổ · {data?.salesRepFilterLabel ?? "Tất cả nhân viên"}</span></div>
       <div className="tablewrap"><table className="grid ledger-grid"><thead><tr><th>KHÁCH HÀNG</th><th>NVKD PHỤ TRÁCH</th><th>TỔNG PHẢI THU</th><th>TỔNG ĐÃ THU</th><th>CÒN PHẢI THU</th></tr></thead>
-        <tbody>{data?.balances.map((balance) => <tr key={balance.customerId}><td><b>{balance.customerName}</b></td><td>{isSales ? (balance.salesRepName ?? "Bạn") : <select className="ledger-owner-select" aria-label={`NVKD phụ trách ${balance.customerName}`} value={balance.salesRepId ?? ""} disabled={assignmentBusyId === balance.customerId} onChange={(event) => void assignSalesRep(balance, event.target.value)}><option value="">Chưa phân công</option>{data.salesReps.map((rep) => <option key={rep.id} value={rep.id} disabled={!rep.isActive && rep.id !== balance.salesRepId}>{rep.name}{rep.isActive ? "" : " (ngừng hoạt động)"}</option>)}</select>}</td><td>{formatVnd(balance.chargesVnd)}</td><td>{formatVnd(balance.paymentsVnd)}</td><td className={BigInt(balance.balanceVnd) > 0n ? "ledger-debt" : ""}>{formatVnd(balance.balanceVnd)}</td></tr>)}</tbody></table>
+        <tbody>{data?.balances.map((balance) => <tr key={balance.customerId}><td><b>{balance.customerName}</b></td><td><select className="ledger-owner-select" aria-label={`NVKD phụ trách ${balance.customerName}`} value={balance.salesRepId ?? ""} disabled={assignmentBusyId === balance.customerId} onChange={(event) => void assignSalesRep(balance, event.target.value)}><option value="">Chưa phân công</option>{data.salesReps.map((rep) => <option key={rep.id} value={rep.id} disabled={!rep.isActive && rep.id !== balance.salesRepId}>{rep.name}{rep.isActive ? "" : " (ngừng hoạt động)"}</option>)}</select></td><td>{formatVnd(balance.chargesVnd)}</td><td>{formatVnd(balance.paymentsVnd)}</td><td className={BigInt(balance.balanceVnd) > 0n ? "ledger-debt" : ""}>{formatVnd(balance.balanceVnd)}</td></tr>)}</tbody></table>
         {!data?.balances.length && <div className="empty">Chưa có giao dịch công nợ.</div>}
       </div>
     </section>

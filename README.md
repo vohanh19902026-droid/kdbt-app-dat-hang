@@ -13,6 +13,10 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.
 6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. Để nạp 12 booking mẫu, dùng `npm run db:seed -- --allow-demo-data` chỉ với database dành riêng cho thử nghiệm; script từ chối chạy nếu thiếu cờ xác nhận và tự bỏ qua khi database đã có booking.
 
+### Khôi phục mật khẩu Admin bị quên
+
+Trong PowerShell tại thư mục repo, chạy `vercel env run --environment production -- npm run auth:reset-admin-password`. Lệnh này chỉ đổi mật khẩu cho tài khoản Admin đang hoạt động đã tồn tại, yêu cầu xác nhận email bằng cách gõ `RESET <email>`, nhập mật khẩu mới hai lần (không hiển thị), cập nhật hash Better Auth và thu hồi các phiên cũ. Nó không tạo tài khoản, không hiển thị/ghi mật khẩu vào log và không thay đổi `BETTER_AUTH_SECRET`. Chỉ người có quyền Vercel Production mới lấy được kết nối database cần thiết. Sau khi hoàn tất, đăng nhập lại bằng mật khẩu vừa nhập.
+
 Không chạy seed trên database có dữ liệu vận hành. Không đưa `.env.local` hoặc thông tin Neon vào Git/Vercel source.
 
 ## Triển khai Vercel + Neon

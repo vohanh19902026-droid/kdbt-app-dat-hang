@@ -15,16 +15,8 @@ export const receivableEntrySchema = z.object({
   note: z.string().trim().max(1000).optional().default(""),
 });
 
-export function canViewReceivables(role: string): boolean {
-  return role === "ADMIN" || role === "ACCOUNTANT" || role === "SALES";
-}
-
-export function canManageReceivables(role: string): boolean {
+export function canAccessReceivables(role: string): boolean {
   return role === "ADMIN" || role === "ACCOUNTANT";
-}
-
-export function canRecordReceivableEntry(role: string, entryType: ReceivableKind): boolean {
-  return canManageReceivables(role) || (role === "SALES" && entryType === "PAYMENT");
 }
 
 export function summarizeReceivableEntries(entries: ReceivableAmount[]) {
