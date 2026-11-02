@@ -78,6 +78,14 @@ export async function PATCH(request: NextRequest) {
     const activeAdminCount = admins.length;
     if (activeAdminCount <= 1) return NextResponse.json({ error: "Cần giữ lại ít nhất một tài khoản Admin." }, { status: 400 });
   }
+  if (data.isActive !== undefined && data.isActive !== target.isActive) {
+    try {
+      await auth.api.revokeUserSessions({ body: { userId: data.userId }, headers: request.headers });
+    } catch (error) {
+      logServerError("admin_user_sessions_revoke_failed", error, request);
+      return NextResponse.json({ error: "Không thể thu hồi phiên đăng nhập. Trạng thái tài khoản chưa đổi." }, { status: 503 });
+    }
+  }
   const patch = {
     ...(data.appRole ? { appRole: data.appRole, role: data.appRole === "ADMIN" ? "admin" : "user" } : {}),
     ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),

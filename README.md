@@ -19,7 +19,7 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 
 - Ứng dụng production: <https://kdbt-app-dat-hang-five.vercel.app/login>.
 - Repo công khai: <https://github.com/vohanh19902026-droid/kdbt-app-dat-hang>.
-- Bản production đã xác minh dùng commit `f65dfc2`; `/api/health` trả `status: ok`, `database: up`.
+- Trạng thái production và kết nối Neon được xác minh qua deployment mới nhất trong Vercel; `/api/health` phải trả `status: ok`, `database: up`.
 - Database production hiện chỉ có tài khoản Admin khởi tạo; chưa có tài khoản nhân viên, khách hàng hoặc booking. Không dùng dữ liệu mẫu trên production.
 - Vercel cần `DATABASE_URL`, `BETTER_AUTH_SECRET` và `BETTER_AUTH_URL`. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
 - Các migration được quản lý qua `npm run db:migrate`; script áp theo thứ tự, ghi nhận migration đã chạy và có chế độ xem trước `npx tsx scripts/apply-migrations.ts --dry`.
@@ -32,7 +32,7 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 - Kinh doanh đăng nhập trên mobile, tạo booking gồm khách hàng, địa chỉ, liên hệ, khối lượng, mác, cát/đá, thời điểm yêu cầu, xe bơm, xe chở/chuyến và ghi chú. Mã `BOOK-####` do PostgreSQL sequence sinh nguyên tử.
 - Kế hoạch/Admin xem booking theo ngày trên lưới Tabulator, sửa trực tiếp ngày cấp, giờ, khối lượng, vật liệu, xe bơm/xe phục vụ, ghi chú và trạng thái. Mỗi cập nhật được ghi `order_events`; `version` do trình duyệt gửi lên ngăn ghi đè khi hai người sửa cùng lúc.
 - Kế hoạch/Admin xuất workbook `.xlsx` thật với tiêu đề gộp, định dạng, bộ lọc, cố định hàng tiêu đề, tổng khối lượng và thiết lập in ngang A3. Bảng kế hoạch và tệp xuất lọc theo ngày cấp hàng (`planned_start_at`), đơn chưa xếp lịch rơi về ngày yêu cầu.
-- Admin tạo/khóa tài khoản và phân quyền. Public signup bị tắt. Kế toán/Admin ghi tăng khoản phải thu và ghi nhận tiền thu bằng giao dịch VND append-only; có thể gắn booking, số hóa đơn/phiếu thu và diễn giải. Hệ thống không tự tính giá từ m³, không lập hóa đơn và không thay thế phần mềm kế toán.
+- Admin tạo/khóa tài khoản và phân quyền; có thể đặt lại mật khẩu nhân viên, thao tác này thu hồi các phiên đăng nhập hiện tại. Public signup bị tắt. Kế toán/Admin ghi tăng khoản phải thu và ghi nhận tiền thu bằng giao dịch VND append-only; có thể gắn booking, số hóa đơn/phiếu thu và diễn giải. Hệ thống không tự tính giá từ m³, không lập hóa đơn và không thay thế phần mềm kế toán.
 
 ## Vai trò
 
@@ -47,11 +47,11 @@ Xem [`docs/base-app-evaluation.md`](docs/base-app-evaluation.md) để biết n�
 
 ## Trạng thái vận hành hiện tại
 
-- Repo công khai trên GitHub đã đồng bộ tới commit `f65dfc2`; deployment Vercel tương ứng ở trạng thái Ready. Health check production xác nhận kết nối Neon hoạt động.
+- Repo công khai trên GitHub và deployment Vercel được quản lý qua nhánh `main`; cần kiểm tra trạng thái deployment mới nhất trong Vercel trước mỗi lần phát hành. Health check production xác nhận kết nối Neon hoạt động.
 - Lần kiểm tra local ngày 2026-11-02: `npm run typecheck`, `npm run lint`, `npm test` và `npm run build` đều đạt.
 - UAT local với 13 booking đã xác nhận mã booking, xếp lịch, phương tiện, lịch sử và công nợ. Workbook theo source hiện tại có sheet `Kế hoạch cấp`, 22 cột, gồm ghi chú kinh doanh/kế hoạch, loại bơm, giờ yêu cầu và trạng thái.
 - Database production giữ sạch dữ liệu thử nghiệm: chỉ có Admin, chưa có nhân viên, khách hàng hay booking. Dùng `/admin/users` để tạo tài khoản theo danh sách nhân sự thật trước khi vận hành.
 - Ứng dụng có security headers, CSP production, chặn Origin lạ trên API ghi dữ liệu và giới hạn truy vấn theo ngày. `/orders` đã được sửa lỗi SSR của Tabulator; có health check, error/loading boundary, lịch sử booking, báo cáo khoảng ngày và đổi mật khẩu tự phục vụ.
-- P1/P2 đã có trên bản đang chạy: giới hạn đăng nhập 5 lần/phút (bộ đếm in-memory theo instance Vercel), structured error logs không ghi message/secret, phân hệ sổ công nợ, hồ sơ nhân viên và quyền lọc công nợ theo NVKD.
+- P1/P2 gồm: giới hạn đăng nhập 5 lần/phút (bộ đếm in-memory theo instance Vercel), structured error logs không ghi message/secret, phân hệ sổ công nợ, hồ sơ nhân viên, quyền lọc công nợ theo NVKD và công cụ Admin đặt lại mật khẩu có thu hồi phiên.
 - Trước khi nhập dữ liệu vận hành: Admin cần đặt mật khẩu riêng, tạo tài khoản NV kế hoạch/NVKD và kế toán theo nhân sự thật, rồi kiểm tra backup/restore Neon và diễn tập với nhân viên.
 - Mẫu XLSX được dựng theo ảnh tham khảo; độ rộng/nhóm màu có thể điều chỉnh theo workbook gốc nếu có file Excel chuẩn.

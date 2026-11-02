@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { clampIsoDateRange, normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
+import { groupProductionByCustomerAndSales } from "@/lib/sales-report";
 
 export const runtime = "nodejs";
 
@@ -28,12 +29,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     .orderBy(asc(orders.customerName))
     .limit(5000);
 
-  const groups = new Map<string, { sales: string; count: number; ordered: number; actual: number }>();
-  for (const row of rows) {
-    const group = groups.get(row.customerName) || { sales: row.salesRepName, count: 0, ordered: 0, actual: 0 };
-    group.count += 1; group.ordered += Number(row.quantityM3); group.actual += Number(row.actualM3);
-    groups.set(row.customerName, group);
-  }
+  const groups = groupProductionByCustomerAndSales(rows);
+  const uniqueCustomerCount = new Set(rows.map((row) => row.customerName)).size;
   const format = (value: number) => new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value);
   const dateLabel = (value: string) => new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh",
@@ -51,11 +48,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <div className="stats">
       <div className="stat"><div className="stathead">Tổng khối lượng đặt</div><strong>{format(total)} <small>m³</small></strong><small>{rows.length} booking</small></div>
       <div className="stat"><div className="stathead">Tổng khối lượng thực đổ</div><strong>{format(actual)} <small>m³</small></strong><small>{total ? format(actual / total * 100) : 0}% so với khối lượng đặt</small></div>
-      <div className="stat"><div className="stathead">Khách hàng</div><strong>{groups.size}</strong><small>Khách phát sinh đơn trong khoảng</small></div>
+      <div className="stat"><div className="stathead">Khách hàng</div><strong>{uniqueCustomerCount}</strong><small>Khách phát sinh đơn trong khoảng</small></div>
       <div className="stat"><div className="stathead">Đơn chưa hoàn tất</div><strong>{rows.filter((row) => !["COMPLETED", "CANCELLED"].includes(row.status)).length}</strong><small>Đang chờ hoặc đang cấp</small></div>
     </div>
     <div className="tablewrap"><table className="grid"><thead><tr><th>KHÁCH HÀNG / KINH DOANH</th><th>SỐ BOOKING</th><th>KL ĐẶT (m³)</th><th>KL THỰC ĐỔ (m³)</th><th>CHÊNH LỆCH (m³)</th></tr></thead>
-      <tbody>{[...groups].map(([name, group]) => <tr key={name}><td><b>{name}</b><br /><span className="muted">Kinh doanh: {group.sales}</span></td><td>{group.count}</td><td>{format(group.ordered)}</td><td>{format(group.actual)}</td><td>{format(group.ordered - group.actual)}</td></tr>)}</tbody>
+      <tbody>{groups.map((group) => <tr key={`${group.customerName}\u0000${group.salesRepName}`}><td><b>{group.customerName}</b><br /><span className="muted">Kinh doanh: {group.salesRepName}</span></td><td>{group.count}</td><td>{format(group.ordered)}</td><td>{format(group.actual)}</td><td>{format(group.ordered - group.actual)}</td></tr>)}</tbody>
       <tfoot><tr><th>TỔNG</th><th>{rows.length}</th><th>{format(total)}</th><th>{format(actual)}</th><th>{format(total - actual)}</th></tr></tfoot></table>
       {!rows.length && <div className="empty">Chưa có booking trong khoảng ngày này.</div>}</div>
   </>;

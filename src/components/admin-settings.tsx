@@ -28,7 +28,7 @@ const colors = [
 const money = (value: string) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value || 0));
 const volume = (value: string) => `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(Number(value || 0))} m³`;
 
-export function AdminSettings({ initialSettings, users, salesVolumes, financeSummary, monthLabel }: { initialSettings: AppSettings; users: AdminUser[]; salesVolumes: SalesVolume[]; financeSummary: FinanceSummary; monthLabel: string }) {
+export function AdminSettings({ initialSettings, users, salesVolumes, financeSummary, monthLabel, currentUserId }: { initialSettings: AppSettings; users: AdminUser[]; salesVolumes: SalesVolume[]; financeSummary: FinanceSummary; monthLabel: string; currentUserId: string }) {
   const router = useRouter();
   const [section, setSection] = useState<Section>("appearance");
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
@@ -86,7 +86,7 @@ export function AdminSettings({ initialSettings, users, salesVolumes, financeSum
       <div className="settings-note">Logo tải lên và nhiều chi nhánh có thể bổ sung sau khi thống nhất định dạng nhận diện và mô hình tenant.</div>
     </div>}
 
-    {section === "accounts" && <><div className="settings-section-intro"><div><h2>Nhân sự và phân quyền</h2><p>Tạo tài khoản, khóa/mở truy cập, phân vai trò và cập nhật hồ sơ nhân viên.</p></div></div><UsersManager users={users} /></>}
+    {section === "accounts" && <><div className="settings-section-intro"><div><h2>Nhân sự và phân quyền</h2><p>Tạo tài khoản, khóa/mở truy cập, phân vai trò và cập nhật hồ sơ nhân viên.</p></div></div><UsersManager users={users} currentUserId={currentUserId} /></>}
 
     {section === "business" && <>
       <div className="settings-section-intro"><div><h2>Tổng quan kinh doanh</h2><p>Số liệu thực tế từ lệnh đặt và sổ công nợ, kỳ {monthLabel}.</p></div><a className="btn secondary" href="/accounting">Mở sổ công nợ</a></div>
@@ -95,7 +95,7 @@ export function AdminSettings({ initialSettings, users, salesVolumes, financeSum
         <div className="tablewrap"><table className="grid sales-performance"><thead><tr><th>NHÂN VIÊN</th><th>MÃ NV</th><th>ĐIỆN THOẠI</th><th>BỘ PHẬN</th><th>KHỐI LƯỢNG ĐẶT THÁNG</th><th>MỤC TIÊU</th><th>TIẾN ĐỘ</th></tr></thead><tbody>{users.filter((u) => u.appRole === "SALES" && u.isActive).map((u) => { const booked = Number(salesVolumes.find((v) => v.salesRepName === u.name)?.bookedM3 ?? 0); const target = Number(u.monthlyTargetM3 ?? 0); return <tr key={u.id}><td><b>{u.name}</b><small>{u.email}</small></td><td>{u.employeeCode || "—"}</td><td>{u.phone || "—"}</td><td>{u.department || "Kinh doanh"}</td><td>{volume(String(booked))}</td><td>{target ? volume(String(target)) : "Chưa đặt"}</td><td>{target ? `${Math.min(100, Math.round(booked / target * 100))}%` : "—"}</td></tr>; })}</tbody></table></div>
         {users.every((u) => u.appRole !== "SALES" || !u.isActive) && <div className="empty">Chưa có tài khoản kinh doanh đang hoạt động.</div>}
       </section>
-      <div className="settings-note">Công nợ đang là số dư cấp khách hàng trên sổ kế toán. App chưa gán chủ sở hữu khách hàng cho từng nhân viên, nên không phân bổ số dư công nợ theo NVKD để tránh báo cáo sai.</div>
+      <div className="settings-note">Công nợ được theo dõi theo khách hàng. Trong sổ Công nợ, Admin/Kế toán có thể phân công NVKD phụ trách và lọc, xuất XLSX theo người phụ trách hiện tại.</div>
     </>}
 
     {section === "roadmap" && <div className="settings-card"><div className="settings-card-head"><div><h2>Các nhóm cài đặt nên bổ sung tiếp</h2><p>Mẫu SaaS thường tách quyền truy cập theo vai trò và gom phần tùy biến workspace vào một trung tâm quản trị.[1][2]</p></div></div>
