@@ -91,8 +91,14 @@ Mật khẩu tạm chỉ được gửi trong báo cáo phiên, không lưu tron
 
 Không lưu lại thay đổi cài đặt trong lượt UAT này. Database dùng là PostgreSQL local ở cổng 55432.
 
-## Đối chiếu bản hiện hành
+## Ghi chú lịch sử về môi trường UAT local
 
-- Production đang chạy commit `f65dfc2`; `/api/health` xác nhận Neon đang kết nối.
-- Local PostgreSQL UAT giữ dữ liệu mô phỏng riêng, không dùng Neon production.
-- Lưu ý: tiến trình Next `start` đang mở tại `127.0.0.1:3100` có thể còn phục vụ build cũ. Trong lần đối chiếu ngày 02/11/2026, nút xuất trên tiến trình đó tạo XLSX 18 cột; source hiện tại tạo đủ 22 cột. Hãy dừng và khởi động lại tiến trình local sau mỗi lần build để UI và tệp xuất cùng phiên bản.
+- UAT local dùng PostgreSQL riêng tại `127.0.0.1:55432`; không dùng Neon production.
+- Trong lần kiểm tra local ngày 02/11/2026, tiến trình cũ ở cổng 3100 còn phục vụ build trước và tạo XLSX 18 cột, trong khi source lúc đó tạo 22 cột. Đây là ghi nhận của lần kiểm tra đó, không phải trạng thái hiện tại của production.
+
+## Xác nhận production ngày 02/11/2026
+
+- Nhánh GitHub `main` tự triển khai Vercel; deployment production mới nhất đã Ready.
+- `/api/health` trả `status: ok`, `database: up`.
+- Trên giao diện Admin production đã xác nhận tab danh mục hoạt động; form booking hiển thị mác, cát/đá, bơm, dung tích xe và hạng mục lấy từ cấu hình. Không gửi booking thử vào production.
+- Database production chưa có dữ liệu nhân viên, khách hàng hoặc booking thử. Dùng dữ liệu thật khi bắt đầu vận hành.

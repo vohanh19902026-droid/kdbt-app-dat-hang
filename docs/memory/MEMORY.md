@@ -61,3 +61,9 @@
 - Quyết định: Đổi mật khẩu tự phục vụ gọi thẳng `authClient.changePassword` (Better Auth) thay vì tự viết API route.
 - Lý do: Better Auth đã có rate limit, kiểm tra mật khẩu hiện tại và thu hồi phiên khác; viết lại dễ sai và bỏ qua bảo vệ CSRF.
 - Tác động: `workspace-shell.tsx` có modal đổi mật khẩu; đổi xong các thiết bị khác bị đăng xuất.
+
+## 2026-11-02
+
+- Quyết định: Danh mục mác bê tông, cát/đá, xe bơm, dung tích xe và hạng mục được Admin sửa trong Cài đặt, lưu cùng cấu hình workspace.
+- Lý do: lựa chọn vật liệu và loại xe thay đổi theo vận hành; nhân viên không nên chờ sửa mã nguồn để cập nhật form booking.
+- Tác động: form booking nhận danh mục từ server; booking cũ giữ giá trị đã lưu. Danh sách phương tiện thực tế chưa cấu hình vì chưa có đội xe chuẩn.
