@@ -1,8 +1,8 @@
-import { and, asc, eq, gte, lt, sql } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { db } from "@/db";
-import { orders } from "@/db/schema";
+import { customers, orders } from "@/db/schema";
 import { OrdersWorkspace } from "@/components/orders-workspace";
 import { statusLabels } from "@/lib/types";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
@@ -26,6 +26,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const rows = await db.select().from(orders).where(and(...conditions))
     .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt))
     .limit(2000);
+  const customerOptions = await db.select({ id: customers.id, name: customers.name, phone: customers.phone, address: customers.defaultAddress })
+    .from(customers)
+    .where(and(eq(customers.isActive, true), appRole === "SALES" ? or(eq(customers.salesRepId, user.id), isNull(customers.salesRepId)) : undefined))
+    .orderBy(asc(customers.name), asc(customers.id));
   const data = rows.map((order) => ({
     ...order,
     quantityM3: Number(order.quantityM3),
@@ -38,5 +42,5 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     pending: data.filter((order) => order.status === "PENDING").length,
     ongoing: data.filter((order) => order.status === "IN_PROGRESS").length,
   };
-  return <OrdersWorkspace orders={data} role={appRole} date={selectedDate} view={view || "orders"} totals={totals} statusLabels={statusLabels} />;
+  return <OrdersWorkspace orders={data} customerOptions={customerOptions} role={appRole} date={selectedDate} view={view || "orders"} totals={totals} statusLabels={statusLabels} />;
 }

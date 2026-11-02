@@ -17,6 +17,7 @@ type OrderDTO = {
   planningNote: string | null; status: OrderStatus; createdBy: string; version: string;
 };
 type Totals = { ordered: number; actual: number; pending: number; ongoing: number };
+type CustomerOption = { id: string; name: string; phone: string | null; address: string | null };
 type HistoryEvent = {
   id: string; eventType: string; eventLabel: string; fieldName: string | null;
   oldValue: string | null; newValue: string | null; createdAt: string; actorName: string | null;
@@ -172,15 +173,17 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
 }
 
 export function OrdersWorkspace({
-  orders, date, role, totals, view = "orders",
+  orders, customerOptions, date, role, totals, view = "orders",
 }: {
-  orders: OrderDTO[]; date: string; role: AppRole; totals: Totals;
+  orders: OrderDTO[]; customerOptions: CustomerOption[]; date: string; role: AppRole; totals: Totals;
   statusLabels: Record<OrderStatus, string>; view?: string;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
   const [showForm, setShowForm] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const selectedCustomer = customerOptions.find((customer) => customer.id === selectedCustomerId);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -217,17 +220,23 @@ export function OrdersWorkspace({
     const form = new FormData(event.currentTarget);
     const requestedAt = new Date(`${form.get("date")}T${form.get("time")}:00+07:00`).toISOString();
     const payload = {
+      customerId: selectedCustomer?.id,
       customerName: form.get("customerName"), siteAddress: form.get("siteAddress"),
       contactName: form.get("contactName"), contactPhone: form.get("contactPhone"), requestedAt,
       quantityM3: form.get("quantityM3"), grade: form.get("grade"), sandType: form.get("sandType"),
       stoneType: form.get("stoneType"), pumpRequired: form.get("pumpRequired"),
       truckCapacityM3: form.get("truckCapacityM3"), pourType: form.get("pourType"), salesNote: form.get("salesNote"),
     };
-    const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    const result = await response.json().catch(() => ({}));
-    setBusy(false);
-    if (!response.ok) { setError(result.error || "Không lưu được đơn hàng."); return; }
-    setShowForm(false); setToast(result.message || "Đã tạo booking."); router.refresh();
+    try {
+      const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(result.error || "Không lưu được đơn hàng."); return; }
+      setShowForm(false); setSelectedCustomerId(""); setToast(result.message || "Đã tạo booking."); router.refresh();
+    } catch {
+      setError("Mất kết nối tới máy chủ. Vui lòng thử lại.");
+    } finally {
+      setBusy(false);
+    }
   }
   function exportPlan() {
     const link = document.createElement("a");
@@ -245,7 +254,7 @@ export function OrdersWorkspace({
       <div className="heading-actions">
         <input type="date" aria-label="Ngày kế hoạch" className="date-input" value={date} onChange={(event) => router.push(`/orders?date=${event.target.value}&view=${view}`)} />
         {planner && <button className="btn secondary" onClick={exportPlan}><Download size={15} /> Xuất XLSX</button>}
-        {canCreate && <button className="btn" onClick={() => setShowForm(true)}><Plus size={17} /> Tạo booking</button>}
+        {canCreate && <button className="btn" onClick={() => { setSelectedCustomerId(""); setError(""); setShowForm(true); }}><Plus size={17} /> Tạo booking</button>}
       </div>
     </div>
     <div className="stats">
@@ -274,10 +283,11 @@ export function OrdersWorkspace({
         <div className="modalhead"><div><div className="eyebrow">ĐẶT LỊCH MỚI</div><h2 id="form-title">Đặt bê tông</h2><div className="sub">Hệ thống tự cấp mã booking khi lưu.</div></div>
           <button className="close" onClick={() => setShowForm(false)} aria-label="Đóng">×</button></div>
         <form onSubmit={createOrder}><div className="formgrid">
-          <div className="field"><label>Tên khách hàng *</label><input name="customerName" required minLength={2} maxLength={180} placeholder="VD: Công ty xây dựng ABC" /></div>
+          <div className="field full"><label htmlFor="existing-customer">Chọn khách hàng *</label><select id="existing-customer" required value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}><option value="" disabled>Chọn khách đã có hoặc tạo khách mới</option><option value="new">Tạo khách hàng mới</option>{customerOptions.map((customer) => <option key={customer.id} value={customer.id}>{customer.name} · {customer.phone || customer.address || "Chưa có liên hệ"}</option>)}</select><small>Chọn khách đã có để theo dõi công nợ chung. Chọn tạo mới nếu đây là khách khác.</small></div>
+          <div className="field"><label>Tên khách hàng *</label><input key={`name-${selectedCustomerId}`} name="customerName" required minLength={2} maxLength={180} defaultValue={selectedCustomer?.name ?? ""} readOnly={Boolean(selectedCustomer)} placeholder="VD: Công ty xây dựng ABC" /></div>
           <div className="field"><label>Người liên hệ</label><input name="contactName" maxLength={120} placeholder="Người nhận tại công trình" /></div>
-          <div className="field full"><label>Địa chỉ công trình *</label><input name="siteAddress" required minLength={3} maxLength={500} placeholder="Địa chỉ giao bê tông" /></div>
-          <div className="field"><label>Điện thoại liên hệ</label><input name="contactPhone" inputMode="tel" maxLength={30} placeholder="09xx xxx xxx" /></div>
+          <div className="field full"><label>Địa chỉ công trình *</label><input key={`address-${selectedCustomerId}`} name="siteAddress" required minLength={3} maxLength={500} defaultValue={selectedCustomer?.address ?? ""} placeholder="Địa chỉ giao bê tông" /></div>
+          <div className="field"><label>Điện thoại liên hệ</label><input key={`phone-${selectedCustomerId}`} name="contactPhone" inputMode="tel" maxLength={30} defaultValue={selectedCustomer?.phone ?? ""} placeholder="09xx xxx xxx" /></div>
           <div className="field"><label>Khối lượng đặt (m³) *</label><input type="number" name="quantityM3" required min="0.1" max="5000" step="0.1" placeholder="Ví dụ: 25" /></div>
           <div className="field"><label>Mác bê tông *</label><input name="grade" list="concrete-grades" required placeholder="VD: 250 (12+2)" /><datalist id="concrete-grades"><option value="250 (12+2)" /><option value="250R (14+2)" /><option value="300 (12+2)" /><option value="300R (7+12)" /><option value="C30 (12+2)" /><option value="B35 (19+1)" /></datalist></div>
           <div className="field"><label>Ngày cần cấp *</label><input type="date" name="date" required defaultValue={date} /></div>

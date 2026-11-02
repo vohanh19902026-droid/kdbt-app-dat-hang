@@ -1,16 +1,18 @@
-import { and, asc, eq, gte, isNull, lt } from "drizzle-orm";
+import { and, asc, eq, gte, lt } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { customers, orderEvents, orders, user } from "@/db/schema";
+import { orderEvents, orders, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 import { statusLabels } from "@/lib/types";
 import { logServerError } from "@/lib/server-logger";
+import { resolveBookingCustomer } from "@/lib/booking-customer";
 
 export const runtime = "nodejs";
 const createSchema = z.object({
+  customerId: z.uuid().optional(),
   customerName: z.string().trim().min(2).max(180),
   siteAddress: z.string().trim().min(3).max(500),
   contactName: z.string().trim().max(120).optional().default(""),
@@ -62,18 +64,9 @@ export async function POST(request: NextRequest) {
   const data = parsed.data;
   try {
     const created = await db.transaction(async (tx) => {
-      const found = await tx.select({ id: customers.id, salesRepId: customers.salesRepId }).from(customers)
-        .where(and(eq(customers.name, data.customerName), data.contactPhone ? eq(customers.phone, data.contactPhone) : undefined)).limit(1);
-      const customerId = found[0]?.id || (await tx.insert(customers).values({
-        name: data.customerName, phone: data.contactPhone || null, defaultAddress: data.siteAddress,
-        salesRepId: session.appRole === "SALES" ? session.user.id : null,
-      }).returning({ id: customers.id }))[0].id;
-      if (found[0] && !found[0].salesRepId && session.appRole === "SALES") {
-        await tx.update(customers).set({ salesRepId: session.user.id, updatedAt: new Date() })
-          .where(and(eq(customers.id, found[0].id), isNull(customers.salesRepId)));
-      }
+      const customer = await resolveBookingCustomer(tx, data, { id: session.user.id, role: session.appRole });
       const [order] = await tx.insert(orders).values({
-        customerId, customerName: data.customerName, salesRepName: session.user.name,
+        customerId: customer.id, customerName: customer.name, salesRepName: session.user.name,
         siteAddress: data.siteAddress, contactName: data.contactName || null,
         contactPhone: data.contactPhone || null, requestedAt: data.requestedAt,
         quantityM3: String(data.quantityM3), grade: data.grade, sandType: data.sandType,
@@ -89,6 +82,9 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ order: created, message: `Đã tạo booking ${created.bookingNo}` }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === "INVALID_CUSTOMER") {
+      return NextResponse.json({ error: "Khách hàng không tồn tại hoặc bạn không được chọn khách hàng này." }, { status: 400 });
+    }
     logServerError("create_order_failed", error, request);
     return NextResponse.json({ error: "Chưa lưu được đơn hàng. Vui lòng thử lại." }, { status: 500 });
   }
