@@ -49,5 +49,6 @@ Xem [`docs/base-app-evaluation.md`](docs/base-app-evaluation.md) để biết n�
 - Ứng dụng đã có security headers, CSP ở production, chặn Origin lạ trên API ghi dữ liệu và giới hạn truy vấn theo ngày.
 - Đã sửa lỗi SSR khiến `/orders` trả HTTP 500: Tabulator được nạp động trong `useEffect`. Thêm `GET /api/health`, error/loading boundary và màn hình lịch sử thay đổi booking.
 - Báo cáo sản lượng lọc được theo khoảng ngày (tối đa 92 ngày/lần) và tính đúng cho vai trò kế toán.
+- Người dùng tự đổi mật khẩu trong không gian làm việc; đổi xong tự động đăng xuất các thiết bị khác.
 - Vercel project `cencom-os/kdbt-app-dat-hang` đã link nhưng **chưa có biến môi trường**; cần đặt `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` rồi chạy 2 migration, tạo Admin và `vercel --prod`.
 - Mẫu XLSX được dựng theo ảnh tham khảo; độ rộng/nhóm màu có thể điều chỉnh theo workbook gốc nếu có file Excel chuẩn.

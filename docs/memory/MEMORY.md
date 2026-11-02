@@ -55,3 +55,9 @@
 - Quyết định: Báo cáo sản lượng lọc theo khoảng `from`/`to`, tối đa 92 ngày, dùng `clampIsoDateRange`; bỏ lọc `createdBy` sai dành cho ACCOUNTANT.
 - Lý do: báo cáo một ngày không đủ cho tổng kết tuần/tháng; vai trò kế toán không tạo booking nên lọc theo người tạo luôn ra rỗng.
 - Tác động: `reports/page.tsx`, `vn-date.ts` (`addIsoDays`, `clampIsoDateRange`), 2 unit test mới; trang vẫn chặn SALES.
+
+## 2026-11-02
+
+- Quyết định: Đổi mật khẩu tự phục vụ gọi thẳng `authClient.changePassword` (Better Auth) thay vì tự viết API route.
+- Lý do: Better Auth đã có rate limit, kiểm tra mật khẩu hiện tại và thu hồi phiên khác; viết lại dễ sai và bỏ qua bảo vệ CSRF.
+- Tác động: `workspace-shell.tsx` có modal đổi mật khẩu; đổi xong các thiết bị khác bị đăng xuất.
