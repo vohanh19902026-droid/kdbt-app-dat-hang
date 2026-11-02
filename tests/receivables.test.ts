@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canAccessReceivables, formatVnd, receivableEntrySchema, summarizeReceivableEntries } from "../src/lib/receivables";
+import { canManageReceivables, canRecordReceivableEntry, canViewReceivables, formatVnd, receivableEntrySchema, summarizeReceivableEntries } from "../src/lib/receivables";
 
 test("receivable ledger adds charges and subtracts payments exactly in VND", () => {
   assert.deepEqual(summarizeReceivableEntries([
@@ -29,11 +29,20 @@ test("payments may create a customer credit balance without rounding", () => {
   assert.match(formatVnd("9007199254740000"), /9\.007\.199\.254\.740\.000/);
 });
 
-test("only Admin and Accountant roles can access the ledger", () => {
-  assert.equal(canAccessReceivables("ADMIN"), true);
-  assert.equal(canAccessReceivables("ACCOUNTANT"), true);
-  assert.equal(canAccessReceivables("PLANNER"), false);
-  assert.equal(canAccessReceivables("SALES"), false);
+test("sales can view receivables but only Admin and Accountant can manage the ledger", () => {
+  assert.equal(canViewReceivables("ADMIN"), true);
+  assert.equal(canViewReceivables("ACCOUNTANT"), true);
+  assert.equal(canViewReceivables("SALES"), true);
+  assert.equal(canViewReceivables("PLANNER"), false);
+  assert.equal(canManageReceivables("ADMIN"), true);
+  assert.equal(canManageReceivables("ACCOUNTANT"), true);
+  assert.equal(canManageReceivables("SALES"), false);
+  assert.equal(canManageReceivables("PLANNER"), false);
+  assert.equal(canRecordReceivableEntry("SALES", "PAYMENT"), true);
+  assert.equal(canRecordReceivableEntry("SALES", "CHARGE"), false);
+  assert.equal(canRecordReceivableEntry("ADMIN", "CHARGE"), true);
+  assert.equal(canRecordReceivableEntry("ACCOUNTANT", "PAYMENT"), true);
+  assert.equal(canRecordReceivableEntry("PLANNER", "PAYMENT"), false);
 });
 
 test("ledger input rejects fractional, non-positive, excessive and impossible dates", () => {
