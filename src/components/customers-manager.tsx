@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Download, FileSpreadsheet, Pencil, Plus, Search, Upload, Users } from "lucide-react";
-import { normalizeCustomerDuplicateKey, parseCustomerCsv, type CustomerCsvError, type CustomerCsvRow } from "@/lib/customer-csv";
+import { normalizeCustomerDuplicateKey, type CustomerWorkbookError, type CustomerImportRow } from "@/lib/customer-workbook";
 
 type Customer = { id: string; name: string; phone: string | null; defaultAddress: string | null;
   salesRepId: string | null; salesRepName: string | null; isActive: boolean; createdAt: string };
 type SalesUser = { id: string; name: string; email: string; employeeCode: string | null; isActive: boolean };
 type FormValue = { name: string; phone: string; defaultAddress: string; salesRepId: string; isActive: boolean };
-type ImportRow = CustomerCsvRow & { salesRepId: string | null; salesRepName: string; error: string; duplicate: boolean };
+type ImportRow = CustomerImportRow & { salesRepId: string | null; salesRepName: string; error: string; duplicate: boolean };
 const blank: FormValue = { name: "", phone: "", defaultAddress: "", salesRepId: "", isActive: true };
 
 export function CustomersManager({ customers, salesUsers, canManage }: {
@@ -24,7 +24,7 @@ export function CustomersManager({ customers, salesUsers, canManage }: {
   const [busy, setBusy] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
-  const [importErrors, setImportErrors] = useState<CustomerCsvError[]>([]);
+  const [importErrors, setImportErrors] = useState<CustomerWorkbookError[]>([]);
   const [importError, setImportError] = useState("");
   const [importSuccess, setImportSuccess] = useState("");
   const [importBusy, setImportBusy] = useState(false);
@@ -42,20 +42,33 @@ export function CustomersManager({ customers, salesUsers, canManage }: {
   function startImport() {
     setImportRows([]); setImportErrors([]); setImportError(""); setImportSuccess(""); setImportOpen(true);
   }
-  function downloadTemplate() {
-    const content = "\uFEFFTên khách hàng,Số điện thoại,Địa chỉ mặc định,Email NVKD,Mã NVKD\r\n";
-    const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "mau-import-khach-hang.csv";
-    anchor.click(); window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  async function downloadFile(path: string, fallbackName: string) {
+    setImportError("");
+    try {
+      const response = await fetch(path);
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        setImportError(result.error || "Không tải được tệp XLSX.");
+        return;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const anchor = document.createElement("a"); anchor.href = url; anchor.download = fallbackName;
+      anchor.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch { setImportError("Mất kết nối tới máy chủ. Vui lòng thử lại."); }
   }
   async function readImportFile(file?: File) {
     setImportRows([]); setImportErrors([]); setImportError("");
     if (!file) return;
     if (file.size > 2_000_000) { setImportError("Tệp tối đa 2 MB. Hãy chia danh sách thành các tệp nhỏ hơn."); return; }
-    let text: string;
-    try { text = await file.text(); }
-    catch { setImportError("Không đọc được tệp. Hãy lưu lại dưới định dạng CSV UTF-8 rồi thử lại."); return; }
-    const parsed = parseCustomerCsv(text);
+    if (!file.name.toLocaleLowerCase("vi").endsWith(".xlsx")) { setImportError("Chỉ nhận tệp Excel XLSX."); return; }
+    const form = new FormData(); form.set("file", file);
+    let parsed: { rows: CustomerImportRow[]; errors: CustomerWorkbookError[] };
+    try {
+      const response = await fetch("/api/customers/import/preview", { method: "POST", body: form });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) { setImportError(result.error || "Không đọc được tệp XLSX."); return; }
+      parsed = result;
+    } catch { setImportError("Mất kết nối tới máy chủ. Kiểm tra mạng rồi thử lại."); return; }
     setImportErrors(parsed.errors);
     const activeSalesUsers = salesUsers.filter((salesUser) => salesUser.isActive);
     const byEmail = new Map(activeSalesUsers.map((salesUser) => [salesUser.email.trim().toLocaleLowerCase("vi"), salesUser]));
@@ -128,7 +141,8 @@ export function CustomersManager({ customers, salesUsers, canManage }: {
   return <>
     <div className="pagehead"><div><div className="eyebrow">DANH MỤC DỮ LIỆU</div><h1>Khách hàng</h1>
       <div className="sub">Hồ sơ khách hàng và nhân viên kinh doanh chịu trách nhiệm chăm sóc, thu hồi công nợ.</div></div>
-      {canManage && <div className="heading-actions"><button className="btn secondary" type="button" onClick={startImport}><Upload size={16} /> Nhập CSV</button><button className="btn" type="button" onClick={startCreate}><Plus size={16} /> Thêm khách hàng</button></div>}
+      <div className="heading-actions"><button className="btn secondary" type="button" onClick={() => void downloadFile("/api/customers/export", "danh-muc-khach-hang.xlsx")}><Download size={16} /> Xuất XLSX</button>
+        {canManage && <><button className="btn secondary" type="button" onClick={startImport}><Upload size={16} /> Nhập XLSX</button><button className="btn" type="button" onClick={startCreate}><Plus size={16} /> Thêm khách hàng</button></>}</div>
     </div>
     <div className="stats customer-stats">
       <div className="stat"><div className="stathead"><span>Tổng khách hàng</span><Building2 size={16} /></div><strong>{customers.length}</strong><small>Hồ sơ trong danh mục</small></div>
@@ -166,10 +180,10 @@ export function CustomersManager({ customers, salesUsers, canManage }: {
     {canManage && importOpen && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget && !importBusy) setImportOpen(false); }}>
       <section className="modal customer-import-modal" role="dialog" aria-modal="true" aria-labelledby="customer-import-title">
         <div className="modalhead"><div><div className="eyebrow">NẠP DỮ LIỆU BAN ĐẦU</div><h2 id="customer-import-title">Nhập danh sách khách hàng</h2>
-          <div className="sub">Chọn tệp CSV UTF-8, tối đa 200 khách/lần. Mỗi khách cần có email hoặc mã NVKD đang hoạt động.</div></div>
+          <div className="sub">Chọn tệp Excel XLSX, tối đa 2 MB và 200 khách/lần. Mỗi khách cần có email hoặc mã NVKD đang hoạt động.</div></div>
           <button type="button" className="close" onClick={() => setImportOpen(false)} aria-label="Đóng" disabled={importBusy}>×</button></div>
-        <div className="customer-import-tools"><button className="btn secondary" type="button" onClick={downloadTemplate}><Download size={15} /> Tải mẫu CSV</button>
-          <label className="btn secondary customer-import-file"><FileSpreadsheet size={15} /> Chọn tệp CSV<input type="file" accept=".csv,text/csv" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void readImportFile(file); }} /></label></div>
+        <div className="customer-import-tools"><button className="btn secondary" type="button" onClick={() => void downloadFile("/api/customers/import/template", "cencom-mau-nhap-khach-hang.xlsx")}><Download size={15} /> Tải mẫu XLSX</button>
+          <label className="btn secondary customer-import-file"><FileSpreadsheet size={15} /> Chọn tệp XLSX<input type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; void readImportFile(file); }} /></label></div>
         {importError && <div className="form-error" role="alert">{importError}</div>}
         {importErrors.length > 0 && <div className="customer-import-errors" role="alert">{importErrors.map((item, index) => <div key={`${item.rowNumber}-${index}`}>{item.rowNumber ? `Dòng ${item.rowNumber}: ` : "Tệp: "}{item.message}</div>)}</div>}
         {importRows.length > 0 && <>

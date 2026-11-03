@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { customers, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
-import { normalizeCustomerDuplicateKey } from "@/lib/customer-csv";
+import { normalizeCustomerDuplicateKey } from "@/lib/customer-workbook";
 
 export const runtime = "nodejs";
 
