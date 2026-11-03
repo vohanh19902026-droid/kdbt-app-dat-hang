@@ -100,7 +100,7 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
       left: { style: "thin", color: { argb: "FFCBD4CA" } }, right: { style: "thin", color: { argb: "FFCBD4CA" } },
     };
   });
-  sheet.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: last } };
+  sheet.autoFilter = { from: { row: 6, column: 1 }, to: { row: Math.max(6, 6 + rows.length), column: last } };
   rows.forEach((order, index) => {
     const row = sheet.addRow([
       index + 1, timeVN(order.plannedStartAt), timeVN(order.plannedEndAt), order.bookingNo,

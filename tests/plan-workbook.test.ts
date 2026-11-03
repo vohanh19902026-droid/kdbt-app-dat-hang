@@ -55,7 +55,7 @@ test("plan workbook contains Vietnamese plan columns, scheduled order and summar
   assert.equal(sheet.pageSetup.orientation, "landscape");
   assert.equal(sheet.pageSetup.paperSize, 8);
   assert.equal(sheet.views[0]?.state, "frozen");
-  assert.ok(sheet.autoFilter);
+  assert.equal(sheet.autoFilter, "A6:V7");
 });
 
 test("an empty plan has numeric zero totals without circular formulas", async () => {
