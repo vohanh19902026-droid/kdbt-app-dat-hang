@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { roleLabels, type AppRole } from "@/lib/types";
 import type { AppSettings } from "@/lib/app-settings";
@@ -24,7 +24,24 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
   const [passwordError, setPasswordError] = useState("");
   const [passwordNotice, setPasswordNotice] = useState("");
   const [passwordBusy, setPasswordBusy] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const accent = accentTokens[settings.accentColor] || accentTokens.green;
+  useEffect(() => {
+    if (!["ADMIN", "PLANNER", "SALES"].includes(role)) return;
+    let active = true;
+    const refreshUnread = async () => {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json() as { unread?: number };
+        if (active && typeof data.unread === "number") setUnreadNotifications(data.unread);
+      } catch { /* Keep the last known badge if the connection is briefly unavailable. */ }
+    };
+    void refreshUnread();
+    const interval = window.setInterval(() => void refreshUnread(), 60_000);
+    window.addEventListener("focus", refreshUnread);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", refreshUnread); };
+  }, [role]);
   const themeStyle = {
     "--green": accent.green, "--green2": accent.green2, "--mint": accent.mint, "--orange": accent.orange,
     "--font-scale": String(settings.fontScale / 100),
@@ -74,7 +91,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
   }
   const mobileNav = role === "ADMIN"
     ? ["/orders", "/notifications", "/planning", "/accounting", "/admin/settings"]
-    : nav.slice(0, 4).map((item) => item.href);
+    : role === "SALES" ? ["/orders", "/notifications", "/accounting"] : nav.slice(0, 4).map((item) => item.href);
   const mobileLabels: Record<string, string> = {
     "/notifications": "Tin báo",
     "/orders": "Đơn hàng",
@@ -89,7 +106,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     <aside className="sidebar">
       <div className="brand"><div className="brandmark">{settings.companyName.slice(0, 1).toUpperCase()}</div><div className="brandname">{settings.companyName}<small>{settings.companySubtitle}</small></div></div>
       <div className="navlabel">Không gian làm việc</div>
-      <nav className="nav">{nav.map((item) => <Link key={item.href} className={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""} href={item.href}><item.icon className="ico" size={17} />{item.label}</Link>)}</nav>
+      <nav className="nav">{nav.map((item) => <Link key={item.href} className={pathname === item.href || pathname.startsWith(`${item.href}/`) ? "active" : ""} href={item.href}><item.icon className="ico" size={17} />{item.label}{item.href === "/notifications" && unreadNotifications > 0 && <span className="notification-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</Link>)}</nav>
       <div className="sidebottom"><div className="avatar">{userName.slice(0, 1).toLocaleUpperCase("vi-VN")}</div><div className="user-copy"><b>{userName}</b><small>{roleLabels[role]}</small><span>{email}</span><button className="nav" onClick={openPasswordForm}><KeyRound size={15} /> Đổi mật khẩu</button><button className="nav logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div></div>
     </aside>
     <main className="main">
@@ -101,7 +118,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
       </header>
       <section className="content">{children}</section>
     </main>
-    <nav className="mobile-tabs">{mobileNav.map((href) => { const item = nav.find((entry) => entry.href === href); return item ? <Link key={item.href} className={pathname === item.href ? "active" : ""} href={item.href}><item.icon size={18} />{mobileLabels[href] ?? item.label}</Link> : null; })}</nav>
+    <nav className="mobile-tabs">{mobileNav.map((href) => { const item = nav.find((entry) => entry.href === href); return item ? <Link key={item.href} className={pathname === item.href ? "active" : ""} href={item.href}><span className="mobile-tab-icon"><item.icon size={18} />{href === "/notifications" && unreadNotifications > 0 && <span className="notification-count mobile-notification-count">{unreadNotifications > 99 ? "99+" : unreadNotifications}</span>}</span>{mobileLabels[href] ?? item.label}</Link> : null; })}</nav>
     {showPassword && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowPassword(false); }}>
       <section className="modal" role="dialog" aria-modal="true" aria-labelledby="password-title">
         <div className="modalhead">
