@@ -11,7 +11,7 @@ import { logServerError } from "@/lib/server-logger";
 export const runtime = "nodejs";
 const inputSchema = z.object({
   name: z.string().trim().min(2).max(100), email: z.email().max(254),
-  password: z.string().min(10).max(128), appRole: z.enum(["ADMIN", "PLANNER", "SALES", "ACCOUNTANT"]),
+  password: z.string().min(10).max(128), appRole: z.enum(["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"]),
   employeeCode: z.string().trim().max(40).optional(), phone: z.string().trim().max(30).optional(),
   department: z.string().trim().max(80).optional(), monthlyTargetM3: z.coerce.number().min(0).max(1000000).optional(),
 });
@@ -61,7 +61,7 @@ export async function PATCH(request: NextRequest) {
   const access = await adminSession(request);
   if ("error" in access) return access.error;
   const parsed = z.object({
-    userId: z.string().min(1), appRole: z.enum(["ADMIN", "PLANNER", "SALES", "ACCOUNTANT"]).optional(), isActive: z.boolean().optional(),
+    userId: z.string().min(1), appRole: z.enum(["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"]).optional(), isActive: z.boolean().optional(),
     employeeCode: z.string().trim().max(40).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(),
     department: z.string().trim().max(80).nullable().optional(), monthlyTargetM3: z.coerce.number().min(0).max(1000000).nullable().optional(),
   }).safeParse(await request.json().catch(() => null));

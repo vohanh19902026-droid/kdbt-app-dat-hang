@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { appNotifications, orderEvents, orders } from "@/db/schema";
+import { appNotifications, appSettings, orderEvents, orders } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { canTransition, planningFields, validatePlanningState } from "@/lib/order-rules";
 import { resolvePlanningTimes } from "@/lib/planning-schedule";
@@ -11,6 +11,8 @@ import { isValidIsoDate, vnDateOf } from "@/lib/vn-date";
 import type { OrderStatus } from "@/lib/types";
 import { logServerError } from "@/lib/server-logger";
 import { updatedOrderNotification } from "@/lib/order-notification";
+import { defaultAppSettings, normalizeAppSettings } from "@/lib/app-settings";
+import type { ProductCatalogKey } from "@/lib/product-catalog";
 
 export const runtime = "nodejs";
 const patchSchema = z.object({
@@ -28,6 +30,8 @@ const patchSchema = z.object({
   assignedVehicle: z.string().trim().max(120).optional(),
   truckCapacityM3: z.coerce.number().positive().max(30).optional(),
   pourType: z.string().trim().max(120).optional(),
+  pourMethod: z.string().trim().max(80).nullable().optional(),
+  siteCategory: z.string().trim().max(80).nullable().optional(),
   planningNote: z.string().trim().max(1000).optional(),
   contactName: z.string().trim().max(120).nullable().optional(),
   contactPhone: z.string().trim().max(30).nullable().optional(),
@@ -44,7 +48,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   const session = await getApiSession(request.headers);
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
-  if (!["ADMIN", "PLANNER"].includes(session.appRole)) {
+  if (!["ADMIN", "PLANNER", "ACCOUNTANT"].includes(session.appRole)) {
     return NextResponse.json({ error: "Chỉ nhân viên kế hoạch được cập nhật bảng điều phối." }, { status: 403 });
   }
   const { id } = await params;
@@ -54,10 +58,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Dữ liệu chưa hợp lệ." }, { status: 400 });
   const patch = parsed.data;
+  if (session.appRole === "ACCOUNTANT" && Object.keys(patch).some((key) => !["pourType", "version"].includes(key))) {
+    return NextResponse.json({ error: "Kế toán chỉ được bổ sung hoặc sửa hạng mục đổ / cấu kiện." }, { status: 403 });
+  }
   const [existing] = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
   if (!existing) return NextResponse.json({ error: "Không tìm thấy booking." }, { status: 404 });
   if (patch.version !== undefined && Number(existing.version) !== patch.version) {
     return NextResponse.json({ error: "Đơn vừa được người khác cập nhật. Tải lại bảng rồi thử lại." }, { status: 409 });
+  }
+
+  const catalogSelectionChanges: Array<{ key: ProductCatalogKey; value: string }> = [];
+  for (const [key, value, oldValue] of [
+    ["grades", patch.grade, existing.grade], ["sandTypes", patch.sandType, existing.sandType],
+    ["stoneTypes", patch.stoneType, existing.stoneType], ["pumpTypes", patch.pumpRequired, existing.pumpRequired],
+    ["serviceVehicles", patch.assignedVehicle, existing.assignedVehicle],
+    ["truckCapacitiesM3", patch.truckCapacityM3, existing.truckCapacityM3],
+    ["pourTypes", patch.pourType, existing.pourType], ["pourMethods", patch.pourMethod, existing.pourMethod],
+    ["siteCategories", patch.siteCategory, existing.siteCategory],
+  ] as const) {
+    if (value !== undefined && value !== null && String(value).trim() && String(value) !== String(oldValue ?? "")) {
+      catalogSelectionChanges.push({ key, value: String(value).trim() });
+    }
   }
 
   const times = resolvePlanningTimes(
@@ -128,6 +149,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (events.length === 0) return NextResponse.json({ error: "Không có trường nào được thay đổi." }, { status: 400 });
   try {
     const updated = await db.transaction(async (tx) => {
+      if (catalogSelectionChanges.length > 0) {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(774219430)`);
+        const [settingsRow] = await tx.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).limit(1);
+        const catalog = normalizeAppSettings(settingsRow?.values ?? defaultAppSettings).catalog;
+        const invalidChoice = catalogSelectionChanges.some(({ key, value }) => {
+          if (key === "serviceVehicles" && catalog.serviceVehicles.length === 0) return false;
+          return !catalog[key].some((choice) => String(choice).trim().toLocaleLowerCase("vi") === value.toLocaleLowerCase("vi"));
+        });
+        if (invalidChoice) throw new Error("INVALID_CATALOG_SELECTION");
+      }
       const [row] = await tx.update(orders).set(values)
         .where(and(eq(orders.id, id), eq(orders.version, existing.version))).returning();
       if (!row) throw new Error("CONCURRENT_UPDATE");
@@ -146,6 +177,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (error) {
     if (error instanceof Error && error.message === "CONCURRENT_UPDATE") {
       return NextResponse.json({ error: "Đơn vừa được người khác cập nhật. Tải lại bảng rồi thử lại." }, { status: 409 });
+    }
+    if (error instanceof Error && error.message === "INVALID_CATALOG_SELECTION") {
+      return NextResponse.json({ error: "Một lựa chọn đã được ngừng dùng hoặc cập nhật. Tải lại kế hoạch rồi chọn lại mục đang dùng." }, { status: 409 });
     }
     logServerError("update_order_failed", error, request);
     return NextResponse.json({ error: "Không cập nhật được booking." }, { status: 500 });

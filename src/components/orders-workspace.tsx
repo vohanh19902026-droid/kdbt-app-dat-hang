@@ -14,7 +14,7 @@ type OrderDTO = {
   contactName: string | null; contactPhone: string | null; requestedAt: Date; plannedStartAt: Date | null;
   plannedEndAt: Date | null; quantityM3: number; actualM3: number; grade: string; sandType: string;
   stoneType: string; pumpRequired: string; pumpOperator: string | null; assignedVehicle: string | null;
-  truckCapacityM3: number | null; pourType: string | null; salesNote: string | null;
+  truckCapacityM3: number | null; pourType: string | null; pourMethod: string | null; siteCategory: string | null; salesNote: string | null;
   planningNote: string | null; status: OrderStatus; createdBy: string; version: string;
 };
 type Totals = { ordered: number; actual: number; pending: number; ongoing: number };
@@ -28,7 +28,7 @@ const fieldLabels: Record<string, string> = {
   quantityM3: "KL đặt", actualM3: "KL thực đổ", grade: "Mác", sandType: "Cốt liệu I",
   stoneType: "Cốt liệu II", contactName: "Người liên hệ", contactPhone: "Điện thoại", pumpOperator: "NV bơm",
   pumpRequired: "Xe bơm", assignedVehicle: "Phương tiện", truckCapacityM3: "Xe chở",
-  planningNote: "Ghi chú kế hoạch", pourType: "Hạng mục", customerName: "Khách hàng",
+  planningNote: "Ghi chú kế hoạch", pourType: "Hạng mục đổ / cấu kiện", pourMethod: "Hình thức đổ", siteCategory: "Loại công trình", customerName: "Khách hàng",
   siteAddress: "Điểm đổ", salesNote: "Ghi chú", status: "Trạng thái",
 };
 const timeOfDayVN = (value: string) => new Intl.DateTimeFormat("vi-VN", {
@@ -64,8 +64,8 @@ const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[character] as string));
 
-function PlanGrid({ rows, canEdit, catalog, onToast, onHistory }: {
-  rows: OrderDTO[]; canEdit: boolean; catalog: ProductCatalog; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void;
+function PlanGrid({ rows, canEdit, catalog, onToast, onHistory, onRefresh, view }: {
+  rows: OrderDTO[]; canEdit: boolean; catalog: ProductCatalog; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void; onRefresh: () => void; view: string;
 }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -111,7 +111,9 @@ function PlanGrid({ rows, canEdit, catalog, onToast, onHistory }: {
             { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false,
               editorParams: { ...catalogListEditor(catalog.truckCapacitiesM3.map(String)), values: Object.fromEntries(catalog.truckCapacitiesM3.map((capacity) => [String(capacity), `${capacity} m³`])) },
               formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
-            { title: "HM", field: "pourType", width: 86, editor: canEdit ? "list" : false, editorParams: catalogListEditor(catalog.pourTypes) },
+            { title: "HM ĐỔ / CẤU KIỆN", field: "pourType", width: 145, editor: canEdit ? "list" : false, editorParams: { ...catalogListEditor(catalog.pourTypes), values: ["", ...catalog.pourTypes] }, headerFilter: "list", headerFilterParams: { values: ["", ...catalog.pourTypes], clearable: true }, formatter: (cell) => escapeHtml(cell.getValue() || "") },
+            { title: "HÌNH THỨC ĐỔ", field: "pourMethod", width: 105, editor: canEdit ? "list" : false, editorParams: { ...catalogListEditor(catalog.pourMethods), values: ["", ...catalog.pourMethods] }, headerFilter: "list", headerFilterParams: { values: ["", ...catalog.pourMethods], clearable: true } },
+            { title: "DỰ ÁN / DÂN CƯ", field: "siteCategory", width: 115, editor: canEdit ? "list" : false, editorParams: { ...catalogListEditor(catalog.siteCategories), values: ["", ...catalog.siteCategories] }, headerFilter: "list", headerFilterParams: { values: ["", ...catalog.siteCategories], clearable: true } },
             { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
               editorParams: { values: Object.fromEntries(Object.entries(statusLabels).map(([key, label]) => [key, label])) },
               formatter: (cell) => {
@@ -160,6 +162,7 @@ function PlanGrid({ rows, canEdit, catalog, onToast, onHistory }: {
               plannedEndTime: timeVN(saved.plannedEndAt),
             });
             onToast("Đã lưu thay đổi và ghi lịch sử booking.");
+            if (view === "receiving" && field === "status") onRefresh();
           } catch {
             cell.restoreOldValue();
             onToast("Mất kết nối tới máy chủ. Vui lòng thử lại.");
@@ -177,7 +180,7 @@ function PlanGrid({ rows, canEdit, catalog, onToast, onHistory }: {
       grid?.destroy();
       grid = null;
     };
-  }, [rows, canEdit, catalog, onToast, onHistory]);
+  }, [rows, canEdit, catalog, onToast, onHistory, onRefresh, view]);
   return <div className="plan-table" ref={host} />;
 }
 
@@ -188,6 +191,7 @@ export function OrdersWorkspace({
   statusLabels: Record<OrderStatus, string>; view?: string;
 }) {
   const router = useRouter();
+  const refreshAfterConfirm = useCallback(() => router.refresh(), [router]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
   const [showForm, setShowForm] = useState(false);
@@ -234,7 +238,8 @@ export function OrdersWorkspace({
       contactName: form.get("contactName"), contactPhone: form.get("contactPhone"), requestedAt,
       quantityM3: form.get("quantityM3"), grade: form.get("grade"), sandType: form.get("sandType"),
       stoneType: form.get("stoneType"), pumpRequired: form.get("pumpRequired"),
-      truckCapacityM3: form.get("truckCapacityM3"), pourType: form.get("pourType"), salesNote: form.get("salesNote"),
+      truckCapacityM3: form.get("truckCapacityM3"), pourType: form.get("pourType"), pourMethod: form.get("pourMethod"),
+      siteCategory: form.get("siteCategory"), salesNote: form.get("salesNote"),
     };
     try {
       const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -257,12 +262,12 @@ export function OrdersWorkspace({
   return <>
     <div className="pagehead">
       <div><div className="eyebrow">{planner ? "ĐIỀU PHỐI SẢN XUẤT" : "ĐẶT HÀNG BÊ TÔNG"} · {dateLabel}</div>
-        <h1>{planner && view === "planning" ? "Bảng kế hoạch cấp hàng" : "Đơn đặt bê tông"}</h1>
-        <div className="sub">{planner ? "Xác nhận booking, sắp xếp giờ cấp và phân công phương tiện." : "Tạo booking và theo dõi tiến độ cấp bê tông của bạn."}</div>
+        <h1>{planner && view === "planning" ? "Bảng kế hoạch cấp hàng" : planner && view === "receiving" ? "Nhận đơn hàng" : "Đơn đặt bê tông"}</h1>
+        <div className="sub">{planner && view === "receiving" ? "Kiểm tra booking chờ duyệt theo ngày; đổi trạng thái sang Đã xác nhận để chuyển vào bảng kế hoạch." : planner ? "Sắp xếp giờ cấp, xác nhận đơn và phân công phương tiện." : "Tạo booking và theo dõi tiến độ cấp bê tông của bạn."}</div>
       </div>
       <div className="heading-actions">
         <input type="date" aria-label="Ngày kế hoạch" className="date-input" value={date} onChange={(event) => router.push(`/orders?date=${event.target.value}&view=${view}`)} />
-        {planner && <button className="btn secondary" onClick={exportPlan}><Download size={15} /> Xuất XLSX</button>}
+        {planner && view === "planning" && <button className="btn secondary" onClick={exportPlan}><Download size={15} /> Xuất XLSX</button>}
         {canCreate && <button className="btn" onClick={() => { setSelectedCustomerId(""); setError(""); setShowForm(true); }}><Plus size={17} /> Tạo booking</button>}
       </div>
     </div>
@@ -278,13 +283,13 @@ export function OrdersWorkspace({
           <option value="ALL">Tất cả trạng thái</option>
           {Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select>
-        {planner && <button className="pill" onClick={exportPlan}><Download size={14} /> Xuất bảng Excel</button>}
+        {planner && view === "planning" && <button className="pill" onClick={exportPlan}><Download size={14} /> Xuất bảng Excel</button>}
         <button className="pill" onClick={() => router.refresh()} title="Tải lại"><RefreshCw size={14} /></button>
       </div>
       <div className="search-wrap"><Search size={15} /><input className="search" placeholder="Tìm booking, khách hàng, địa chỉ..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
     </div>
-    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} catalog={catalog} onToast={setToast} onHistory={openHistory} /></div>
-    <div className="desktop-note">{planner
+    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} catalog={catalog} onToast={setToast} onHistory={openHistory} onRefresh={refreshAfterConfirm} view={view} /></div>
+    <div className="desktop-note">{planner && view === "receiving" ? "Chỉ hiển thị booking đang chờ duyệt của ngày đã chọn. Xác nhận trạng thái để chuyển booking sang tab Bảng kế hoạch." : planner
       ? "Chỉnh trực tiếp giờ, vật liệu, phương tiện hoặc trạng thái. Mỗi thay đổi được lưu và ghi vào lịch sử booking."
       : "Danh sách chỉ hiển thị booking do bạn tạo. Mã booking được cấp tự động."}</div>
     {showForm && <div className="overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowForm(false); }}>
@@ -305,7 +310,9 @@ export function OrdersWorkspace({
           <div className="field"><label>Loại cát *</label><input name="sandType" list="sand-types" required placeholder="Chọn hoặc nhập loại cát" /><datalist id="sand-types">{catalog.sandTypes.map((value) => <option key={value} value={value} />)}</datalist></div>
           <div className="field"><label>Loại đá *</label><input name="stoneType" list="stone-types" required placeholder="Chọn hoặc nhập loại đá" /><datalist id="stone-types">{catalog.stoneTypes.map((value) => <option key={value} value={value} />)}</datalist></div>
           <div className="field"><label>Xe chở (m³/chuyến)</label><select name="truckCapacityM3">{catalog.truckCapacitiesM3.map((value) => <option key={value} value={value}>{value} m³/chuyến</option>)}</select></div>
-          <div className="field"><label>Hạng mục</label><select name="pourType">{catalog.pourTypes.map((value) => <option key={value}>{value}</option>)}</select></div>
+          <div className="field"><label>Hạng mục đổ / cấu kiện (không bắt buộc)</label><select name="pourType" defaultValue=""><option value="">Chưa xác định</option>{catalog.pourTypes.map((value) => <option key={value}>{value}</option>)}</select></div>
+          <div className="field"><label>Hình thức đổ</label><select name="pourMethod" defaultValue=""><option value="">Chưa xác định</option>{catalog.pourMethods.map((value) => <option key={value}>{value}</option>)}</select></div>
+          <div className="field"><label>Công trình</label><select name="siteCategory" defaultValue=""><option value="">Chưa phân loại</option>{catalog.siteCategories.map((value) => <option key={value}>{value}</option>)}</select></div>
           <div className="field full"><label>Ghi chú thêm</label><textarea name="salesNote" maxLength={1000} placeholder="Vị trí đổ, lưu ý đường vào, liên hệ công trường..." /></div>
         </div>
           {error && <div className="form-error" role="alert">{error}</div>}

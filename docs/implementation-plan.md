@@ -13,12 +13,12 @@
 
 ## Bằng chứng kỹ thuật gần nhất
 
-- `npm test`: 49/49 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX và tính công nợ. Test workbook mở lại file và xác nhận các cột người liên hệ/điểm đổ, giờ cấp, khối lượng, vật liệu, phương tiện, ghi chú, tổng công thức và vùng lọc. Test danh mục bảo đảm tùy chọn phương tiện tương thích với cấu hình cũ; kế hoạch có thể cập nhật người liên hệ.
+- `npm test`: 53/53 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX, tính công nợ và chuẩn hóa catalog cũ. Test workbook mở lại file và xác nhận các cột người liên hệ/điểm đổ, giờ cấp, khối lượng, vật liệu, phương tiện, ghi chú, tổng công thức và vùng lọc.
 - `npm run lint`: đạt.
 - `npm run typecheck`: đạt.
 - `npm run build`: đạt với Next.js 16.4.3.
-- Production health check gần nhất được ghi nhận: `status: ok`, `database: up`. UAT local mới nhất ngày 03/11/2026 cũng trả HTTP 200 và `database: up`; build, lint và typecheck trên source hiện tại đều đạt. Đã tạo ba tài khoản UAT production để kiểm tra quyền theo vai trò; hiện có khách hàng/booking smoke test `BOOK-7431`, trạng thái Đã hủy. Các dữ liệu này không phải dữ liệu vận hành thật.
-- UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Code workbook `69600a2` đang chạy tại `http://127.0.0.1:3102`; health trả HTTP 200 và database local `cencom_accounting_test` ở cổng 55432 đang hoạt động, tách khỏi Neon production. Tài liệu checklist mới nhất ở `4da7eda`.
+- Production health check gần nhất trước phát hành trả `status: ok`, `database: up`. Ngày 03/11/2026 đã áp các migration Production còn thiếu `0005`–`0009` sau dry-run xác nhận đúng Neon Production. Build, lint, typecheck và 53 unit tests đạt trên source phát hành. Đã tạo ba tài khoản UAT production từ đợt trước để kiểm tra quyền theo vai trò; booking smoke test `BOOK-7431` đang Đã hủy, không phải dữ liệu vận hành thật.
+- UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Bản source mới nhất chạy riêng tại `http://127.0.0.1:3103` với PostgreSQL local `cencom_accounting_test` ở cổng 55432, tách khỏi Neon Production. Preview Vercel chưa kiểm thử được do thiếu `DATABASE_URL` dành riêng cho Preview.
 
 ## Việc cần làm để bắt đầu vận hành thật
 

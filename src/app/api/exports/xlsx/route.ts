@@ -1,4 +1,4 @@
-import { and, asc, gte, lt, sql } from "drizzle-orm";
+import { and, asc, gte, inArray, lt, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   // Bảng kế hoạch đi theo ngày cấp hàng; đơn chưa xếp lịch vẫn hiện theo ngày yêu cầu.
   const plannedAt = sql`COALESCE(${orders.plannedStartAt}, ${orders.requestedAt})`;
   const rows = await db.select().from(orders)
-    .where(and(gte(plannedAt, from), lt(plannedAt, to)))
+    .where(and(gte(plannedAt, from), lt(plannedAt, to), inArray(orders.status, ["APPROVED", "SCHEDULED", "IN_PROGRESS", "COMPLETED"])))
     .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt))
     .limit(5001);
   if (rows.length > 5000) {

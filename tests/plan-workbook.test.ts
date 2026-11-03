@@ -23,6 +23,8 @@ const exampleOrder: PlanExportOrder = {
   assignedVehicle: "Bơm cần 42m",
   truckCapacityM3: "7",
   pourType: "Sàn",
+  pourMethod: "Bơm",
+  siteCategory: "Dự án",
   salesNote: "Gọi trước khi tới",
   planningNote: "Đổi đường vào",
   status: "SCHEDULED",
@@ -51,17 +53,21 @@ test("plan workbook contains Vietnamese plan columns, scheduled order and summar
   assert.equal(sheet.getCell("J7").value, 25.5);
   assert.equal(sheet.getCell("M7").value, "Cát vàng");
   assert.equal(sheet.getCell("P7").value, "Bơm cần 42m");
-  assert.equal(sheet.getCell("S7").value, "Gọi trước khi tới");
-  assert.equal(sheet.getCell("T7").value, "Đổi đường vào");
-  assert.equal(sheet.getCell("U7").value, "Bơm 50m");
-  assert.match(String(sheet.getCell("V7").value), /08:45/);
-  assert.equal(sheet.getCell("W7").value, "Đã xếp lịch");
+  assert.equal(sheet.getCell("R6").value, "Hạng mục đổ / cấu kiện");
+  assert.equal(sheet.getCell("R7").value, "Sàn");
+  assert.equal(sheet.getCell("S7").value, "Bơm");
+  assert.equal(sheet.getCell("T7").value, "Dự án");
+  assert.equal(sheet.getCell("U7").value, "Gọi trước khi tới");
+  assert.equal(sheet.getCell("V7").value, "Đổi đường vào");
+  assert.equal(sheet.getCell("W7").value, "Bơm 50m");
+  assert.match(String(sheet.getCell("X7").value), /08:45/);
+  assert.equal(sheet.getCell("Y7").value, "Đã xếp lịch");
   assert.deepEqual(sheet.getCell("J8").value, { formula: "SUM(J7:J7)", result: 25.5 });
   assert.equal(sheet.getCell("K8").value && typeof sheet.getCell("K8").value, "object");
   assert.equal(sheet.pageSetup.orientation, "landscape");
   assert.equal(sheet.pageSetup.paperSize, 8);
   assert.equal(sheet.views[0]?.state, "frozen");
-  assert.equal(sheet.autoFilter, "A6:W7");
+  assert.equal(sheet.autoFilter, "A6:Y7");
 });
 
 test("an empty plan has numeric zero totals without circular formulas", async () => {

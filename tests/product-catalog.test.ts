@@ -6,6 +6,24 @@ test("older workspace settings inherit the configurable booking catalog defaults
   assert.deepEqual(normalizeProductCatalog(undefined), defaultProductCatalog);
 });
 
+test("partial legacy catalogs retain defined pour fields and fill the missing booking lists", () => {
+  const catalog = normalizeProductCatalog({ pourTypes: ["Sàn"], pourMethods: ["Đổ xả"], siteCategories: ["Dự án"] });
+  assert.deepEqual(catalog.pourTypes, ["Sàn"]);
+  assert.deepEqual(catalog.pourMethods, ["Đổ xả"]);
+  assert.deepEqual(catalog.siteCategories, ["Dự án"]);
+  assert.deepEqual(catalog.grades, defaultProductCatalog.grades);
+  assert.deepEqual(catalog.sandTypes, defaultProductCatalog.sandTypes);
+  assert.deepEqual(catalog.stoneTypes, defaultProductCatalog.stoneTypes);
+});
+
+test("catalog distinguishes construction component, pouring method, and customer-site category", () => {
+  assert.ok(defaultProductCatalog.pourTypes.includes("Móng đơn"));
+  assert.ok(defaultProductCatalog.pourTypes.includes("Móng bè"));
+  assert.ok(defaultProductCatalog.pourTypes.includes("Móng băng"));
+  assert.deepEqual(defaultProductCatalog.pourMethods, ["Đổ xả", "Bơm"]);
+  assert.deepEqual(defaultProductCatalog.siteCategories, ["Dự án", "Dân cư"]);
+});
+
 test("catalog values are trimmed and unique across every order field", () => {
   const parsed = productCatalogSchema.safeParse({
     ...defaultProductCatalog, grades: ["  M250  "], sandTypes: ["Cát vàng"], stoneTypes: ["Đá 1x2"],

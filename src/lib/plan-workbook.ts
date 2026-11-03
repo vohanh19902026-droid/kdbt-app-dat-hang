@@ -21,6 +21,8 @@ export type PlanExportOrder = {
   assignedVehicle: string | null;
   truckCapacityM3: string | null;
   pourType: string | null;
+  pourMethod: string | null;
+  siteCategory: string | null;
   salesNote: string | null;
   planningNote: string | null;
   status: string;
@@ -44,7 +46,9 @@ const columns = [
   { header: "Nhân viên bơm", key: "pumpOperator", width: 17 },
   { header: "Phương tiện", key: "vehicle", width: 18 },
   { header: "Xe chở / chuyến", key: "capacity", width: 15 },
-  { header: "HM", key: "pourType", width: 12 },
+  { header: "Hạng mục đổ / cấu kiện", key: "pourType", width: 20 },
+  { header: "Hình thức đổ", key: "pourMethod", width: 14 },
+  { header: "Dự án / Dân cư", key: "siteCategory", width: 15 },
   { header: "Ghi chú kinh doanh", key: "salesNote", width: 22 },
   { header: "Ghi chú kế hoạch", key: "planningNote", width: 22 },
   { header: "Loại xe bơm", key: "pumpRequired", width: 16 },
@@ -111,7 +115,7 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
       order.customerName, order.contactName || "", order.salesRepName, order.siteAddress, order.contactPhone || "",
       Number(order.quantityM3), Number(order.actualM3), order.grade, order.sandType, order.stoneType,
       order.pumpOperator || "", order.assignedVehicle || "",
-      order.truckCapacityM3 ? `${order.truckCapacityM3} m³/chuyến` : "", order.pourType || "", order.salesNote || "", order.planningNote || "",
+      order.truckCapacityM3 ? `${order.truckCapacityM3} m³/chuyến` : "", order.pourType || "", order.pourMethod || "", order.siteCategory || "", order.salesNote || "", order.planningNote || "",
       order.pumpRequired,
       new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(order.requestedAt),
       statusLabels[order.status as OrderStatus] ?? order.status,

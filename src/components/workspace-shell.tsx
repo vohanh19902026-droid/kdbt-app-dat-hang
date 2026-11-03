@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet } from "lucide-react";
+import { Bell, ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { roleLabels, type AppRole } from "@/lib/types";
 import type { AppSettings } from "@/lib/app-settings";
+import { UsageTelemetry } from "@/components/usage-telemetry";
 
 const accentTokens = {
   green: { green: "#174b3b", green2: "#23694e", mint: "#e6f1e9", orange: "#f0a44c" },
@@ -55,12 +56,14 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
   }
   const nav = [
     { href: "/notifications", label: "Tin báo", icon: Bell, show: ["ADMIN", "PLANNER", "SALES"].includes(role) },
-    { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: role !== "ACCOUNTANT" },
+    { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: ["ADMIN", "PLANNER", "SALES"].includes(role) },
+    { href: "/receiving", label: "Nhận đơn hàng", icon: ClipboardList, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/planning", label: "Bảng kế hoạch", icon: LayoutDashboard, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/reports", label: "Tổng hợp sản lượng", icon: ChartColumn, show: role !== "SALES" },
     { href: "/customers", label: "Khách hàng", icon: Users, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/admin/users", label: "Tài khoản & phân quyền", icon: Settings2, show: role === "ADMIN" },
     { href: "/admin/settings", label: "Cài đặt", icon: Settings2, show: role === "ADMIN" },
+    { href: "/technical/catalog", label: "Danh mục kỹ thuật", icon: Wrench, show: role === "ADMIN" || role === "TECHNICAL" },
     { href: "/accounting", label: "Công nợ", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" || role === "SALES" },
   ].filter((item) => item.show);
   async function signOut() { await authClient.signOut(); router.replace("/login"); router.refresh(); }
@@ -89,20 +92,23 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
       setPasswordBusy(false);
     }
   }
-  const mobileNav = role === "ADMIN"
-    ? ["/orders", "/notifications", "/planning", "/accounting", "/admin/settings"]
+  const mobileNav = role === "TECHNICAL" ? ["/technical/catalog"] : role === "ADMIN"
+    ? ["/orders", "/receiving", "/planning", "/accounting", "/admin/settings"]
     : role === "SALES" ? ["/orders", "/notifications", "/accounting"] : nav.slice(0, 4).map((item) => item.href);
   const mobileLabels: Record<string, string> = {
     "/notifications": "Tin báo",
     "/orders": "Đơn hàng",
+    "/receiving": "Nhận đơn",
     "/planning": "Kế hoạch",
     "/accounting": "Công nợ",
     "/admin/users": "Tài khoản",
     "/admin/settings": "Cài đặt",
     "/reports": "Tổng hợp",
     "/customers": "Khách hàng",
+    "/technical/catalog": "Danh mục kỹ thuật",
   };
   return <div className={`shell ${settings.themeMode === "dark" ? "theme-dark" : ""}`} style={themeStyle} data-theme={settings.themeMode}>
+    <UsageTelemetry />
     <aside className="sidebar">
       <div className="brand"><div className="brandmark">{settings.companyName.slice(0, 1).toUpperCase()}</div><div className="brandname">{settings.companyName}<small>{settings.companySubtitle}</small></div></div>
       <div className="navlabel">Không gian làm việc</div>
