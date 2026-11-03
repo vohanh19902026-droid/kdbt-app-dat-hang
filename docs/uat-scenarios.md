@@ -96,6 +96,18 @@ Không lưu lại thay đổi cài đặt trong lượt UAT này. Database dùng
 - UAT local dùng PostgreSQL riêng tại `127.0.0.1:55432`; không dùng Neon production.
 - Trong lần kiểm tra local ngày 02/11/2026, tiến trình cũ ở cổng 3100 còn phục vụ build trước và tạo XLSX 18 cột, trong khi source lúc đó tạo 22 cột. Đây là ghi nhận của lần kiểm tra đó, không phải trạng thái hiện tại của production.
 
+## UAT đăng nhập và phân quyền trên production ngày 03/11/2026
+
+Ba tài khoản UAT được tạo trên production sau khi chủ tài khoản xác nhận; mật khẩu tạm chỉ được trao trong phiên làm việc, không lưu tại đây.
+
+| Vai trò | Tài khoản | Kết quả kiểm tra |
+| --- | --- | --- |
+| Kinh doanh | `uat.sales@cencom.vn` | Đăng nhập thành công; thấy màn hình đặt booking, không thấy bảng kế hoạch/quản trị; danh sách chỉ hiển thị booking của tài khoản. |
+| Kế hoạch | `uat.planner@cencom.vn` | Đăng nhập thành công; thấy bảng kế hoạch và nút xuất XLSX; bị chuyển hướng khi mở màn hình công nợ. |
+| Kế toán | `uat.accounting@cencom.vn` | Đăng nhập thành công; thấy sổ công nợ và liên kết xuất XLSX; không được truy cập đơn hàng. Sổ chưa có bút toán, không ghi dữ liệu công nợ thử nghiệm lên production. |
+
+Booking `BOOK-7431` / khách `SMOKE-1793673251102` là bản ghi smoke test production có từ lần kiểm tra trước; đã chuyển sang trạng thái Đã hủy và được giữ lại để bảo toàn lịch sử. Sau khi nạp dữ liệu thật, Admin cần khóa tài khoản `uat.*` và làm sạch/ẩn bản ghi smoke theo chính sách lưu trữ đã thống nhất.
+
 ## Xác nhận production ngày 02/11/2026
 
 - Nhánh GitHub `main` tự triển khai Vercel; deployment production mới nhất đã Ready.
