@@ -22,6 +22,7 @@ test("catalog values are trimmed and unique across every order field", () => {
 test("catalog requires at least one option per field and rejects invalid truck sizes", () => {
   assert.equal(productCatalogSchema.safeParse({ ...defaultProductCatalog, grades: [] }).success, false);
   assert.equal(productCatalogSchema.safeParse({ ...defaultProductCatalog, truckCapacitiesM3: [0] }).success, false);
+  assert.equal(productCatalogSchema.safeParse({ ...defaultProductCatalog, truckCapacitiesM3: [31] }).success, false);
 });
 
 test("service vehicle catalog accepts an empty legacy default and trims unique choices", () => {

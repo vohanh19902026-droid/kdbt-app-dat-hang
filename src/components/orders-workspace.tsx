@@ -57,12 +57,15 @@ const timeVN = (value: Date | string | null) => value
   ? new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh", hour12: false }).format(new Date(value))
   : "";
 const numberVN = (value: number) => new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value);
+const catalogListEditor = (values: string[]) => ({
+  values, autocomplete: true, listOnEmpty: true, freetext: true, clearable: true,
+});
 const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[character] as string));
 
-function PlanGrid({ rows, canEdit, serviceVehicles, onToast, onHistory }: {
-  rows: OrderDTO[]; canEdit: boolean; serviceVehicles: string[]; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void;
+function PlanGrid({ rows, canEdit, catalog, onToast, onHistory }: {
+  rows: OrderDTO[]; canEdit: boolean; catalog: ProductCatalog; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -97,15 +100,17 @@ function PlanGrid({ rows, canEdit, serviceVehicles, onToast, onHistory }: {
             { title: "ĐIỆN THOẠI", field: "contactPhone", width: 105, editor: canEdit ? "input" : false },
             { title: "KL ĐẶT", field: "quantityM3", width: 72, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
             { title: "KL THỰC ĐỔ", field: "actualM3", width: 80, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },
-            { title: "MÁC", field: "grade", width: 105, editor: canEdit ? "input" : false },
-            { title: "CỐT LIỆU T I", field: "sandType", width: 115, editor: canEdit ? "input" : false, cssClass: "sand-cell" },
-            { title: "CỐT LIỆU T II", field: "stoneType", width: 115, editor: canEdit ? "input" : false, cssClass: "stone-cell" },
-            { title: "XE BƠM", field: "pumpRequired", width: 112, editor: canEdit ? "input" : false },
+            { title: "MÁC", field: "grade", width: 105, editor: canEdit ? "list" : false, editorParams: catalogListEditor(catalog.grades) },
+            { title: "CỐT LIỆU T I", field: "sandType", width: 115, editor: canEdit ? "list" : false, editorParams: catalogListEditor(catalog.sandTypes), cssClass: "sand-cell" },
+            { title: "CỐT LIỆU T II", field: "stoneType", width: 115, editor: canEdit ? "list" : false, editorParams: catalogListEditor(catalog.stoneTypes), cssClass: "stone-cell" },
+            { title: "XE BƠM", field: "pumpRequired", width: 112, editor: canEdit ? "list" : false, editorParams: catalogListEditor(catalog.pumpTypes) },
             { title: "NHÂN VIÊN BƠM", field: "pumpOperator", width: 120, editor: canEdit ? "input" : false },
-            { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 160, editor: canEdit ? (serviceVehicles.length ? "list" : "input") : false,
-              editorParams: { values: serviceVehicles, autocomplete: true, listOnEmpty: true, clearable: true, freetext: true }, cssClass: "vehicle-cell" },
-            { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false, editorParams: { values: { 5: "5 m³", 7: "7 m³", 10: "10 m³" } }, formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
-            { title: "HM", field: "pourType", width: 86, editor: canEdit ? "input" : false },
+            { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 160, editor: canEdit ? (catalog.serviceVehicles.length ? "list" : "input") : false,
+              editorParams: catalogListEditor(catalog.serviceVehicles), cssClass: "vehicle-cell" },
+            { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false,
+              editorParams: { ...catalogListEditor(catalog.truckCapacitiesM3.map(String)), values: Object.fromEntries(catalog.truckCapacitiesM3.map((capacity) => [String(capacity), `${capacity} m³`])) },
+              formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
+            { title: "HM", field: "pourType", width: 86, editor: canEdit ? "list" : false, editorParams: catalogListEditor(catalog.pourTypes) },
             { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
               editorParams: { values: Object.fromEntries(Object.entries(statusLabels).map(([key, label]) => [key, label])) },
               formatter: (cell) => {
@@ -171,7 +176,7 @@ function PlanGrid({ rows, canEdit, serviceVehicles, onToast, onHistory }: {
       grid?.destroy();
       grid = null;
     };
-  }, [rows, canEdit, serviceVehicles, onToast, onHistory]);
+  }, [rows, canEdit, catalog, onToast, onHistory]);
   return <div className="plan-table" ref={host} />;
 }
 
@@ -277,7 +282,7 @@ export function OrdersWorkspace({
       </div>
       <div className="search-wrap"><Search size={15} /><input className="search" placeholder="Tìm booking, khách hàng, địa chỉ..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
     </div>
-    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} serviceVehicles={catalog.serviceVehicles} onToast={setToast} onHistory={openHistory} /></div>
+    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} catalog={catalog} onToast={setToast} onHistory={openHistory} /></div>
     <div className="desktop-note">{planner
       ? "Chỉnh trực tiếp giờ, vật liệu, phương tiện hoặc trạng thái. Mỗi thay đổi được lưu và ghi vào lịch sử booking."
       : "Danh sách chỉ hiển thị booking do bạn tạo. Mã booking được cấp tự động."}</div>

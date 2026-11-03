@@ -7,7 +7,7 @@
 - Kế hoạch duyệt booking, chỉnh giờ cấp, giao phương tiện và theo dõi lịch sử trên bảng desktop.
 - Xuất bảng kế hoạch `.xlsx` theo mẫu nghiệp vụ; Kế toán/Admin quản lý sổ công nợ và xuất sổ. NVKD xem công nợ khách hàng được giao, ghi nhận tiền đã thu và xuất dữ liệu trong phạm vi phụ trách.
 - PWA có thể cài trên điện thoại/tablet; các trang và API mang dữ liệu không được lưu vào cache offline.
-- Admin quản lý tài khoản/hồ sơ nhân viên, thương hiệu/giao diện và danh mục mác, cát, đá, bơm, phương tiện phục vụ, dung tích xe, hạng mục.
+- Admin quản lý tài khoản/hồ sơ nhân viên, thương hiệu/giao diện và danh mục mác, cát, đá, bơm, phương tiện phục vụ, dung tích xe, hạng mục; lưới kế hoạch lấy lựa chọn trực tiếp từ cùng danh mục cài đặt.
 - Báo cáo sản lượng phân biệt khách hàng theo nhân viên kinh doanh phụ trách.
 - Admin tải mẫu `.xlsx` tiếng Việt, xem trước tối đa 200 khách/lần, ghép chủ sở hữu theo email/mã NVKD đang hoạt động, bỏ qua khách trùng và nhập hợp lệ theo một yêu cầu có kiểm tra quyền. Admin/Kế hoạch xuất danh mục bằng workbook `.xlsx` đã định dạng; PostgreSQL/Neon lưu dữ liệu vận hành.
 

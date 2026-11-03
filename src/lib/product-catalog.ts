@@ -6,7 +6,7 @@ export const productCatalogSchema = z.object({
   stoneTypes: z.array(z.string().trim().min(1).max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
   pumpTypes: z.array(z.string().trim().min(1).max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
   serviceVehicles: z.array(z.string().trim().min(1).max(120)).max(200),
-  truckCapacitiesM3: z.array(z.number().positive().max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(20),
+  truckCapacitiesM3: z.array(z.number().positive().max(30)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(20),
   pourTypes: z.array(z.string().trim().min(1).max(120)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
 }).superRefine((catalog, context) => {
   for (const [key, values] of Object.entries(catalog)) {

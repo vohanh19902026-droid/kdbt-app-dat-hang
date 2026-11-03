@@ -34,7 +34,7 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 ## Quy trình MVP
 
 - Kinh doanh đăng nhập trên mobile, tạo booking gồm khách hàng, địa chỉ, liên hệ, khối lượng, mác, cát/đá, thời điểm yêu cầu, xe bơm, xe chở/chuyến và ghi chú. Mã `BOOK-####` do PostgreSQL sequence sinh nguyên tử.
-- Admin cấu hình mác bê tông, danh mục cát/đá, loại bơm, phương tiện phục vụ gợi ý cho kế hoạch, dung tích xe chở và hạng mục đổ trong phần Cài đặt; các booking cũ giữ nguyên dữ liệu đã chụp tại thời điểm đặt.
+- Admin cấu hình mác bê tông, danh mục cát/đá, loại bơm, phương tiện phục vụ gợi ý cho kế hoạch, dung tích xe chở và hạng mục đổ trong phần Cài đặt. Lưới kế hoạch dùng cùng các danh mục gợi ý; vẫn có thể nhập ngoại lệ, còn danh mục dung tích xe tối đa 30 m³ khớp giới hạn lưu của API. Booking cũ giữ nguyên dữ liệu đã chụp tại thời điểm đặt.
 - Admin quản lý danh mục khách hàng tại `/customers`, tải mẫu nhập `.xlsx` tiếng Việt, xem trước và nhập tối đa 200 khách/lần, rồi giao từng khách cho NVKD qua email hoặc mã nhân viên đang hoạt động. Admin/Kế hoạch xuất danh mục khách hàng thành workbook `.xlsx` có tiêu đề, bộ lọc và định dạng cột. PostgreSQL/Neon là nơi lưu dữ liệu vận hành; CSV không dùng làm định dạng nhập/xuất cho người dùng.
 - Kế hoạch/Admin xem booking theo ngày trên lưới Tabulator, sửa trực tiếp ngày cấp, giờ, khối lượng, vật liệu, xe bơm/xe phục vụ, ghi chú và trạng thái. Mỗi cập nhật được ghi `order_events`; `version` do trình duyệt gửi lên ngăn ghi đè khi hai người sửa cùng lúc.
 - Kế hoạch/Admin xuất workbook `.xlsx` thật với tiêu đề gộp, định dạng, bộ lọc, cố định hàng tiêu đề, tổng khối lượng và thiết lập in ngang A3. Bảng kế hoạch và tệp xuất lọc theo ngày cấp hàng (`planned_start_at`), đơn chưa xếp lịch rơi về ngày yêu cầu.
