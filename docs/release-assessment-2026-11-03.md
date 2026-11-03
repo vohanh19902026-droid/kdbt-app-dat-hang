@@ -25,7 +25,11 @@
 - npm run build: đạt với Next.js 16.4.3.
 - npm audit --omit=dev --audit-level=moderate: 0 lỗ hổng.
 - npm run db:migrate:dry trên Production xác nhận đúng Neon Production; migration 0005–0009 được áp thành công, còn lịch sử 0000–0004 được bỏ qua.
-- Health endpoint cần được kiểm tra lại sau khi Vercel hoàn tất deployment commit phát hành.
+- Health endpoint Production đã được kiểm tra sau khi Vercel hoàn tất deployment; kết quả đo được ghi ở phần trên.
+
+- GitHub Actions `CI` cho commit phát hành hoàn tất `success` (typecheck, lint, tests và production build).
+- Vercel Production deployment của `main` ở trạng thái `READY`; alias đang dùng là `kdbt-app-dat-hang-five.vercel.app`.
+- Sau phát hành, `/api/health` trả `status: ok`, `database: up` trong cả 3 lần đo. Thời gian tổng lần lượt 2.58s, 0.88s, 0.65s; lần đầu JSON báo query database 1.53s. Chênh lệch giữa lần đầu và các lần kế tiếp cho thấy cần tiếp tục theo dõi cold start/Neon wake-up.
 
 ## Nhận xét kiến trúc và rủi ro
 
