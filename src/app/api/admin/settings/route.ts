@@ -58,7 +58,6 @@ export async function PUT(request: NextRequest) {
   const parsed = settingsSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Cài đặt chưa hợp lệ." }, { status: 400 });
   const conflict = await db.transaction(async (tx) => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(774219430)`);
     const [stored] = await tx.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).for("update").limit(1);
     const rawSettings = stored?.values as Record<string, unknown> | undefined;
     const storedCatalog = productCatalogSchema.safeParse(rawSettings?.catalog ?? defaultProductCatalog);

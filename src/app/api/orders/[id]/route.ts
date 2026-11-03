@@ -1,8 +1,9 @@
 import { and, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { appNotifications, appSettings, orderEvents, orders } from "@/db/schema";
+import { appNotifications, appSettings, orderEvents, orders, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { canTransition, planningFields, validatePlanningState } from "@/lib/order-rules";
 import { resolvePlanningTimes } from "@/lib/planning-schedule";
@@ -13,6 +14,8 @@ import { logServerError } from "@/lib/server-logger";
 import { updatedOrderNotification } from "@/lib/order-notification";
 import { defaultAppSettings, normalizeAppSettings } from "@/lib/app-settings";
 import type { ProductCatalogKey } from "@/lib/product-catalog";
+import { shouldNotifyOrderUpdate } from "@/lib/notification-preferences";
+import { deliverWebPush } from "@/lib/web-push";
 
 export const runtime = "nodejs";
 const patchSchema = z.object({
@@ -148,9 +151,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   if (events.length === 0) return NextResponse.json({ error: "Không có trường nào được thay đổi." }, { status: 400 });
   try {
-    const updated = await db.transaction(async (tx) => {
+    const updatedResult = await db.transaction(async (tx) => {
       if (catalogSelectionChanges.length > 0) {
-        await tx.execute(sql`SELECT pg_advisory_xact_lock(774219430)`);
+        await tx.execute(sql`SELECT id FROM app_settings WHERE id = 'default' FOR SHARE`);
         const [settingsRow] = await tx.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).limit(1);
         const catalog = normalizeAppSettings(settingsRow?.values ?? defaultAppSettings).catalog;
         const invalidChoice = catalogSelectionChanges.some(({ key, value }) => {
@@ -165,15 +168,30 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const savedEvents = await tx.insert(orderEvents)
         .values(events.map((event) => ({ ...event, orderId: id, actorUserId: session.user.id })))
         .returning({ id: orderEvents.id });
+      let notificationIds: string[] = [];
       if (existing.createdBy !== session.user.id) {
+        const [recipient] = await tx.select({ appRole: user.appRole, isActive: user.isActive, notificationPreferences: user.notificationPreferences })
+          .from(user).where(eq(user.id, existing.createdBy)).limit(1);
+        const shouldNotify = recipient?.isActive && shouldNotifyOrderUpdate(recipient.notificationPreferences, session.user.id, session.appRole, recipient.appRole);
+        if (shouldNotify) {
         const notice = updatedOrderNotification({ bookingNo: existing.bookingNo, customerName: existing.customerName, changes: events });
-        await tx.insert(appNotifications).values({
+        const inserted = await tx.insert(appNotifications).values({
           recipientUserId: existing.createdBy, orderId: id, orderEventId: savedEvents[0]?.id ?? null, ...notice,
-        });
+        }).returning({ id: appNotifications.id });
+        notificationIds = inserted.map((item) => item.id);
+        }
       }
-      return row;
+      return { order: row, notificationIds };
     });
-    return NextResponse.json({ order: updated });
+    if (updatedResult.notificationIds.length) after(() => deliverWebPush(updatedResult.notificationIds, {
+      title: events.some((event) => event.fieldName === "status" && event.newValue === "APPROVED")
+        ? `Đã xác nhận ${updatedResult.order.bookingNo}` : `Cập nhật ${updatedResult.order.bookingNo}`,
+      body: events.some((event) => event.fieldName === "status" && event.newValue === "APPROVED")
+        ? `${updatedResult.order.customerName} · Đơn hàng đã được kế hoạch xác nhận.`
+        : `${updatedResult.order.customerName} · Đơn hàng vừa được kế hoạch cập nhật.`,
+      url: "/orders",
+    }));
+    return NextResponse.json({ order: updatedResult.order });
   } catch (error) {
     if (error instanceof Error && error.message === "CONCURRENT_UPDATE") {
       return NextResponse.json({ error: "Đơn vừa được người khác cập nhật. Tải lại bảng rồi thử lại." }, { status: 409 });

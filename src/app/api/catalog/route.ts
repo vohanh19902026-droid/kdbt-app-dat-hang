@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const settings = await db.transaction(async (tx) => {
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(774219430)`);
       const [row] = await tx.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).for("update").limit(1);
       const current = normalizeAppSettings(row?.values ?? defaultAppSettings);
       const rawCatalog = productCatalogSchema.safeParse(current.catalog);

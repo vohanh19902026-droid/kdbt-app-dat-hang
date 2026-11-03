@@ -28,7 +28,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const accent = accentTokens[settings.accentColor] || accentTokens.green;
   useEffect(() => {
-    if (!["ADMIN", "PLANNER", "SALES"].includes(role)) return;
+
     let active = true;
     const refreshUnread = async () => {
       try {
@@ -55,7 +55,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     setPasswordNotice("");
   }
   const nav = [
-    { href: "/notifications", label: "Tin báo", icon: Bell, show: ["ADMIN", "PLANNER", "SALES"].includes(role) },
+    { href: "/notifications", label: "Tin báo", icon: Bell, show: true },
     { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: ["ADMIN", "PLANNER", "SALES"].includes(role) },
     { href: "/receiving", label: "Nhận đơn hàng", icon: ClipboardList, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/planning", label: "Bảng kế hoạch", icon: LayoutDashboard, show: ["ADMIN", "PLANNER"].includes(role) },
@@ -92,9 +92,10 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
       setPasswordBusy(false);
     }
   }
-  const mobileNav = role === "TECHNICAL" ? ["/technical/catalog"] : role === "ADMIN"
-    ? ["/orders", "/receiving", "/planning", "/accounting", "/admin/settings"]
-    : role === "SALES" ? ["/orders", "/notifications", "/accounting"] : nav.slice(0, 4).map((item) => item.href);
+  const mobileNav = role === "TECHNICAL" ? ["/technical/catalog", "/notifications"] : role === "ADMIN"
+    ? ["/orders", "/receiving", "/planning", "/notifications", "/admin/settings"]
+    : role === "SALES" ? ["/orders", "/notifications", "/accounting"]
+    : role === "ACCOUNTANT" ? ["/accounting", "/notifications"] : nav.slice(0, 4).map((item) => item.href);
   const mobileLabels: Record<string, string> = {
     "/notifications": "Tin báo",
     "/orders": "Đơn hàng",

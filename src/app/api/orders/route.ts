@@ -1,5 +1,6 @@
 import { and, asc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { appNotifications, appSettings, orderEvents, orders, user } from "@/db/schema";
@@ -11,6 +12,8 @@ import { logServerError } from "@/lib/server-logger";
 import { resolveBookingCustomer } from "@/lib/booking-customer";
 import { createdOrderNotification } from "@/lib/order-notification";
 import { defaultAppSettings, normalizeAppSettings } from "@/lib/app-settings";
+import { shouldNotifyNewBooking } from "@/lib/notification-preferences";
+import { deliverWebPush } from "@/lib/web-push";
 
 export const runtime = "nodejs";
 const createSchema = z.object({
@@ -68,9 +71,9 @@ export async function POST(request: NextRequest) {
   const data = parsed.data;
   try {
     const created = await db.transaction(async (tx) => {
-      // Serialize booking creation with catalog removal so a stale form cannot
-      // insert an option after an Admin has checked that it is unused.
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(774219430)`);
+      // A shared row lock lets bookings proceed concurrently while keeping a
+      // catalog edit from changing the options during this transaction.
+      await tx.execute(sql`SELECT id FROM app_settings WHERE id = 'default' FOR SHARE`);
       const [settingsRow] = await tx.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).limit(1);
       const catalog = normalizeAppSettings(settingsRow?.values ?? defaultAppSettings).catalog;
       const validChoices = [
@@ -98,17 +101,25 @@ export async function POST(request: NextRequest) {
         orderId: order.id, actorUserId: session.user.id, eventType: "ORDER_CREATED",
         newValue: JSON.stringify({ bookingNo: order.bookingNo, quantityM3: data.quantityM3 }),
       }).returning({ id: orderEvents.id });
-      const recipients = await tx.select({ id: user.id }).from(user)
+      const recipients = await tx.select({ id: user.id, appRole: user.appRole, notificationPreferences: user.notificationPreferences }).from(user)
         .where(and(inArray(user.appRole, ["ADMIN", "PLANNER"]), eq(user.isActive, true), ne(user.id, session.user.id)));
-      if (recipients.length) {
+      const eligibleRecipients = recipients.filter((recipient) => shouldNotifyNewBooking(recipient.notificationPreferences, session.user.id, session.appRole, recipient.appRole));
+      let notificationIds: string[] = [];
+      if (eligibleRecipients.length) {
         const notice = createdOrderNotification(order.bookingNo, order.customerName, data.quantityM3);
-        await tx.insert(appNotifications).values(recipients.map((recipient) => ({
+        const inserted = await tx.insert(appNotifications).values(eligibleRecipients.map((recipient) => ({
           recipientUserId: recipient.id, orderId: order.id, orderEventId: event.id, ...notice,
-        })));
+        }))).returning({ id: appNotifications.id });
+        notificationIds = inserted.map((item) => item.id);
       }
-      return order;
+      return { order, notificationIds };
     });
-    return NextResponse.json({ order: created, message: `Đã tạo booking ${created.bookingNo}` }, { status: 201 });
+    if (created.notificationIds.length) after(() => deliverWebPush(created.notificationIds, {
+      title: `Booking mới ${created.order.bookingNo}`,
+      body: `${created.order.customerName} · ${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(Number(created.order.quantityM3))} m³ · cần duyệt`,
+      url: "/receiving",
+    }));
+    return NextResponse.json({ order: created.order, message: `Đã tạo booking ${created.order.bookingNo}` }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_CUSTOMER") {
       return NextResponse.json({ error: "Khách hàng không tồn tại hoặc bạn không được chọn khách hàng này." }, { status: 400 });
