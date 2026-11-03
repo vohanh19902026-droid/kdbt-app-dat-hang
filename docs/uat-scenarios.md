@@ -113,4 +113,4 @@ Booking `BOOK-7431` / khách `SMOKE-1793673251102` là bản ghi smoke test prod
 - Nhánh GitHub `main` tự triển khai Vercel; deployment production mới nhất đã Ready.
 - `/api/health` trả `status: ok`, `database: up`.
 - Trên giao diện Admin production đã xác nhận tab danh mục hoạt động; form booking hiển thị mác, cát/đá, bơm, dung tích xe và hạng mục lấy từ cấu hình. Không gửi booking thử vào production.
-- Database production chưa có dữ liệu nhân viên, khách hàng hoặc booking thử. Dùng dữ liệu thật khi bắt đầu vận hành.
+- Tại thời điểm xác nhận 02/11/2026, production chưa có dữ liệu thử. Ngày 03/11/2026 đã tạo ba tài khoản UAT và bản ghi smoke test `BOOK-7431`; xem mục UAT production bên trên để biết trạng thái hiện tại. Dùng dữ liệu thật khi bắt đầu vận hành.

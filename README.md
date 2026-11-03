@@ -24,7 +24,7 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 - Ứng dụng production: <https://kdbt-app-dat-hang-five.vercel.app/login>.
 - Repo công khai: <https://github.com/vohanh19902026-droid/kdbt-app-dat-hang>.
 - Trạng thái production và kết nối Neon được xác minh qua deployment mới nhất trong Vercel; `/api/health` phải trả `status: ok`, `database: up`.
-- Database production hiện chỉ có tài khoản Admin khởi tạo; chưa có tài khoản nhân viên, khách hàng hoặc booking. Không dùng dữ liệu mẫu trên production.
+- Database production hiện có tài khoản Admin và ba tài khoản UAT; có một khách hàng cùng booking smoke test `BOOK-7431` đã hủy. Đây là dữ liệu kiểm thử, không dùng để vận hành. Admin cần đổi mật khẩu khởi tạo, tạo tài khoản nhân sự thật và nhập danh sách khách hàng thật trước khi vận hành.
 - Vercel cần `DATABASE_URL`, `BETTER_AUTH_SECRET` và `BETTER_AUTH_URL`. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
 - Các migration được quản lý qua `npm run db:migrate`; script áp theo thứ tự, ghi nhận migration đã chạy và có chế độ xem trước `npx tsx scripts/apply-migrations.ts --dry`.
 - Các schema thay đổi được quản lý bằng `drizzle/0000`–`0004`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng `npx tsx scripts/apply-migrations.ts --dry` để xem trước. Chế độ dry-run chỉ đọc database.
