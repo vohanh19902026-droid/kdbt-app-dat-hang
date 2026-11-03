@@ -13,12 +13,12 @@
 
 ## Bằng chứng kỹ thuật gần nhất
 
-- `npm test`: 47/47 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX và tính công nợ.
+- `npm test`: 47/47 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX và tính công nợ. Test workbook mở lại file và xác nhận các cột người liên hệ/điểm đổ, giờ cấp, khối lượng, vật liệu, phương tiện, ghi chú, tổng công thức và vùng lọc.
 - `npm run lint`: đạt.
 - `npm run typecheck`: đạt.
 - `npm run build`: đạt với Next.js 16.4.3.
 - Production health check gần nhất được ghi nhận: `status: ok`, `database: up`. UAT local mới nhất ngày 03/11/2026 cũng trả HTTP 200 và `database: up`; build, lint và typecheck trên source hiện tại đều đạt. Đã tạo ba tài khoản UAT production để kiểm tra quyền theo vai trò; hiện có khách hàng/booking smoke test `BOOK-7431`, trạng thái Đã hủy. Các dữ liệu này không phải dữ liệu vận hành thật.
-- UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Dữ liệu UAT nằm ở PostgreSQL local, tách khỏi Neon production.
+- UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Bản `develop` mới nhất ở `69600a2` chạy tại `http://127.0.0.1:3102`; health trả HTTP 200 và database local `cencom_accounting_test` ở cổng 55432 đang hoạt động, tách khỏi Neon production.
 
 ## Việc cần làm để bắt đầu vận hành thật
 
@@ -33,5 +33,5 @@
 
 - Thông báo đẩy/email, xử lý booking ngoại tuyến, hóa đơn/thuế và phân bổ một khoản thu cho nhiều hóa đơn chưa triển khai.
 - Phương tiện được nhập theo từng booking vì chưa có danh sách đội xe chuẩn; danh mục đội xe có thể bổ sung sau khi nhận dữ liệu phương tiện thật.
-- XLSX hiện dựng theo ảnh tham khảo; cần workbook gốc để xác nhận chính xác độ rộng, màu và nhóm tiêu đề.
+- XLSX hiện dựng theo ảnh tham khảo; cần workbook gốc để xác nhận chính xác độ rộng, màu, nhóm tiêu đề và bố cục in.
 - Chưa có thông tin nhân sự và danh sách khách hàng thật để tạo dữ liệu vận hành production. Không tạo dữ liệu giả trên Neon.
