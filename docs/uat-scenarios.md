@@ -96,6 +96,16 @@ Không lưu lại thay đổi cài đặt trong lượt UAT này. Database dùng
 - UAT local dùng PostgreSQL riêng tại `127.0.0.1:55432`; không dùng Neon production.
 - Trong lần kiểm tra local ngày 02/11/2026, tiến trình cũ ở cổng 3100 còn phục vụ build trước và tạo XLSX 18 cột, trong khi source lúc đó tạo 22 cột. Đây là ghi nhận của lần kiểm tra đó, không phải trạng thái hiện tại của production.
 
+## UAT local trên build hiện tại — 03/11/2026
+
+- Môi trường: repo `develop`, PostgreSQL UAT local, server mới tại `http://127.0.0.1:3101`; không ghi vào Neon production. Tài khoản giao diện là Admin local; lượt này mô phỏng quy trình kế hoạch bằng quyền Admin, không thay thế lần đăng nhập riêng từng vai trò đã ghi ở mục production bên trên.
+- Bằng chứng kiểm tra source: `npm test` 47/47 đạt; `npm run lint`, `npm run typecheck`, `npm run build` đều thoát mã 0. `GET /api/health` trả HTTP 200 với `status: ok`, `database: up`.
+- Luồng booking → kế hoạch: tạo `BOOK-7446` cho khách UAT `UAT Công trình Tân Phú`, 16,5 m³, mác `250 (12+2)`, cát vàng, đá 1x2, bơm 42m, xe 7 m³/chuyến. Bảng kế hoạch lưu giờ 14:45–16:00, phương tiện `Xe bồn UAT 7m3`, và trạng thái đi tuần tự Chờ duyệt → Đã xác nhận → Đã xếp lịch.
+- Lịch sử `BOOK-7446` hiển thị người thao tác, thời điểm, trạng thái trước/sau, giờ bắt đầu/kết thúc và phương tiện đã gán.
+- Công nợ: giao diện hiển thị dữ liệu UAT đã có — phải thu 25.000.000 ₫, đã thu 10.000.000 ₫, còn 15.000.000 ₫. Lọc theo `UAT Kinh doanh` giữ đúng khách và 2 giao dịch thuộc nhân viên này. Không thêm bút toán mới trong lượt kiểm tra này.
+- XLSX: bộ test trên source tạo và mở lại workbook kế hoạch, công nợ, khách hàng; lượt này chưa kiểm tra file tải xuống vật lý qua trình duyệt. Cần tiếp tục đối chiếu workbook kế hoạch với file Excel gốc của công ty khi có mẫu gốc.
+- `BOOK-7446` là dữ liệu thử local, không phải đơn hàng thật; giữ lại trong PostgreSQL UAT để người dùng có thể xem trên link local.
+
 ## UAT đăng nhập và phân quyền trên production ngày 03/11/2026
 
 Ba tài khoản UAT được tạo trên production sau khi chủ tài khoản xác nhận; mật khẩu tạm chỉ được trao trong phiên làm việc, không lưu tại đây.

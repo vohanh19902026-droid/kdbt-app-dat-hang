@@ -13,11 +13,11 @@
 
 ## Bằng chứng kỹ thuật gần nhất
 
-- `npm test`: 44/44 đạt, gồm tạo/đọc mẫu XLSX, kiểm tra dữ liệu nhập và workbook xuất danh mục.
+- `npm test`: 47/47 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX và tính công nợ.
 - `npm run lint`: đạt.
 - `npm run typecheck`: đạt.
 - `npm run build`: đạt với Next.js 16.4.3.
-- Production health check gần nhất: `status: ok`, `database: up`. Đã tạo ba tài khoản UAT production để kiểm tra quyền theo vai trò; hiện có khách hàng/booking smoke test `BOOK-7431`, trạng thái Đã hủy. Các dữ liệu này không phải dữ liệu vận hành thật.
+- Production health check gần nhất được ghi nhận: `status: ok`, `database: up`. UAT local mới nhất ngày 03/11/2026 cũng trả HTTP 200 và `database: up`; build, lint và typecheck trên source hiện tại đều đạt. Đã tạo ba tài khoản UAT production để kiểm tra quyền theo vai trò; hiện có khách hàng/booking smoke test `BOOK-7431`, trạng thái Đã hủy. Các dữ liệu này không phải dữ liệu vận hành thật.
 - UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Dữ liệu UAT nằm ở PostgreSQL local, tách khỏi Neon production.
 
 ## Việc cần làm để bắt đầu vận hành thật
