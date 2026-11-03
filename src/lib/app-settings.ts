@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { appSettings } from "@/db/schema";
-import { defaultProductCatalog, normalizeProductCatalog, type ProductCatalog } from "@/lib/product-catalog";
+import { defaultProductCatalog, emptyArchivedProductCatalog, normalizeArchivedProductCatalog, normalizeProductCatalog, type ArchivedProductCatalog, type ProductCatalog } from "@/lib/product-catalog";
 
 export type AppSettings = {
   companyName: string;
@@ -14,6 +14,7 @@ export type AppSettings = {
   fontFamily: "dm-sans" | "manrope" | "system";
   fontScale: number;
   catalog: ProductCatalog;
+  catalogArchived: ArchivedProductCatalog;
 };
 
 export const defaultAppSettings: AppSettings = {
@@ -27,12 +28,14 @@ export const defaultAppSettings: AppSettings = {
   fontFamily: "dm-sans",
   fontScale: 100,
   catalog: defaultProductCatalog,
+  catalogArchived: emptyArchivedProductCatalog,
 };
 
 export function normalizeAppSettings(value: unknown): AppSettings {
   if (!value || typeof value !== "object" || Array.isArray(value)) return defaultAppSettings;
   const settings = value as Partial<AppSettings>;
-  return { ...defaultAppSettings, ...settings, catalog: normalizeProductCatalog(settings.catalog) };
+  const catalog = normalizeProductCatalog(settings.catalog);
+  return { ...defaultAppSettings, ...settings, catalog, catalogArchived: normalizeArchivedProductCatalog(settings.catalogArchived, catalog) };
 }
 
 export async function getAppSettings(): Promise<AppSettings> {

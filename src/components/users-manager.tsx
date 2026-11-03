@@ -6,7 +6,7 @@ import { KeyRound, UserPlus } from "lucide-react";
 import { roleLabels, type AppRole } from "@/lib/types";
 
 type UserRow = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null };
-const roles: AppRole[] = ["ADMIN", "PLANNER", "SALES", "ACCOUNTANT"];
+const roles: AppRole[] = ["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"];
 
 export function UsersManager({ users, currentUserId }: { users: UserRow[]; currentUserId: string }) {
   const [open, setOpen] = useState(false);

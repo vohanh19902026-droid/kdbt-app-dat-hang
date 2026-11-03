@@ -14,15 +14,19 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const { appRole, user } = await requireSession();
   // Kế toán chỉ dùng phân hệ công nợ; không để redirect từ trang bị cấm làm lộ danh sách booking.
   if (appRole === "ACCOUNTANT") redirect("/accounting?denied=1");
+  if (appRole === "TECHNICAL") redirect("/technical/catalog");
   const { date, view } = await searchParams;
   const selectedDate = normalizeIsoDate(date);
   const { from, to } = vnDateRange(selectedDate);
   // Bảng điều phối lọc theo ngày cấp hàng; đơn chưa xếp lịch vẫn nằm ở ngày yêu cầu.
   const planningView = view === "planning";
+  const receivingView = view === "receiving";
   const basis = planningView
     ? sql<Date>`COALESCE(${orders.plannedStartAt}, ${orders.requestedAt})`
     : sql<Date>`${orders.requestedAt}`;
   const conditions = [gte(basis, from), lt(basis, to)];
+  if (planningView) conditions.push(sql`${orders.status} IN ('APPROVED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED')`);
+  if (receivingView) conditions.push(eq(orders.status, "PENDING"));
   if (appRole === "SALES") conditions.push(eq(orders.createdBy, user.id));
   const [rows, customerOptions, settings] = await Promise.all([
     db.select().from(orders).where(and(...conditions))

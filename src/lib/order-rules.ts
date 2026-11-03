@@ -29,4 +29,4 @@ export function validatePlanningState(input: {
   return null;
 }
 
-export const planningFields = ["plannedStartAt", "plannedEndAt", "quantityM3", "actualM3", "grade", "sandType", "stoneType", "contactPhone", "pumpOperator", "pumpRequired", "assignedVehicle", "truckCapacityM3", "planningNote", "pourType"] as const;
+export const planningFields = ["plannedStartAt", "plannedEndAt", "quantityM3", "actualM3", "grade", "sandType", "stoneType", "contactName", "contactPhone", "pumpOperator", "pumpRequired", "assignedVehicle", "truckCapacityM3", "planningNote", "pourType", "pourMethod", "siteCategory"] as const;

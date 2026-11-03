@@ -4,6 +4,7 @@ import { statusLabels, type OrderStatus } from "@/lib/types";
 export type PlanExportOrder = {
   bookingNo: string;
   customerName: string;
+  contactName: string | null;
   siteAddress: string;
   salesRepName: string;
   contactPhone: string | null;
@@ -20,6 +21,8 @@ export type PlanExportOrder = {
   assignedVehicle: string | null;
   truckCapacityM3: string | null;
   pourType: string | null;
+  pourMethod: string | null;
+  siteCategory: string | null;
   salesNote: string | null;
   planningNote: string | null;
   status: string;
@@ -31,8 +34,9 @@ const columns = [
   { header: "TG đổ", key: "end", width: 9 },
   { header: "Mã đơn", key: "booking", width: 15 },
   { header: "Khách hàng", key: "customer", width: 24 },
-  { header: "Địa chỉ liên hệ", key: "address", width: 27 },
+  { header: "Địa chỉ liên hệ", key: "contactName", width: 18 },
   { header: "Kinh doanh", key: "sales", width: 14 },
+  { header: "Điểm đổ", key: "address", width: 27 },
   { header: "Điện thoại", key: "phone", width: 15 },
   { header: "KL đặt", key: "qty", width: 9 },
   { header: "KL thực đổ", key: "actual", width: 10 },
@@ -42,7 +46,9 @@ const columns = [
   { header: "Nhân viên bơm", key: "pumpOperator", width: 17 },
   { header: "Phương tiện", key: "vehicle", width: 18 },
   { header: "Xe chở / chuyến", key: "capacity", width: 15 },
-  { header: "HM", key: "pourType", width: 12 },
+  { header: "Hạng mục đổ / cấu kiện", key: "pourType", width: 20 },
+  { header: "Hình thức đổ", key: "pourMethod", width: 14 },
+  { header: "Dự án / Dân cư", key: "siteCategory", width: 15 },
   { header: "Ghi chú kinh doanh", key: "salesNote", width: 22 },
   { header: "Ghi chú kế hoạch", key: "planningNote", width: 22 },
   { header: "Loại xe bơm", key: "pumpRequired", width: 16 },
@@ -79,10 +85,10 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
     if (options.fill) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: options.fill } };
     return sheet.getRow(row);
   };
-  title(1, "Bộ phận, đơn vị nhận lệnh: Trạm trộn, xe bồn, xe xúc, thí nghiệm, vật tư…", { size: 12, bold: true }).height = 22;
-  title(2, "Nghiệp vụ KDBT · Kế hoạch sản xuất và điều phối cấp hàng", { size: 10, bold: true, italic: true, color: "FF536B90" }).height = 19;
+  title(1, "Bộ phận, đơn vị nhận lệnh: Trạm trộn, xe bồn, xe xúc, thí nghiệm, vật tư…", { size: 11, bold: true, color: "FF252525" }).height = 22;
+  title(2, "Nghiệp vụ KDBT · Kế hoạch cấp bê tông", { size: 10, bold: true, italic: true, color: "FF536B90" }).height = 19;
   const day = new Intl.DateTimeFormat("vi-VN", { dateStyle: "long", timeZone: "Asia/Ho_Chi_Minh" }).format(from);
-  title(3, `KẾ HOẠCH CẤP BÊ TÔNG · ${day}`, { size: 15, bold: true, color: "FFFFFFFF", fill: "FF174B3B" }).height = 31;
+  title(3, `KẾ HOẠCH CẤP BÊ TÔNG · ${day}`, { size: 14, bold: true, color: "FFFFFFFF", fill: "FF405E8A" }).height = 30;
   const total = rows.reduce((sum, row) => sum + Number(row.quantityM3), 0);
   const actual = rows.reduce((sum, row) => sum + Number(row.actualM3), 0);
   title(4, `Tổng khối lượng đặt: ${total.toLocaleString("vi-VN")} m³     |     Tổng thực đổ: ${actual.toLocaleString("vi-VN")} m³     |     Số booking: ${rows.length}`, { size: 11, bold: true, color: "FF214735", fill: "FFE6F1E9" }).height = 23;
@@ -92,22 +98,24 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
   header.values = columns.map((column) => column.header);
   header.height = 32;
   header.eachCell((cell) => {
-    cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF173F34" } };
-    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE6EEE4" } };
+    cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF202020" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0F0F0" } };
     cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     cell.border = {
       top: { style: "thin", color: { argb: "FF52685A" } }, bottom: { style: "medium", color: { argb: "FF52685A" } },
       left: { style: "thin", color: { argb: "FFCBD4CA" } }, right: { style: "thin", color: { argb: "FFCBD4CA" } },
     };
   });
-  sheet.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: last } };
+  header.getCell(13).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+  header.getCell(14).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFCCCC" } };
+  sheet.autoFilter = { from: { row: 6, column: 1 }, to: { row: Math.max(6, 6 + rows.length), column: last } };
   rows.forEach((order, index) => {
     const row = sheet.addRow([
       index + 1, timeVN(order.plannedStartAt), timeVN(order.plannedEndAt), order.bookingNo,
-      order.customerName, order.siteAddress, order.salesRepName, order.contactPhone || "",
+      order.customerName, order.contactName || "", order.salesRepName, order.siteAddress, order.contactPhone || "",
       Number(order.quantityM3), Number(order.actualM3), order.grade, order.sandType, order.stoneType,
       order.pumpOperator || "", order.assignedVehicle || "",
-      order.truckCapacityM3 ? `${order.truckCapacityM3} m³/chuyến` : "", order.pourType || "", order.salesNote || "", order.planningNote || "",
+      order.truckCapacityM3 ? `${order.truckCapacityM3} m³/chuyến` : "", order.pourType || "", order.pourMethod || "", order.siteCategory || "", order.salesNote || "", order.planningNote || "",
       order.pumpRequired,
       new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(order.requestedAt),
       statusLabels[order.status as OrderStatus] ?? order.status,
@@ -120,20 +128,22 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
       if (index % 2 === 1) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF7F9F6" } };
     });
     row.getCell(4).font = { name: "Arial", size: 9, bold: true, color: { argb: "FF17533B" } };
-    row.getCell(9).numFmt = "#,##0.0";
     row.getCell(10).numFmt = "#,##0.0";
-    row.getCell(12).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2A8" } };
-    row.getCell(13).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF2A8" } };
-    const vehicle = row.getCell(15);
+    row.getCell(11).numFmt = "#,##0.0";
+    row.getCell(13).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+    row.getCell(14).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFE6E6" } };
+    const vehicle = row.getCell(16);
     if (order.assignedVehicle) {
-      vehicle.fill = { type: "pattern", pattern: "solid", fgColor: { argb: order.assignedVehicle.toLowerCase().includes("bơm") ? "FFF3C8E8" : "FFBCE8F5" } };
+      const label = order.assignedVehicle.toLocaleLowerCase("vi-VN");
+      const fill = label.includes("bơm") ? "FFF3C8E8" : label.includes("xà") || label.includes("xe") ? "FFBCE8F5" : "FFFFD966";
+      vehicle.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fill } };
       vehicle.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF18352A" } };
     }
   });
   const totalRow = sheet.addRow([
-    "TỔNG CỘNG", "", "", "", "", "", "", "",
-    rows.length ? { formula: `SUM(I7:I${6 + rows.length})`, result: total } : 0,
-    rows.length ? { formula: `SUM(J7:J${6 + rows.length})`, result: actual } : 0,
+    "TỔNG CỘNG", "", "", "", "", "", "", "", "",
+    rows.length ? { formula: `SUM(J7:J${6 + rows.length})`, result: total } : 0,
+    rows.length ? { formula: `SUM(K7:K${6 + rows.length})`, result: actual } : 0,
   ]);
   totalRow.height = 25;
   totalRow.eachCell((cell) => {
@@ -142,8 +152,8 @@ export function createPlanWorkbook(date: string, from: Date, rows: PlanExportOrd
     cell.alignment = { vertical: "middle" };
     cell.border = { top: { style: "medium", color: { argb: "FF174B3B" } } };
   });
-  totalRow.getCell(9).numFmt = "#,##0.0";
   totalRow.getCell(10).numFmt = "#,##0.0";
+  totalRow.getCell(11).numFmt = "#,##0.0";
   sheet.headerFooter.oddFooter = "&LCENCOM · Kế hoạch điều phối&RTrang &P / &N";
   sheet.pageSetup.printTitlesRow = "1:6";
   sheet.pageSetup.horizontalCentered = true;

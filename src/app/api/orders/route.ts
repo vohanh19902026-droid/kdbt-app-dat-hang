@@ -1,14 +1,16 @@
-import { and, asc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { orderEvents, orders, user } from "@/db/schema";
+import { appNotifications, appSettings, orderEvents, orders, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 import { statusLabels } from "@/lib/types";
 import { logServerError } from "@/lib/server-logger";
 import { resolveBookingCustomer } from "@/lib/booking-customer";
+import { createdOrderNotification } from "@/lib/order-notification";
+import { defaultAppSettings, normalizeAppSettings } from "@/lib/app-settings";
 
 export const runtime = "nodejs";
 const createSchema = z.object({
@@ -26,12 +28,14 @@ const createSchema = z.object({
   truckCapacityM3: z.coerce.number().positive().optional(),
   salesNote: z.string().trim().max(1000).optional().default(""),
   pourType: z.string().trim().max(120).optional().default(""),
+  pourMethod: z.string().trim().max(80).optional().default(""),
+  siteCategory: z.string().trim().max(80).optional().default(""),
 });
 
 export async function GET(request: NextRequest) {
   const session = await getApiSession(request.headers);
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
-  if (session.appRole === "ACCOUNTANT") return NextResponse.json({ error: "Phân hệ kế toán chưa được mở." }, { status: 403 });
+  if (["ACCOUNTANT", "TECHNICAL"].includes(session.appRole)) return NextResponse.json({ error: "Bạn không có quyền xem danh sách booking." }, { status: 403 });
   // Luôn giới hạn theo một ngày: tránh tải toàn bộ bảng khi tham số ngày trống hoặc sai.
   const date = normalizeIsoDate(request.nextUrl.searchParams.get("date"));
   const { from, to } = vnDateRange(date);
@@ -64,6 +68,21 @@ export async function POST(request: NextRequest) {
   const data = parsed.data;
   try {
     const created = await db.transaction(async (tx) => {
+      // Serialize booking creation with catalog removal so a stale form cannot
+      // insert an option after an Admin has checked that it is unused.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(774219430)`);
+      const [settingsRow] = await tx.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).limit(1);
+      const catalog = normalizeAppSettings(settingsRow?.values ?? defaultAppSettings).catalog;
+      const validChoices = [
+        ["grades", data.grade], ["sandTypes", data.sandType], ["stoneTypes", data.stoneType], ["pumpTypes", data.pumpRequired],
+        ...(data.truckCapacityM3 === undefined ? [] : [["truckCapacitiesM3", data.truckCapacityM3] as const]),
+        ...(data.pourType ? [["pourTypes", data.pourType] as const] : []),
+        ...(data.pourMethod ? [["pourMethods", data.pourMethod] as const] : []),
+        ...(data.siteCategory ? [["siteCategories", data.siteCategory] as const] : []),
+      ] as const;
+      if (validChoices.some(([key, value]) => !catalog[key].some((choice) => String(choice).trim().toLocaleLowerCase("vi") === String(value).trim().toLocaleLowerCase("vi")))) {
+        throw new Error("INVALID_CATALOG");
+      }
       const customer = await resolveBookingCustomer(tx, data, { id: session.user.id, role: session.appRole });
       const [order] = await tx.insert(orders).values({
         customerId: customer.id, customerName: customer.name, salesRepName: session.user.name,
@@ -72,18 +91,30 @@ export async function POST(request: NextRequest) {
         quantityM3: String(data.quantityM3), grade: data.grade, sandType: data.sandType,
         stoneType: data.stoneType, pumpRequired: data.pumpRequired,
         truckCapacityM3: data.truckCapacityM3 ? String(data.truckCapacityM3) : null,
-        salesNote: data.salesNote || null, pourType: data.pourType || null, createdBy: session.user.id,
+        salesNote: data.salesNote || null, pourType: data.pourType || null,
+        pourMethod: data.pourMethod || null, siteCategory: data.siteCategory || null, createdBy: session.user.id,
       }).returning();
-      await tx.insert(orderEvents).values({
+      const [event] = await tx.insert(orderEvents).values({
         orderId: order.id, actorUserId: session.user.id, eventType: "ORDER_CREATED",
         newValue: JSON.stringify({ bookingNo: order.bookingNo, quantityM3: data.quantityM3 }),
-      });
+      }).returning({ id: orderEvents.id });
+      const recipients = await tx.select({ id: user.id }).from(user)
+        .where(and(inArray(user.appRole, ["ADMIN", "PLANNER"]), eq(user.isActive, true), ne(user.id, session.user.id)));
+      if (recipients.length) {
+        const notice = createdOrderNotification(order.bookingNo, order.customerName, data.quantityM3);
+        await tx.insert(appNotifications).values(recipients.map((recipient) => ({
+          recipientUserId: recipient.id, orderId: order.id, orderEventId: event.id, ...notice,
+        })));
+      }
       return order;
     });
     return NextResponse.json({ order: created, message: `Đã tạo booking ${created.bookingNo}` }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_CUSTOMER") {
       return NextResponse.json({ error: "Khách hàng không tồn tại hoặc bạn không được chọn khách hàng này." }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === "INVALID_CATALOG") {
+      return NextResponse.json({ error: "Một lựa chọn đã được quản trị viên cập nhật. Tải lại biểu mẫu rồi chọn danh mục đang dùng." }, { status: 409 });
     }
     logServerError("create_order_failed", error, request);
     return NextResponse.json({ error: "Chưa lưu được đơn hàng. Vui lòng thử lại." }, { status: 500 });

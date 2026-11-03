@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canTransition, validatePlanningState } from "../src/lib/order-rules";
+import { canTransition, planningFields, validatePlanningState } from "../src/lib/order-rules";
 
 const start = new Date("2026-10-31T02:00:00.000Z");
 const end = new Date("2026-10-31T03:00:00.000Z");
@@ -28,6 +28,10 @@ test("scheduled work requires both times and an assigned vehicle", () => {
   assert.equal(validatePlanningState({
     status: "SCHEDULED", plannedStartAt: start, plannedEndAt: end, assignedVehicle: "Xe bồn 01",
   }), null);
+});
+
+test("planner can update the contact person shown on a booking", () => {
+  assert.ok(planningFields.includes("contactName"));
 });
 
 test("a new pending booking can wait for planning", () => {

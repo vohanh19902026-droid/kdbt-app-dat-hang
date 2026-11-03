@@ -1,4 +1,4 @@
-export type AppRole = "ADMIN" | "PLANNER" | "SALES" | "ACCOUNTANT";
+export type AppRole = "ADMIN" | "PLANNER" | "SALES" | "ACCOUNTANT" | "TECHNICAL";
 export type OrderStatus = "PENDING" | "APPROVED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
 export const roleLabels: Record<AppRole, string> = {
@@ -6,6 +6,7 @@ export const roleLabels: Record<AppRole, string> = {
   PLANNER: "Nhân viên kế hoạch",
   SALES: "Nhân viên kinh doanh",
   ACCOUNTANT: "Kế toán",
+  TECHNICAL: "Nhân viên kỹ thuật",
 };
 
 export const statusLabels: Record<OrderStatus, string> = {

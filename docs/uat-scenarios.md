@@ -96,9 +96,31 @@ Không lưu lại thay đổi cài đặt trong lượt UAT này. Database dùng
 - UAT local dùng PostgreSQL riêng tại `127.0.0.1:55432`; không dùng Neon production.
 - Trong lần kiểm tra local ngày 02/11/2026, tiến trình cũ ở cổng 3100 còn phục vụ build trước và tạo XLSX 18 cột, trong khi source lúc đó tạo 22 cột. Đây là ghi nhận của lần kiểm tra đó, không phải trạng thái hiện tại của production.
 
+## UAT local trên build hiện tại — 03/11/2026
+
+- Môi trường: repo `develop`, PostgreSQL UAT local, server mới tại `http://127.0.0.1:3101`; không ghi vào Neon production. Tài khoản giao diện là Admin local; lượt này mô phỏng quy trình kế hoạch bằng quyền Admin, không thay thế lần đăng nhập riêng từng vai trò đã ghi ở mục production bên trên.
+- Bằng chứng kiểm tra source: `npm test` 47/47 đạt; `npm run lint`, `npm run typecheck`, `npm run build` đều thoát mã 0. `GET /api/health` trả HTTP 200 với `status: ok`, `database: up`.
+- Luồng booking → kế hoạch: tạo `BOOK-7446` cho khách UAT `UAT Công trình Tân Phú`, 16,5 m³, mác `250 (12+2)`, cát vàng, đá 1x2, bơm 42m, xe 7 m³/chuyến. Bảng kế hoạch lưu giờ 14:45–16:00, phương tiện `Xe bồn UAT 7m3`, và trạng thái đi tuần tự Chờ duyệt → Đã xác nhận → Đã xếp lịch.
+- Lịch sử `BOOK-7446` hiển thị người thao tác, thời điểm, trạng thái trước/sau, giờ bắt đầu/kết thúc và phương tiện đã gán.
+- Công nợ: giao diện hiển thị dữ liệu UAT đã có — phải thu 25.000.000 ₫, đã thu 10.000.000 ₫, còn 15.000.000 ₫. Lọc theo `UAT Kinh doanh` giữ đúng khách và 2 giao dịch thuộc nhân viên này. Không thêm bút toán mới trong lượt kiểm tra này.
+- XLSX: bộ test trên source tạo và mở lại workbook kế hoạch, công nợ, khách hàng; lượt này chưa kiểm tra file tải xuống vật lý qua trình duyệt. Cần tiếp tục đối chiếu workbook kế hoạch với file Excel gốc của công ty khi có mẫu gốc.
+- `BOOK-7446` là dữ liệu thử local, không phải đơn hàng thật; giữ lại trong PostgreSQL UAT để người dùng có thể xem trên link local.
+
+## UAT đăng nhập và phân quyền trên production ngày 03/11/2026
+
+Ba tài khoản UAT được tạo trên production sau khi chủ tài khoản xác nhận; mật khẩu tạm chỉ được trao trong phiên làm việc, không lưu tại đây.
+
+| Vai trò | Tài khoản | Kết quả kiểm tra |
+| --- | --- | --- |
+| Kinh doanh | `uat.sales@cencom.vn` | Đăng nhập thành công; thấy màn hình đặt booking, không thấy bảng kế hoạch/quản trị; danh sách chỉ hiển thị booking của tài khoản. |
+| Kế hoạch | `uat.planner@cencom.vn` | Đăng nhập thành công; thấy bảng kế hoạch và nút xuất XLSX; bị chuyển hướng khi mở màn hình công nợ. |
+| Kế toán | `uat.accounting@cencom.vn` | Đăng nhập thành công; thấy sổ công nợ và liên kết xuất XLSX; không được truy cập đơn hàng. Sổ chưa có bút toán, không ghi dữ liệu công nợ thử nghiệm lên production. |
+
+Booking `BOOK-7431` / khách `SMOKE-1793673251102` là bản ghi smoke test production có từ lần kiểm tra trước; đã chuyển sang trạng thái Đã hủy và được giữ lại để bảo toàn lịch sử. Sau khi nạp dữ liệu thật, Admin cần khóa tài khoản `uat.*` và làm sạch/ẩn bản ghi smoke theo chính sách lưu trữ đã thống nhất.
+
 ## Xác nhận production ngày 02/11/2026
 
 - Nhánh GitHub `main` tự triển khai Vercel; deployment production mới nhất đã Ready.
 - `/api/health` trả `status: ok`, `database: up`.
 - Trên giao diện Admin production đã xác nhận tab danh mục hoạt động; form booking hiển thị mác, cát/đá, bơm, dung tích xe và hạng mục lấy từ cấu hình. Không gửi booking thử vào production.
-- Database production chưa có dữ liệu nhân viên, khách hàng hoặc booking thử. Dùng dữ liệu thật khi bắt đầu vận hành.
+- Tại thời điểm xác nhận 02/11/2026, production chưa có dữ liệu thử. Ngày 03/11/2026 đã tạo ba tài khoản UAT và bản ghi smoke test `BOOK-7431`; xem mục UAT production bên trên để biết trạng thái hiện tại. Dùng dữ liệu thật khi bắt đầu vận hành.

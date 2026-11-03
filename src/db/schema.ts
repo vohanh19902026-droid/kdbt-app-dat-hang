@@ -4,7 +4,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-export const appRoleEnum = pgEnum("app_role", ["ADMIN", "PLANNER", "SALES", "ACCOUNTANT"]);
+export const appRoleEnum = pgEnum("app_role", ["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"]);
 export const orderStatusEnum = pgEnum("order_status", ["PENDING", "APPROVED", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]);
 export const receivableEntryTypeEnum = pgEnum("receivable_entry_type", ["CHARGE", "PAYMENT"]);
 export const bookingNumberSeq = pgSequence("booking_number_seq", { startWith: 7431 });
@@ -107,6 +107,8 @@ export const orders = pgTable("orders", {
   assignedVehicle: text("assigned_vehicle"),
   truckCapacityM3: decimal("truck_capacity_m3", { precision: 5, scale: 2 }),
   pourType: text("pour_type"),
+  pourMethod: text("pour_method"),
+  siteCategory: text("site_category"),
   salesNote: text("sales_note"),
   planningNote: text("planning_note"),
   status: orderStatusEnum("status").default("PENDING").notNull(),
@@ -135,6 +137,20 @@ export const orderEvents = pgTable("order_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("order_events_order_created_idx").on(t.orderId, t.createdAt)]);
 
+export const appNotifications = pgTable("app_notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recipientUserId: text("recipient_user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  orderEventId: uuid("order_event_id").references(() => orderEvents.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+}, (t) => [
+  index("app_notifications_recipient_created_idx").on(t.recipientUserId, t.createdAt),
+  index("app_notifications_recipient_unread_idx").on(t.recipientUserId, t.readAt),
+]);
+
 // Append-only customer receivable ledger. Amounts are integer Vietnamese dong;
 // corrections should be recorded as a compensating entry, never edited away.
 export const receivableEntries = pgTable("receivable_entries", {
@@ -161,3 +177,23 @@ export const materials = pgTable("materials", {
   name: text("name").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 }, (t) => [uniqueIndex("materials_kind_code_idx").on(t.kind, t.code)]);
+
+// Lightweight, per-user page telemetry. No IP address, query string or page content is stored.
+export const usageEvents = pgTable("usage_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  route: text("route").notNull(),
+  transferBytes: decimal("transfer_bytes", { precision: 14, scale: 0 }).default("0").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("usage_events_created_idx").on(t.createdAt), index("usage_events_user_created_idx").on(t.userId, t.createdAt)]);
+
+export const adminAuditEvents = pgTable("admin_audit_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorUserId: text("actor_user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  eventType: text("event_type").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityKey: text("entity_key").notNull(),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("admin_audit_events_created_idx").on(t.createdAt), index("admin_audit_events_actor_created_idx").on(t.actorUserId, t.createdAt)]);

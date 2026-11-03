@@ -31,7 +31,9 @@ function dateLabel(iso: string): string {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(iso));
 }
 
-export function AccountingLedger({ initialData, role }: { initialData: LedgerData; role: AppRole }) {
+type OrderComponent = { id: string; bookingNo: string; customerName: string; pourType: string | null; requestedAt: Date; version: number };
+
+export function AccountingLedger({ initialData, role, orderComponents = [], componentTypes = [] }: { initialData: LedgerData; role: AppRole; orderComponents?: OrderComponent[]; componentTypes?: string[] }) {
   const isSales = role === "SALES";
   const [from, setFrom] = useState(initialData.period.from);
   const [to, setTo] = useState(initialData.period.to);
@@ -49,6 +51,8 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
   const [referenceNo, setReferenceNo] = useState("");
   const [note, setNote] = useState("");
   const [assignmentBusyId, setAssignmentBusyId] = useState("");
+  const [components, setComponents] = useState(orderComponents);
+  const [componentBusy, setComponentBusy] = useState("");
 
   const load = useCallback(async (start: string, end: string, rep: string) => {
     setBusy(true);
@@ -112,6 +116,19 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
     }
   }
 
+  async function updateComponent(order: OrderComponent, pourType: string) {
+    if ((order.pourType ?? "") === pourType) return;
+    setComponentBusy(order.id); setError(""); setNotice("");
+    try {
+      const response = await fetch(`/api/orders/${order.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pourType, version: order.version }) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || "Không cập nhật được hạng mục đổ.");
+      setComponents((rows) => rows.map((row) => row.id === order.id ? { ...row, pourType, version: Number(body.order.version) } : row));
+      setNotice(`Đã cập nhật hạng mục đổ cho ${order.bookingNo}.`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Không cập nhật được hạng mục đổ."); }
+    finally { setComponentBusy(""); }
+  }
+
   const periodCharges = data?.periodTotals.chargesVnd ?? "0";
   const periodPayments = data?.periodTotals.paymentsVnd ?? "0";
   return <div className="ledger-page">
@@ -137,6 +154,19 @@ export function AccountingLedger({ initialData, role }: { initialData: LedgerDat
       <div className="stat"><div className="stathead">Đã thu trong kỳ</div><strong>{formatVnd(periodPayments)}</strong><small>{from} đến {to}</small></div>
       <div className="stat"><div className="stathead">Còn phải thu lũy kế</div><strong>{formatVnd(data?.allTimeBalanceVnd ?? "0")}</strong><small>Số phải thu trừ tiền đã thu</small></div>
     </div>
+
+    {!isSales && <section className="ledger-section"><div className="ledger-section-head"><div><h2>Hạng mục đổ / cấu kiện trên booking</h2><span className="sub">Kế toán có thể bổ sung hoặc sửa hạng mục sau khi nhận thông tin; các thay đổi được ghi vào lịch sử booking.</span></div></div>
+      <div className="tablewrap"><table className="grid ledger-grid"><thead><tr><th>BOOKING</th><th>KHÁCH HÀNG</th><th>NGÀY CẤP</th><th>HẠNG MỤC ĐỔ / CẤU KIỆN</th></tr></thead><tbody>
+        {components.map((order) => (
+          <tr key={order.id}>
+            <td><b>{order.bookingNo}</b></td><td>{order.customerName}</td><td>{dateLabel(order.requestedAt.toISOString())}</td>
+            <td><select className="ledger-owner-select" aria-label={`Hạng mục đổ ${order.bookingNo}`} value={order.pourType ?? ""} disabled={componentBusy === order.id} onChange={(event) => void updateComponent(order, event.target.value)}>
+              <option value="">Chưa xác định</option>{componentTypes.map((component) => <option key={component} value={component}>{component}</option>)}
+            </select></td>
+          </tr>
+        ))}
+      </tbody></table>{components.length === 0 && <div className="empty">Chưa có booking.</div>}</div>
+    </section>}
 
     <section className="ledger-panel">
       <div className="ledger-panel-head"><div><h2>{isSales ? "Ghi nhận tiền đã thu" : "Ghi sổ giao dịch"}</h2><p>{isSales ? "Chỉ ghi khoản tiền đã thực nhận. Không ghi khoản phải thu hoặc sửa phân công khách hàng." : "Giao dịch đã lưu không thể sửa/xóa; ghi bút toán đối ứng để điều chỉnh."}</p></div></div>
