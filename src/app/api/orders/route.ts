@@ -1,14 +1,15 @@
-import { and, asc, eq, gte, lt } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lt, ne } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { orderEvents, orders, user } from "@/db/schema";
+import { appNotifications, orderEvents, orders, user } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 import { statusLabels } from "@/lib/types";
 import { logServerError } from "@/lib/server-logger";
 import { resolveBookingCustomer } from "@/lib/booking-customer";
+import { createdOrderNotification } from "@/lib/order-notification";
 
 export const runtime = "nodejs";
 const createSchema = z.object({
@@ -74,10 +75,18 @@ export async function POST(request: NextRequest) {
         truckCapacityM3: data.truckCapacityM3 ? String(data.truckCapacityM3) : null,
         salesNote: data.salesNote || null, pourType: data.pourType || null, createdBy: session.user.id,
       }).returning();
-      await tx.insert(orderEvents).values({
+      const [event] = await tx.insert(orderEvents).values({
         orderId: order.id, actorUserId: session.user.id, eventType: "ORDER_CREATED",
         newValue: JSON.stringify({ bookingNo: order.bookingNo, quantityM3: data.quantityM3 }),
-      });
+      }).returning({ id: orderEvents.id });
+      const recipients = await tx.select({ id: user.id }).from(user)
+        .where(and(inArray(user.appRole, ["ADMIN", "PLANNER"]), eq(user.isActive, true), ne(user.id, session.user.id)));
+      if (recipients.length) {
+        const notice = createdOrderNotification(order.bookingNo, order.customerName, data.quantityM3);
+        await tx.insert(appNotifications).values(recipients.map((recipient) => ({
+          recipientUserId: recipient.id, orderId: order.id, orderEventId: event.id, ...notice,
+        })));
+      }
       return order;
     });
     return NextResponse.json({ order: created, message: `Đã tạo booking ${created.bookingNo}` }, { status: 201 });

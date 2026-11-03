@@ -135,6 +135,20 @@ export const orderEvents = pgTable("order_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("order_events_order_created_idx").on(t.orderId, t.createdAt)]);
 
+export const appNotifications = pgTable("app_notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  recipientUserId: text("recipient_user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+  orderEventId: uuid("order_event_id").references(() => orderEvents.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+}, (t) => [
+  index("app_notifications_recipient_created_idx").on(t.recipientUserId, t.createdAt),
+  index("app_notifications_recipient_unread_idx").on(t.recipientUserId, t.readAt),
+]);
+
 // Append-only customer receivable ledger. Amounts are integer Vietnamese dong;
 // corrections should be recorded as a compensating entry, never edited away.
 export const receivableEntries = pgTable("receivable_entries", {

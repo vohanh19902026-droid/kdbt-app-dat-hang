@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { orderEvents, orders } from "@/db/schema";
+import { appNotifications, orderEvents, orders } from "@/db/schema";
 import { getApiSession } from "@/lib/session";
 import { canTransition, planningFields, validatePlanningState } from "@/lib/order-rules";
 import { resolvePlanningTimes } from "@/lib/planning-schedule";
@@ -10,6 +10,7 @@ import { isCrossOriginRequest } from "@/lib/request-guard";
 import { isValidIsoDate, vnDateOf } from "@/lib/vn-date";
 import type { OrderStatus } from "@/lib/types";
 import { logServerError } from "@/lib/server-logger";
+import { updatedOrderNotification } from "@/lib/order-notification";
 
 export const runtime = "nodejs";
 const patchSchema = z.object({
@@ -130,7 +131,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const [row] = await tx.update(orders).set(values)
         .where(and(eq(orders.id, id), eq(orders.version, existing.version))).returning();
       if (!row) throw new Error("CONCURRENT_UPDATE");
-      await tx.insert(orderEvents).values(events.map((event) => ({ ...event, orderId: id, actorUserId: session.user.id })));
+      const savedEvents = await tx.insert(orderEvents)
+        .values(events.map((event) => ({ ...event, orderId: id, actorUserId: session.user.id })))
+        .returning({ id: orderEvents.id });
+      if (existing.createdBy !== session.user.id) {
+        const notice = updatedOrderNotification({ bookingNo: existing.bookingNo, customerName: existing.customerName, changes: events });
+        await tx.insert(appNotifications).values({
+          recipientUserId: existing.createdBy, orderId: id, orderEventId: savedEvents[0]?.id ?? null, ...notice,
+        });
+      }
       return row;
     });
     return NextResponse.json({ order: updated });

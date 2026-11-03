@@ -27,7 +27,7 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 - Database production hiện có tài khoản Admin và ba tài khoản UAT; có một khách hàng cùng booking smoke test `BOOK-7431` đã hủy. Đây là dữ liệu kiểm thử, không dùng để vận hành. Admin cần đổi mật khẩu khởi tạo, tạo tài khoản nhân sự thật và nhập danh sách khách hàng thật trước khi vận hành.
 - Vercel cần `DATABASE_URL`, `BETTER_AUTH_SECRET` và `BETTER_AUTH_URL`. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
 - Các migration được quản lý qua `npm run db:migrate`; script áp theo thứ tự, ghi nhận migration đã chạy và có chế độ xem trước `npx tsx scripts/apply-migrations.ts --dry`.
-- Các schema thay đổi được quản lý bằng `drizzle/0000`–`0004`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng `npx tsx scripts/apply-migrations.ts --dry` để xem trước. Chế độ dry-run chỉ đọc database.
+- Các schema thay đổi được quản lý bằng `drizzle/0000–0005`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng `npx tsx scripts/apply-migrations.ts --dry` để xem trước. Chế độ dry-run chỉ đọc database.
 - Admin đầu tiên đã được tạo trên database theo biên bản triển khai ngày 2026-11-02. Không lưu mật khẩu tài khoản trong repo. Admin đăng nhập và tạo tài khoản nội bộ ở `/admin/users`; người dùng có thể tự đổi mật khẩu trong menu tài khoản.
 - PWA cài từ trình duyệt cần HTTPS; service worker chỉ lưu màn offline và icon, không cache trang/API chứa dữ liệu riêng.
 

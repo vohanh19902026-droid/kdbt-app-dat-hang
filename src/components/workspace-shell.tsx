@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet } from "lucide-react";
+import { Bell, ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { roleLabels, type AppRole } from "@/lib/types";
@@ -37,6 +37,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     setPasswordNotice("");
   }
   const nav = [
+    { href: "/notifications", label: "Tin báo", icon: Bell, show: ["ADMIN", "PLANNER", "SALES"].includes(role) },
     { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: role !== "ACCOUNTANT" },
     { href: "/planning", label: "Bảng kế hoạch", icon: LayoutDashboard, show: ["ADMIN", "PLANNER"].includes(role) },
     { href: "/reports", label: "Tổng hợp sản lượng", icon: ChartColumn, show: role !== "SALES" },
@@ -72,9 +73,10 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     }
   }
   const mobileNav = role === "ADMIN"
-    ? ["/orders", "/planning", "/accounting", "/admin/users", "/admin/settings"]
+    ? ["/orders", "/notifications", "/planning", "/accounting", "/admin/settings"]
     : nav.slice(0, 4).map((item) => item.href);
   const mobileLabels: Record<string, string> = {
+    "/notifications": "Tin báo",
     "/orders": "Đơn hàng",
     "/planning": "Kế hoạch",
     "/accounting": "Công nợ",
