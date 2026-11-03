@@ -18,7 +18,7 @@
 - `npm run typecheck`: đạt.
 - `npm run build`: đạt với Next.js 16.4.3.
 - Production health check gần nhất được ghi nhận: `status: ok`, `database: up`. UAT local mới nhất ngày 03/11/2026 cũng trả HTTP 200 và `database: up`; build, lint và typecheck trên source hiện tại đều đạt. Đã tạo ba tài khoản UAT production để kiểm tra quyền theo vai trò; hiện có khách hàng/booking smoke test `BOOK-7431`, trạng thái Đã hủy. Các dữ liệu này không phải dữ liệu vận hành thật.
-- UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Bản `develop` mới nhất ở `69600a2` chạy tại `http://127.0.0.1:3102`; health trả HTTP 200 và database local `cencom_accounting_test` ở cổng 55432 đang hoạt động, tách khỏi Neon production.
+- UAT local trước đây đã chạy luồng booking → xếp lịch → ghi công nợ → xuất XLSX và kiểm tra chặn quyền chéo. Code workbook `69600a2` đang chạy tại `http://127.0.0.1:3102`; health trả HTTP 200 và database local `cencom_accounting_test` ở cổng 55432 đang hoạt động, tách khỏi Neon production. Tài liệu checklist mới nhất ở `4da7eda`.
 
 ## Việc cần làm để bắt đầu vận hành thật
 
