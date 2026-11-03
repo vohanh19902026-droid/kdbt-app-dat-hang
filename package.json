@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/accounting-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts tests/login-error.test.ts tests/sales-report.test.ts tests/product-catalog.test.ts tests/customer-workbook.test.ts",
+    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/accounting-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts tests/login-error.test.ts tests/auth-base-url.test.ts tests/sales-report.test.ts tests/product-catalog.test.ts tests/customer-workbook.test.ts",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx scripts/apply-migrations.ts",
     "db:seed": "tsx scripts/seed.ts",
