@@ -13,7 +13,7 @@
 
 ## Bằng chứng kỹ thuật gần nhất
 
-- `npm test`: 48/48 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX và tính công nợ. Test workbook mở lại file và xác nhận các cột người liên hệ/điểm đổ, giờ cấp, khối lượng, vật liệu, phương tiện, ghi chú, tổng công thức và vùng lọc. Test danh mục bảo đảm tùy chọn phương tiện tương thích với cấu hình cũ.
+- `npm test`: 49/49 đạt trên source hiện tại, gồm luật booking, phân quyền, lịch kế hoạch, PWA, nhập/xuất workbook XLSX và tính công nợ. Test workbook mở lại file và xác nhận các cột người liên hệ/điểm đổ, giờ cấp, khối lượng, vật liệu, phương tiện, ghi chú, tổng công thức và vùng lọc. Test danh mục bảo đảm tùy chọn phương tiện tương thích với cấu hình cũ; kế hoạch có thể cập nhật người liên hệ.
 - `npm run lint`: đạt.
 - `npm run typecheck`: đạt.
 - `npm run build`: đạt với Next.js 16.4.3.

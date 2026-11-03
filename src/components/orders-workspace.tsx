@@ -26,10 +26,10 @@ type HistoryEvent = {
 const fieldLabels: Record<string, string> = {
   plannedDate: "Ngày cấp", plannedStartAt: "Giờ xuất phát", plannedEndAt: "Giờ đổ",
   quantityM3: "KL đặt", actualM3: "KL thực đổ", grade: "Mác", sandType: "Cốt liệu I",
-  stoneType: "Cốt liệu II", contactPhone: "Điện thoại", pumpOperator: "NV bơm",
+  stoneType: "Cốt liệu II", contactName: "Người liên hệ", contactPhone: "Điện thoại", pumpOperator: "NV bơm",
   pumpRequired: "Xe bơm", assignedVehicle: "Phương tiện", truckCapacityM3: "Xe chở",
   planningNote: "Ghi chú kế hoạch", pourType: "Hạng mục", customerName: "Khách hàng",
-  siteAddress: "Địa chỉ", salesNote: "Ghi chú", status: "Trạng thái",
+  siteAddress: "Điểm đổ", salesNote: "Ghi chú", status: "Trạng thái",
 };
 const timeOfDayVN = (value: string) => new Intl.DateTimeFormat("vi-VN", {
   hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh", hour12: false,
@@ -95,7 +95,8 @@ function PlanGrid({ rows, canEdit, catalog, onToast, onHistory }: {
             { title: "MÃ ĐƠN", field: "bookingNo", width: 112, frozen: true, formatter: (cell) => `<b class="booking">${escapeHtml(cell.getValue())}</b>`,
               cellClick: (_event, cell) => onHistory(cell.getRow().getData() as OrderDTO) },
             { title: "KHÁCH HÀNG", field: "customerName", width: 145, editor: canEdit ? "input" : false },
-            { title: "ĐỊA CHỈ LIÊN HỆ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
+            { title: "NGƯỜI LIÊN HỆ", field: "contactName", width: 135, editor: canEdit ? "input" : false },
+            { title: "ĐIỂM ĐỔ", field: "siteAddress", width: 185, editor: canEdit ? "input" : false, tooltip: true },
             { title: "KINH DOANH", field: "salesRepName", width: 112, editor: false },
             { title: "ĐIỆN THOẠI", field: "contactPhone", width: 105, editor: canEdit ? "input" : false },
             { title: "KL ĐẶT", field: "quantityM3", width: 72, hozAlign: "right", editor: canEdit ? "number" : false, formatter: (cell) => numberVN(Number(cell.getValue())) },

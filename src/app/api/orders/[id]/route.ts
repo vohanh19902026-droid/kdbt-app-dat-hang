@@ -28,6 +28,7 @@ const patchSchema = z.object({
   truckCapacityM3: z.coerce.number().positive().max(30).optional(),
   pourType: z.string().trim().max(120).optional(),
   planningNote: z.string().trim().max(1000).optional(),
+  contactName: z.string().trim().max(120).nullable().optional(),
   contactPhone: z.string().trim().max(30).nullable().optional(),
   salesNote: z.string().trim().max(1000).optional(),
   customerName: z.string().trim().min(2).max(180).optional(),
@@ -107,6 +108,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const old: unknown = existing[field as keyof typeof existing];
     if (field === "quantityM3") { next = String(value); values.quantityM3 = next as string; }
     else if (field === "actualM3") { next = String(value); values.actualM3 = next as string; }
+    else if (field === "contactName") { next = value === "" ? null : value; values.contactName = next as string | null; }
     else if (field === "contactPhone") { next = value === "" ? null : value; values.contactPhone = next as string | null; }
     else values[field] = value as never;
     events.push({ eventType: "ORDER_UPDATED", fieldName: field, oldValue: old == null ? null : String(old), newValue: next == null ? null : String(next) });
