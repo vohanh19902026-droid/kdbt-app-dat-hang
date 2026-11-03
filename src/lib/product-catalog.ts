@@ -5,6 +5,7 @@ export const productCatalogSchema = z.object({
   sandTypes: z.array(z.string().trim().min(1).max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
   stoneTypes: z.array(z.string().trim().min(1).max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
   pumpTypes: z.array(z.string().trim().min(1).max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
+  serviceVehicles: z.array(z.string().trim().min(1).max(120)).max(200),
   truckCapacitiesM3: z.array(z.number().positive().max(100)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(20),
   pourTypes: z.array(z.string().trim().min(1).max(120)).min(1, "Mỗi danh mục cần ít nhất một lựa chọn.").max(100),
 }).superRefine((catalog, context) => {
@@ -23,6 +24,7 @@ export const defaultProductCatalog: ProductCatalog = {
   sandTypes: ["Cát Lộc", "Cát vàng", "Cát nghiền", "Cát sông"],
   stoneTypes: ["Đá 1x2", "Đá 0.5x1", "Đá 2x4", "Đá mi"],
   pumpTypes: ["Bơm cần 38m", "Bơm 42m", "Bơm 50m", "Bơm 63m", "Bơm tĩnh", "Không bơm"],
+  serviceVehicles: [],
   truckCapacitiesM3: [5, 7, 10],
   pourTypes: ["Sàn", "Móng", "Cột", "Dầm", "Tường", "Khác"],
 };

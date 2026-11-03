@@ -103,13 +103,13 @@ export function AdminSettings({ initialSettings, users, salesVolumes, financeSum
       <div className="settings-form-grid catalog-form-grid">
         {([
           ["grades", "Mác bê tông"], ["sandTypes", "Loại cát"], ["stoneTypes", "Loại đá"],
-          ["pumpTypes", "Loại xe bơm"], ["truckCapacitiesM3", "Dung tích xe chở (m³/chuyến)"], ["pourTypes", "Hạng mục đổ"],
+          ["pumpTypes", "Loại xe bơm"], ["serviceVehicles", "Phương tiện phục vụ kế hoạch"], ["truckCapacitiesM3", "Dung tích xe chở (m³/chuyến)"], ["pourTypes", "Hạng mục đổ"],
         ] as const).map(([key, label]) => <label className="settings-field" key={key}><span>{label}</span><textarea rows={5} value={settings.catalog[key].join("\n")} onChange={(event) => {
           const values = event.target.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
           const parsed = key === "truckCapacitiesM3" ? values.map(Number).filter((value) => Number.isFinite(value) && value > 0) : values;
           setSettings((current) => ({ ...current, catalog: { ...current.catalog, [key]: parsed } }));
           setMessage(""); setError("");
-        }} /><small>Danh mục không được trống hoặc lặp. Các booking cũ giữ nguyên thông tin đã lưu.</small></label>)}
+        }} /><small>{key === "serviceVehicles" ? "Có thể để trống; khi đã khai báo, lưới kế hoạch sẽ gợi ý các lựa chọn này. Các booking cũ vẫn giữ nguyên." : "Danh mục không được trống hoặc lặp. Các booking cũ giữ nguyên thông tin đã lưu."}</small></label>)}
       </div>
     </section>}
 

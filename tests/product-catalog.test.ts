@@ -8,7 +8,7 @@ test("older workspace settings inherit the configurable booking catalog defaults
 
 test("catalog values are trimmed and unique across every order field", () => {
   const parsed = productCatalogSchema.safeParse({
-    grades: ["  M250  "], sandTypes: ["Cát vàng"], stoneTypes: ["Đá 1x2"],
+    ...defaultProductCatalog, grades: ["  M250  "], sandTypes: ["Cát vàng"], stoneTypes: ["Đá 1x2"],
     pumpTypes: ["Không bơm"], truckCapacitiesM3: [7], pourTypes: ["Sàn"],
   });
   assert.equal(parsed.success, true);
@@ -22,4 +22,13 @@ test("catalog values are trimmed and unique across every order field", () => {
 test("catalog requires at least one option per field and rejects invalid truck sizes", () => {
   assert.equal(productCatalogSchema.safeParse({ ...defaultProductCatalog, grades: [] }).success, false);
   assert.equal(productCatalogSchema.safeParse({ ...defaultProductCatalog, truckCapacitiesM3: [0] }).success, false);
+});
+
+test("service vehicle catalog accepts an empty legacy default and trims unique choices", () => {
+  const { serviceVehicles: _serviceVehicles, ...legacyCatalog } = defaultProductCatalog;
+  assert.deepEqual(normalizeProductCatalog(legacyCatalog).serviceVehicles, []);
+  const parsed = productCatalogSchema.safeParse({ ...defaultProductCatalog, serviceVehicles: [" Xe bồn 01 ", "Bơm cần 42m"] });
+  assert.equal(parsed.success, true);
+  if (parsed.success) assert.deepEqual(parsed.data.serviceVehicles, ["Xe bồn 01", "Bơm cần 42m"]);
+  assert.equal(productCatalogSchema.safeParse({ ...defaultProductCatalog, serviceVehicles: ["Bơm 42m", " bơm 42M "] }).success, false);
 });

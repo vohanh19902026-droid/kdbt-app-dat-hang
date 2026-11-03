@@ -61,8 +61,8 @@ const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[character] as string));
 
-function PlanGrid({ rows, canEdit, onToast, onHistory }: {
-  rows: OrderDTO[]; canEdit: boolean; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void;
+function PlanGrid({ rows, canEdit, serviceVehicles, onToast, onHistory }: {
+  rows: OrderDTO[]; canEdit: boolean; serviceVehicles: string[]; onToast: (message: string) => void; onHistory: (order: OrderDTO) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -102,7 +102,8 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
             { title: "CỐT LIỆU T II", field: "stoneType", width: 115, editor: canEdit ? "input" : false, cssClass: "stone-cell" },
             { title: "XE BƠM", field: "pumpRequired", width: 112, editor: canEdit ? "input" : false },
             { title: "NHÂN VIÊN BƠM", field: "pumpOperator", width: 120, editor: canEdit ? "input" : false },
-            { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 125, editor: canEdit ? "input" : false, cssClass: "vehicle-cell" },
+            { title: "PHƯƠNG TIỆN", field: "assignedVehicle", width: 160, editor: canEdit ? (serviceVehicles.length ? "list" : "input") : false,
+              editorParams: { values: serviceVehicles, autocomplete: true, listOnEmpty: true, clearable: true, freetext: true }, cssClass: "vehicle-cell" },
             { title: "XE CHỞ / CHUYẾN", field: "truckCapacityM3", width: 95, editor: canEdit ? "list" : false, editorParams: { values: { 5: "5 m³", 7: "7 m³", 10: "10 m³" } }, formatter: (cell) => cell.getValue() ? `${cell.getValue()} m³` : "" },
             { title: "HM", field: "pourType", width: 86, editor: canEdit ? "input" : false },
             { title: "TRẠNG THÁI", field: "status", width: 125, editor: canEdit ? "list" : false,
@@ -170,7 +171,7 @@ function PlanGrid({ rows, canEdit, onToast, onHistory }: {
       grid?.destroy();
       grid = null;
     };
-  }, [rows, canEdit, onToast, onHistory]);
+  }, [rows, canEdit, serviceVehicles, onToast, onHistory]);
   return <div className="plan-table" ref={host} />;
 }
 
@@ -276,7 +277,7 @@ export function OrdersWorkspace({
       </div>
       <div className="search-wrap"><Search size={15} /><input className="search" placeholder="Tìm booking, khách hàng, địa chỉ..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
     </div>
-    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} onToast={setToast} onHistory={openHistory} /></div>
+    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} serviceVehicles={catalog.serviceVehicles} onToast={setToast} onHistory={openHistory} /></div>
     <div className="desktop-note">{planner
       ? "Chỉnh trực tiếp giờ, vật liệu, phương tiện hoặc trạng thái. Mỗi thay đổi được lưu và ghi vào lịch sử booking."
       : "Danh sách chỉ hiển thị booking do bạn tạo. Mã booking được cấp tự động."}</div>
