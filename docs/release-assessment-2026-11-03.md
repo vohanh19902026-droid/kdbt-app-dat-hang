@@ -1,6 +1,6 @@
 # Đánh giá phát hành 03/11/2026
 
-> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 30 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
+> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 31 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
 
 ## Phạm vi
 
@@ -293,3 +293,9 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Nhánh schema-only có schema nhưng bảng `_app_migrations` rỗng; không áp lại lên database `neondb` sẵn có. Đã tạo database trống `cencom_uat` trong cùng nhánh UAT, chạy dry-run liệt kê 0000–0010, sau đó áp thành công cả 11 migration. Chưa seed hay chạy browser UAT/load test.
 - Thử lưu `DATABASE_URL` dạng Secret cho Preview theo Git branch `feature/notifications-scale-android`; Vercel từ chối `branch_not_found` vì nhánh chưa tồn tại trong Git repository đã kết nối. Biến theo branch chưa được tạo; không push, PR hoặc deploy. Neon integration có thể tiêm cấu hình theo deployment nên vẫn phải xác minh database và branch thực tế của deployment trước mọi UAT.
 - Branch UAT có thời hạn tự xóa 05/11/2026 khoảng 10:29 giờ Bangkok. Các cổng backup/restore và rollback Production, Push Android thật, CI và APK vẫn mở.
+
+### Cập nhật lần 31 — chặn sai đích database Preview
+
+- Build Preview và ứng dụng khi tạo pool DB yêu cầu `DATABASE_URL` khớp host và database được cấu hình riêng bằng `PREVIEW_DATABASE_HOST` và `PREVIEW_DATABASE_NAME`. Thiếu hoặc không khớp thì dừng; kiểm tra này không tự chứng minh metadata branch hay cấu hình deployment thực tế.
+- `npm test` đạt 59/59; lint, typecheck, build và thử build với host sai đều đạt. Phép thử host sai xác nhận build dừng trước migration và không in credential.
+- Chưa cấu hình các biến mới trên Vercel hoặc tạo deployment mới. Preview UAT, kiểm tra Production recovery và thử Push trên Android thật vẫn chưa có bằng chứng đạt.

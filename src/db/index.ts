@@ -2,6 +2,9 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 import { getDbPoolMax } from "@/lib/db-pool-config";
+import { validatePreviewDatabase } from "../../scripts/verify-preview-database.mjs";
+
+if (process.env.VERCEL_ENV === "preview") validatePreviewDatabase(process.env);
 
 const globalForDb = globalThis as unknown as { pool?: Pool };
 const pool = globalForDb.pool ?? new Pool({
