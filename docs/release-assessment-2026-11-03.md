@@ -1,6 +1,6 @@
 # Đánh giá phát hành 03/11/2026
 
-> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 31 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
+> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 32 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
 
 ## Phạm vi
 
@@ -299,3 +299,12 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Build Preview và ứng dụng khi tạo pool DB yêu cầu `DATABASE_URL` khớp host và database được cấu hình riêng bằng `PREVIEW_DATABASE_HOST` và `PREVIEW_DATABASE_NAME`. Thiếu hoặc không khớp thì dừng; kiểm tra này không tự chứng minh metadata branch hay cấu hình deployment thực tế.
 - `npm test` đạt 59/59; lint, typecheck, build và thử build với host sai đều đạt. Phép thử host sai xác nhận build dừng trước migration và không in credential.
 - Chưa cấu hình các biến mới trên Vercel hoặc tạo deployment mới. Preview UAT, kiểm tra Production recovery và thử Push trên Android thật vẫn chưa có bằng chứng đạt.
+
+### Cập nhật lần 32 — Preview cô lập và đo tải đọc
+
+- Tạo deployment Preview `dpl_AXLKazcsy4afN5nkPPC9JHVvETvk` trên project ứng dụng hiện có; build dừng trước migration vì integration cấp URL khác đích UAT. Chốt kiểm tra hoạt động đúng; không dùng deployment lỗi này cho UAT.
+- Tạo project Vercel riêng `cencom-uat-isolated`, không nối Neon integration của project ứng dụng. Dù lệnh yêu cầu Preview, deployment đầu tiên `dpl_8Exqzxo4bLUCCCErLPMREyiutBAq` bị Vercel xếp Production của project UAT mới, dùng database UAT và không thay đổi project Production ứng dụng. Deployment tiếp theo `dpl_Azi4KjnomenFGpxKzNiDWCHMiMzJ` là Preview, READY. Cả hai dùng credential và dữ liệu UAT; key VAPID và secret xác thực được tạo riêng cho từng deployment thử.
+- Build Preview ghi nhận đúng endpoint và database `cencom_uat`; 11 migration đã áp nên không có migration mới. Health runtime trả `database: up`. Chưa có browser UAT nghiệp vụ hoặc kiểm thử Push trên Android thật.
+- `vercel curl` tự tạo automation bypass trên project UAT khi kiểm tra health. Đã thu hồi và xác nhận còn 0 automation bypass; không công bố secret hoặc link bypass. Không dùng cách này cho phép đo tải.
+- Load test đọc `/api/health` bằng token Trusted Sources ngắn hạn trên deployment Preview: lần chạy lại concurrency 10, 90 request, 0 lỗi, p50/p95 tổng 1.081/2.227 ms, p50/p95 DB 601/1.605 ms; wrapper thoát mã 0. Lần trước đo 88 request, 0 lỗi nhưng trình bao thu thập bị lỗi mã hóa sau khi in kết quả. Không có ngưỡng SLA được xác định; phép đo chỉ bao phủ endpoint đọc health.
+- Project Production của ứng dụng và Neon Production không bị thay đổi. Còn xác minh luồng nghiệp vụ Preview, backup/restore và rollback Production, Android Push và các cổng phát hành khác; chưa push/PR.
