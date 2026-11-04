@@ -1,6 +1,6 @@
 # Đánh giá phát hành 03/11/2026
 
-> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 29 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
+> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 30 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
 
 ## Phạm vi
 
@@ -287,9 +287,9 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Đã ẩn lại mật khẩu trong giao diện. Cần chủ tài khoản tự đổi credential của role DB phạm vi branch UAT qua giao diện Neon, xác nhận phạm vi tác động, rồi dùng connection string mới để cấu hình Vercel Preview. Không gửi credential mới vào chat.
 - `DATABASE_URL` Preview chưa được lưu; chưa chạy dry-run/migration/UAT/load test. Production và Neon Production không bị tác động.
 
-### C?p nh?t l?n 30 ? migration tr?n database UAT s?ch
+### Cập nhật lần 30 — migration trên database UAT sạch
 
-- Ng??i d?ng x?c nh?n ?? ??i credential v? cung c?p file local ch?a role/m?t kh?u; kh?ng ghi gi? tr? b? m?t v?o repo, log hay chat. K?t n?i th?nh c?ng t?i endpoint c?a branch `uat/notifications-scale-android` trong project `cencom-preview-isolated`.
-- Nh?nh schema-only c? schema nh?ng b?ng `_app_migrations` r?ng; kh?ng ?p l?i l?n database `neondb` s?n c?. ?? t?o database tr?ng `cencom_uat` trong c?ng nh?nh UAT, ch?y dry-run li?t k? 0000?0010, sau ?? ?p th?nh c?ng c? 11 migration. Ch?a seed hay ch?y browser UAT/load test.
-- Th? l?u `DATABASE_URL` d?ng Secret cho Preview theo Git branch `feature/notifications-scale-android`; Vercel t? ch?i `branch_not_found` v? nh?nh ch?a t?n t?i trong Git repository ?? k?t n?i. Bi?n theo branch ch?a ???c t?o; kh?ng push, PR ho?c deploy. Ngo?i ra Neon integration c? th? ti?m c?u h?nh theo deployment n?n v?n ph?i x?c minh database/branch th?c t? c?a deployment tr??c m?i UAT.
-- Branch UAT c? th?i h?n t? x?a 05/11/2026 kho?ng 10:29 gi? Bangkok. C?c c?ng backup/restore v? rollback Production, Push Android th?t, CI v? APK v?n m?.
+- Người dùng xác nhận đã đổi credential và cung cấp file local chứa role và mật khẩu; không ghi giá trị bí mật vào repo, log hay chat. Kết nối thành công tới endpoint của branch `uat/notifications-scale-android` trong project `cencom-preview-isolated`.
+- Nhánh schema-only có schema nhưng bảng `_app_migrations` rỗng; không áp lại lên database `neondb` sẵn có. Đã tạo database trống `cencom_uat` trong cùng nhánh UAT, chạy dry-run liệt kê 0000–0010, sau đó áp thành công cả 11 migration. Chưa seed hay chạy browser UAT/load test.
+- Thử lưu `DATABASE_URL` dạng Secret cho Preview theo Git branch `feature/notifications-scale-android`; Vercel từ chối `branch_not_found` vì nhánh chưa tồn tại trong Git repository đã kết nối. Biến theo branch chưa được tạo; không push, PR hoặc deploy. Neon integration có thể tiêm cấu hình theo deployment nên vẫn phải xác minh database và branch thực tế của deployment trước mọi UAT.
+- Branch UAT có thời hạn tự xóa 05/11/2026 khoảng 10:29 giờ Bangkok. Các cổng backup/restore và rollback Production, Push Android thật, CI và APK vẫn mở.
