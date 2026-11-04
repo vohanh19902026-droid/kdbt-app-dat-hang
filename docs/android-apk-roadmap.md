@@ -8,6 +8,12 @@ Ngày cập nhật: 03/11/2026
 
 TWA yêu cầu xác minh domain giữa app và website bằng Digital Asset Links. Bubblewrap tạo project Android từ Web Manifest và build APK/AAB. Nếu sau này cần API native sâu (định vị nền liên tục, Bluetooth, quét mã vạch chuyên dụng, tích hợp thiết bị cân qua USB/serial), chuyển sang Capacitor hoặc Android native; không làm hai shell song song ngay từ đầu.
 
+## Trạng thái kiểm tra 04/11/2026
+
+- Web Manifest trên domain Production trả `name` CENCOM, `start_url: /`, `display: standalone`, màu giao diện và icon PNG 192/512; PWA asset test cũng đạt.
+- `/.well-known/assetlinks.json` hiện chưa có trong repo và request Production bị chuyển về `/login`, nên Digital Asset Links chưa sẵn sàng cho full-screen TWA. `src/proxy.ts` đã được sửa local để công khai đúng endpoint này; khi chạy build local, URL hiện trả 404 (không redirect) vì file chưa được tạo. Chỉ thêm JSON có `package_name` và SHA-256 fingerprint sau khi chốt applicationId và certificate ký.
+- Bubblewrap 1.27.0 `doctor` đạt với JDK 17, Android SDK Platform 36 và Build Tools 36.1.0. Ngày 04/11/2026 đã chấp nhận các SDK package licenses đang chờ bằng prompt tương tác sau khi chủ dự án cho phép. SDK/JDK nằm tại `E:\dev\cencom-android-toolchain`; cấu hình Bubblewrap ở `%USERPROFILE%\.bubblewrap\config.json`. Biến môi trường `ANDROID_HOME`, `ANDROID_SDK_ROOT` và `JAVA_HOME` hiện trỏ tới các đường dẫn không tồn tại, nên lệnh SDK cần thiết lập biến theo phạm vi tiến trình từ cấu hình Bubblewrap; chưa thay đổi biến toàn hệ thống. `adb devices -l` hiện không có thiết bị Android kết nối. Chưa tạo APK hoặc keystore phát hành; giai đoạn Preview/recovery/push và kiểm tra thiết bị vẫn là cổng trước khi đóng gói.
+
 ## Giai đoạn thực hiện
 
 | Giai đoạn | Việc cần làm | Điều kiện hoàn tất |
@@ -22,7 +28,8 @@ TWA yêu cầu xác minh domain giữa app và website bằng Digital Asset Link
 
 ## Phụ thuộc và quyết định
 
-- Android Studio và Android SDK cần có trên máy build; Capacitor 8 hiện yêu cầu Node.js 22 trở lên và Android Studio 2025.2.1 trở lên, SDK Platform API 24 trở lên. Cần xác minh phiên bản chính xác tại lúc bắt đầu build.
+- Máy build TWA dùng Bubblewrap CLI 1.27.0; hướng dẫn Bubblewrap hiện yêu cầu JDK 17. Không dùng giả định JDK 21 từ ghi chú cũ cho đến khi phiên bản Bubblewrap mới xác nhận hỗ trợ. Android SDK cần cài platform và build-tools qua SDK Manager; phải hoàn tất giấy phép SDK theo quy trình máy build trước khi cài package.
+- Nếu đổi sang Capacitor, Capacitor 8 có yêu cầu Android Studio/Node/SDK riêng; xác minh lại trong tài liệu Capacitor tại thời điểm bắt đầu thay vì áp yêu cầu đó cho TWA/Bubblewrap.
 - TWA/Bubblewrap cần domain website do mình sở hữu, Web Manifest hợp lệ, Chrome/Android để test và file `/.well-known/assetlinks.json` chứa fingerprint chứng thư ký.
 - Chứng thư ký APK phải được giữ bí mật và backup có kiểm soát. Không commit keystore, mật khẩu, `google-services.json`, private VAPID key hoặc dữ liệu tài khoản vào Git.
 - TWA phù hợp với đăng nhập web và Web Push theo origin. Nếu phát hiện yêu cầu phải nhận FCM native độc lập với Chrome/TWA hoặc chạy tác vụ native nền, đánh giá lại Capacitor; lúc đó cần Firebase project, `google-services.json`, FCM token endpoint và quy trình thu hồi token.

@@ -14,8 +14,18 @@ import { createdOrderNotification } from "@/lib/order-notification";
 import { defaultAppSettings, normalizeAppSettings } from "@/lib/app-settings";
 import { shouldNotifyNewBooking } from "@/lib/notification-preferences";
 import { deliverWebPush } from "@/lib/web-push";
+import type { ProductCatalogKey } from "@/lib/product-catalog";
 
 export const runtime = "nodejs";
+const catalogFieldLabels: Record<ProductCatalogKey, string> = {
+  grades: "mác bê tông", sandTypes: "loại cát", stoneTypes: "loại đá",
+  pumpTypes: "loại xe bơm", serviceVehicles: "phương tiện",
+  truckCapacitiesM3: "dung tích xe chở", pourTypes: "hạng mục đổ",
+  pourMethods: "hình thức đổ", siteCategories: "loại công trình",
+};
+class InvalidCatalogSelectionError extends Error {
+  constructor(readonly keys: ProductCatalogKey[]) { super("INVALID_CATALOG"); }
+}
 const createSchema = z.object({
   customerId: z.uuid().optional(),
   customerName: z.string().trim().min(2).max(180),
@@ -83,8 +93,11 @@ export async function POST(request: NextRequest) {
         ...(data.pourMethod ? [["pourMethods", data.pourMethod] as const] : []),
         ...(data.siteCategory ? [["siteCategories", data.siteCategory] as const] : []),
       ] as const;
-      if (validChoices.some(([key, value]) => !catalog[key].some((choice) => String(choice).trim().toLocaleLowerCase("vi") === String(value).trim().toLocaleLowerCase("vi")))) {
-        throw new Error("INVALID_CATALOG");
+      const invalidKeys = validChoices
+        .filter(([key, value]) => !catalog[key].some((choice) => String(choice).trim().toLocaleLowerCase("vi") === String(value).trim().toLocaleLowerCase("vi")))
+        .map(([key]) => key);
+      if (invalidKeys.length > 0) {
+        throw new InvalidCatalogSelectionError(invalidKeys);
       }
       const customer = await resolveBookingCustomer(tx, data, { id: session.user.id, role: session.appRole });
       const [order] = await tx.insert(orders).values({
@@ -121,6 +134,10 @@ export async function POST(request: NextRequest) {
     }));
     return NextResponse.json({ order: created.order, message: `Đã tạo booking ${created.order.bookingNo}` }, { status: 201 });
   } catch (error) {
+    if (error instanceof InvalidCatalogSelectionError) {
+      const fields = error.keys.map((key) => catalogFieldLabels[key]).join(", ");
+      return NextResponse.json({ error: `Danh mục ${fields} không còn hợp lệ. Tải lại biểu mẫu và chọn lại mục trong danh sách.` }, { status: 409 });
+    }
     if (error instanceof Error && error.message === "INVALID_CUSTOMER") {
       return NextResponse.json({ error: "Khách hàng không tồn tại hoặc bạn không được chọn khách hàng này." }, { status: 400 });
     }

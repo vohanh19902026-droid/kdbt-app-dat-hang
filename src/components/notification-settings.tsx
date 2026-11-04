@@ -22,6 +22,7 @@ export function NotificationSettings() {
   const [pushAvailable, setPushAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [waitingForPermission, setWaitingForPermission] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -60,20 +61,36 @@ export function NotificationSettings() {
 
   async function setPush(enabled: boolean) {
     if (!enabled) {
-      const existing = await navigator.serviceWorker?.getRegistration().then((registration) => registration?.pushManager.getSubscription());
-      if (existing) {
-        await fetch("/api/notifications/push-subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: existing.endpoint }) });
-        await existing.unsubscribe();
-      }
-      const next = { ...preferences, webPushEnabled: false };
-      setPreferences(next); await save(next); return;
+      setBusy(true); setError(""); setMessage("");
+      try {
+        const existing = await navigator.serviceWorker?.getRegistration().then((registration) => registration?.pushManager.getSubscription());
+        if (existing) {
+          const response = await fetch("/api/notifications/push-subscriptions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ endpoint: existing.endpoint }) });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Không xóa được thiết bị khỏi danh sách nhận thông báo.");
+          await existing.unsubscribe();
+        }
+        await save({ ...preferences, webPushEnabled: false });
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Không tắt được thông báo trên thiết bị.");
+      } finally { setBusy(false); }
+      return;
     }
     if (!pushAvailable || !vapidPublicKey || !("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
       setError("Thiết bị hoặc máy chủ chưa hỗ trợ Web Push. Hộp thư thông báo trong ứng dụng vẫn hoạt động."); return;
     }
     setBusy(true); setError(""); setMessage("");
+    setWaitingForPermission(true);
+    let permissionTimeout: number | undefined;
     try {
-      const permission = await Notification.requestPermission();
+      const permission = await Promise.race([
+        Notification.requestPermission(),
+        new Promise<NotificationPermission>((_, reject) => {
+          permissionTimeout = window.setTimeout(() => reject(new Error("Trình duyệt chưa phản hồi yêu cầu quyền thông báo. Hãy cho phép Notifications cho trang này trong cài đặt trình duyệt rồi thử lại.")), 30_000);
+        }),
+      ]);
+      if (permissionTimeout) window.clearTimeout(permissionTimeout);
+      setWaitingForPermission(false);
       if (permission !== "granted") throw new Error("Bạn chưa cấp quyền thông báo cho ứng dụng trong trình duyệt.");
       const registration = await navigator.serviceWorker.register("/sw.js");
       const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(vapidPublicKey) });
@@ -82,7 +99,12 @@ export function NotificationSettings() {
       if (!response.ok) throw new Error(result.error || "Không đăng ký được thiết bị nhận tin.");
       const next = { ...preferences, webPushEnabled: true };
       setPreferences(next); await save(next);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Không bật được thông báo trên thiết bị."); setBusy(false); }
+    } catch (cause) {
+      if (permissionTimeout) window.clearTimeout(permissionTimeout);
+      setWaitingForPermission(false);
+      setError(cause instanceof Error ? cause.message : "Không bật được thông báo trên thiết bị.");
+      setBusy(false);
+    }
   }
 
   if (loading) return <section className="notification-settings"><div className="notification-settings-title"><BellRing size={18} /><b>Thiết lập nhận thông báo</b></div><p className="muted">Đang tải thiết lập…</p></section>;
@@ -99,7 +121,7 @@ export function NotificationSettings() {
     </fieldset>
     <div className="notification-setting-actions">
       <button type="button" className="btn secondary" onClick={() => void save()} disabled={busy}><Save size={15} />{busy ? "Đang lưu…" : "Lưu thiết lập"}</button>
-      {pushAvailable ? <button type="button" className={`btn ${preferences.webPushEnabled ? "secondary" : ""}`} onClick={() => void setPush(!preferences.webPushEnabled)} disabled={busy}>{busy && <LoaderCircle size={15} className="spin" />}{preferences.webPushEnabled ? "Tắt thông báo trên thiết bị này" : "Bật thông báo trên thiết bị này"}</button> : <span className="muted">Push chưa được cấu hình trên máy chủ; tin trong hộp thư vẫn dùng bình thường.</span>}
+      {pushAvailable ? <button type="button" className={`btn ${preferences.webPushEnabled ? "secondary" : ""}`} onClick={() => void setPush(!preferences.webPushEnabled)} disabled={busy}>{busy && <LoaderCircle size={15} className="spin" />}{waitingForPermission ? "Đang chờ quyền từ trình duyệt…" : busy ? "Đang đăng ký thiết bị…" : preferences.webPushEnabled ? "Tắt thông báo trên thiết bị này" : "Bật thông báo trên thiết bị này"}</button> : <span className="muted">Push chưa được cấu hình trên máy chủ; tin trong hộp thư vẫn dùng bình thường.</span>}
     </div>
     {error && <p className="form-error" role="alert">{error}</p>}{message && <p className="muted" role="status">{message}</p>}
   </section>;
