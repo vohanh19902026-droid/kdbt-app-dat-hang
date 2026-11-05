@@ -417,3 +417,10 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Local typecheck, lint và `npm test` 62/62 đạt sau khi thêm kiểm tra endpoint. Deployment mới `fc8b50f` vẫn lỗi có chủ ý tại guard, không ghi DB; alias cũ chưa được dùng cho UAT.
 - Đang chờ xác nhận action-time để tắt tạo branch Neon tự động cho môi trường Preview của project. Thay đổi đó ảnh hưởng mọi Preview branch; `main`/Production không đổi. Sau đó cần xác nhận alias cố định dùng đúng endpoint UAT trước khi tiếp tục đăng nhập.
 - Dry-run import lại trên staging riêng tư vẫn cho 22 roster, 216 chứng cứ, 4.411 entity, 8.243 observations và 8.243 debt snapshots. Workbook đối chiếu email hiện chưa có địa chỉ email; tài khoản nhân viên chỉ được liên kết khi từng người tự xác thực Google.
+
+### Cập nhật lần 47 — xác minh env Preview và alias duy nhất
+
+- `vercel env ls preview` xác nhận có `DATABASE_URL` dạng Secret scope Preview + branch `codex/cencom-owner-preview`, `PREVIEW_DATABASE_ENDPOINT_ID` cùng branch, và các biến OAuth Google ở Preview. Giá trị credential không được đọc/ghi vào log.
+- Vercel alias duy nhất `kdbt-app-dat-hang-git-codex-cencom-0462e1-vohanh19902026-droid.vercel.app` hiện vẫn gắn với deployment READY `8ca9a4e`; deployment sau `864561a` lỗi an toàn tại endpoint guard. Không dùng alias để đăng nhập hoặc UAT cho tới khi guard pass trên đúng endpoint UAT.
+- Tùy chọn Neon “Create Database Branch For Deployment: Preview” vẫn bật. Đã yêu cầu xác nhận tại thời điểm thao tác để tắt; chưa lưu thay đổi. Production vẫn không chọn.
+- Importer dry-run chạy lại thành công từ `_review_private`: 9 workbook, 22 NVKD từ roster vàng, 216 chứng cứ, 4.411 entity keys, 8.243 observations/snapshots, 7.337 observations có NVKD. Không ghi dữ liệu vào database.
