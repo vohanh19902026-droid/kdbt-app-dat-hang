@@ -19,6 +19,7 @@ The app's Production database has been changed during this handoff. A recovery b
 
 - Vercel Production deployment `dpl_7h4xShHzCca2hR3yZAenNZjNh4AJ` continued to return HTTP 500 for `/api/notifications` after the migration. The latest observed failures were at 2026-11-05 01:37 UTC, about 20 minutes after the migrations completed. Runtime logs still reported PostgreSQL `42P01: relation "app_notifications" does not exist`.
 - `https://kdbt-app-dat-hang-five.vercel.app/api/health` returned `{"status":"ok","database":"up"}`. This confirms database reachability, but it does not identify the target branch or prove the notification query succeeds.
+- A new VAPID key pair, separate from Preview, is configured in Vercel Production: private/public keys are Secrets and the subject is Config (`mailto:admin@cencom.vn`). The values have not been pulled or shown. The active Production deployment predates this configuration and will need a later deployment to receive them. Push delivery has not been verified on a real Android device.
 - The Vercel project has Production `DATABASE_URL` configured as a hidden secret. It was not read into chat or changed. Vercel MCP requests returned 403 for deployment/runtime/environment data; the Vercel CLI could list environment variable names and request/runtime logs, but not values.
 - An attempt to pull the Production environment into a temporary file solely to compare its target host/database was rejected by automatic approval review. No Production environment values were decrypted or copied. Use the Vercel/Neon integration UI to verify the effective target without revealing the credential.
 - Therefore, the active deployment's DB host/database/schema has **not** been proven to match the migrated Neon Production `main`. Investigate the active Production deployment's effective `DATABASE_URL` target through the authorized Vercel/Neon integration settings without exposing the credential, then apply any missing migration only to the verified active Production target. Re-run the authenticated notification endpoint check after that.
@@ -36,11 +37,13 @@ The app's Production database has been changed during this handoff. A recovery b
 
 1. Reconcile the active Production deployment's effective `DATABASE_URL` target with Neon Production `main` without disclosing the secret. Verify the app's `/api/notifications` route no longer returns 500 and inspect fresh runtime logs.
 2. Keep the pre-release recovery branch. PITR is six hours; the branch restore path has not been exercised.
-3. Create separate VAPID keys for Production and configure them only in Vercel Production. Production VAPID variables are currently absent. No real Android push delivery has been verified.
+3. The separate Production VAPID pair is configured in Vercel Production; ensure the next release deployment receives the variables, then verify push delivery on a real Android device.
 4. Complete role-based browser UAT against an isolated Preview user/branch after the current Preview deployment is refreshed.
 5. Android tooling passed `bubblewrap doctor`, but no device is attached. APK signing, Digital Asset Links, APK build/install, and real-device push checks remain open.
 6. Only after these gates pass, mark PR #1 ready, merge, and verify the Production deployment and core order/notification flows.
 
 ## Handoff summary
+
+Production VAPID public/private keys are now configured as Vercel Production Secrets, with the subject as a Production Config variable. The active deployment has not yet been redeployed to receive them.
 
 Production currently has migrations `0000`–`0011` on Neon project `neon-cinnabar-bucket` branch `main`, and the pre-migration recovery branch `pre-release-20261105` is retained. However, the live Production app still logs missing-table failures for `/api/notifications`. Treat Production as **partially migrated and not release-verified** until the runtime DB target is reconciled. Do not remove the recovery branch or switch the Production DB connection based on assumption.
