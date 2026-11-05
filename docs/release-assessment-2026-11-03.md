@@ -296,7 +296,7 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 
 ### Cập nhật lần 31 — chặn sai đích database Preview
 
-- Build Preview và ứng dụng khi tạo pool DB yêu cầu `DATABASE_URL` khớp host và database được cấu hình riêng bằng `PREVIEW_DATABASE_HOST` và `PREVIEW_DATABASE_NAME`. Thiếu hoặc không khớp thì dừng; kiểm tra này không tự chứng minh metadata branch hay cấu hình deployment thực tế.
+- Build Preview yêu cầu `DATABASE_URL` dùng domain Neon, database khớp `PREVIEW_DATABASE_NAME`, và Neon project ID trong integration khớp cấu hình độc lập `PREVIEW_DATABASE_PROJECT_ID`. Thiếu hoặc không khớp thì migration dừng; kiểm tra này không tự chứng minh metadata branch hay cấu hình deployment thực tế.
 - `npm test` đạt 59/59; lint, typecheck, build và thử build với host sai đều đạt. Phép thử host sai xác nhận build dừng trước migration và không in credential.
 - Chưa cấu hình các biến mới trên Vercel hoặc tạo deployment mới. Preview UAT, kiểm tra Production recovery và thử Push trên Android thật vẫn chưa có bằng chứng đạt.
 
