@@ -34,6 +34,6 @@ export default function LoginPage() {
       {error && <p className="login-error" role="alert">{error}</p>}
       <button className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 20, minHeight: 44 }} disabled={busy}>{busy ? "Đang xác thực..." : "Đăng nhập"}</button>
     </form>
-    <div className="login-footer">Tài khoản được cấp bởi quản trị viên hệ thống.</div>
+    <div className="login-footer">Tài khoản được cấp bởi quản trị viên hệ thống.<br /><a href="/huong-dan-su-dung.html">Mở cẩm nang sử dụng</a></div>
   </section></main>;
 }

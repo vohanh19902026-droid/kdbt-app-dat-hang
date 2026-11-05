@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet, Wrench } from "lucide-react";
+import { Bell, BookOpen, ChartColumn, ClipboardList, KeyRound, LayoutDashboard, LogOut, Settings2, Users, Wallet, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { roleLabels, type AppRole } from "@/lib/types";
@@ -55,6 +55,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     setPasswordNotice("");
   }
   const nav = [
+    { href: "/huong-dan-su-dung.html", label: "Cẩm nang sử dụng", icon: BookOpen, show: true },
     { href: "/notifications", label: "Tin báo", icon: Bell, show: true },
     { href: "/orders", label: "Đơn đặt bê tông", icon: ClipboardList, show: ["ADMIN", "PLANNER", "SALES"].includes(role) },
     { href: "/receiving", label: "Nhận đơn hàng", icon: ClipboardList, show: ["ADMIN", "PLANNER"].includes(role) },
@@ -120,7 +121,7 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
       <header className="topbar"><div className="crumb">{settings.companyName} <span style={{ color: "#adb6ae" }}> / </span><strong>{nav.find((item) => item.href === pathname)?.label || "Điều hành"}</strong></div>
         <div className="top-actions"><div className="role-select">{roleLabels[role]}</div><div className="date-select">{new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date())}</div>
           <button type="button" className="mobile-account-trigger" aria-expanded={showMobileAccountMenu} aria-controls="mobile-account-menu" onClick={() => setShowMobileAccountMenu((open) => !open)}>{userName}</button>
-          {showMobileAccountMenu && <div className="mobile-account-menu" id="mobile-account-menu" role="group" aria-label="Thao tác tài khoản"><div className="account-identity"><b>{userName}</b><span>{roleLabels[role]} · {email}</span></div><button type="button" onClick={openPasswordForm}><KeyRound size={15} /> Đổi mật khẩu</button><button type="button" className="logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div>}
+          {showMobileAccountMenu && <div className="mobile-account-menu" id="mobile-account-menu" role="group" aria-label="Thao tác tài khoản"><div className="account-identity"><b>{userName}</b><span>{roleLabels[role]} · {email}</span></div><Link href="/huong-dan-su-dung.html" onClick={() => setShowMobileAccountMenu(false)}><BookOpen size={15} /> Cẩm nang sử dụng</Link><button type="button" onClick={openPasswordForm}><KeyRound size={15} /> Đổi mật khẩu</button><button type="button" className="logout" onClick={signOut}><LogOut size={15} /> Đăng xuất</button></div>}
         </div>
       </header>
       <section className="content">{children}</section>

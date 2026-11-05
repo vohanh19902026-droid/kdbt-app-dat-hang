@@ -134,6 +134,8 @@ body { min-height:100vh; }
   .mobile-account-menu .account-identity { padding:8px 9px 10px;border-bottom:1px solid var(--line); }
   .mobile-account-menu .account-identity b,.mobile-account-menu .account-identity span { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
   .mobile-account-menu .account-identity span { margin-top:3px;color:var(--muted);font-size:10px; }
+  .mobile-account-menu a { display:flex;align-items:center;gap:9px;border-radius:7px;color:inherit;padding:10px;text-decoration:none;font-size:12px;font-weight:500; }
+  .mobile-account-menu a:hover { background:var(--mint);color:var(--green); }
   .mobile-account-menu button { display:flex;align-items:center;gap:9px;width:100%;border:0;border-radius:7px;background:transparent;color:inherit;padding:10px;text-align:left;font-family:inherit;font-size:12px;font-weight:500; }
   .mobile-account-menu button:hover { background:var(--mint);color:var(--green); }
   .mobile-account-menu button.logout { color:#a64242; }
