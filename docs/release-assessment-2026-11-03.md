@@ -394,3 +394,10 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Importer chạy dry-run trên 9 workbook riêng: checksum nguồn đạt; 22 ứng viên roster, 216 ô chứng cứ màu theme 9, 4.411 entity keys, 8.243 quan sát, 8.243 snapshot và 7.337 quan sát có NVKD. Script yêu cầu xác nhận Preview độc lập trước ghi; chưa ghi vào bất kỳ database nào.
 - Kiểm tra local đạt: typecheck, lint, build và 62/62 test. Không chạy migration lên DB.
 - Vercel team access hiện cần chủ tài khoản duyệt link consent mới tạo một lần. Chưa chọn alias Preview cuối, chưa sửa Google OAuth URI, chưa đăng nhập/đăng ký browser UAT, chưa bootstrap SUP-ADMIN, chưa migrate/import Preview, chưa chạy load test hoặc thay đổi Production/main.
+
+### Cập nhật lần 44 — cố định một URL Google OAuth Preview
+
+- Vercel team access đã hoạt động lại; xác nhận deployment Preview gần nhất trước cập nhật code có alias nhánh `kdbt-app-dat-hang-git-codex-cencom-0462e1-vohanh19902026-droid.vercel.app`.
+- Theo hướng dẫn chỉ giữ một đường dẫn, thay origin và callback cũ trong OAuth client CENCOM Preview bằng đúng một origin và một callback của alias nhánh này. Tải lại trang Google Cloud xác nhận hai giá trị đã lưu; chưa tạo thêm alias/deployment.
+- Commit `1dcecc0` hiện chỉ ở local trên `codex/cencom-owner-preview`; chưa push nên alias chưa chạy phiên bản có migration 0014 và màn tra cứu lịch sử.
+- Vercel Preview có OAuth client variables scope riêng cho nhánh hiện tại; không đọc giá trị secret. Các database env có tên Preview nhưng endpoint/nhánh thực tế chưa được xác nhận an toàn từ metadata không giải mã. Chưa migrate/import, đăng nhập thật hoặc UAT.
