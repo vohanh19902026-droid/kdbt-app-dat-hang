@@ -401,3 +401,11 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Theo hướng dẫn chỉ giữ một đường dẫn, thay origin và callback cũ trong OAuth client CENCOM Preview bằng đúng một origin và một callback của alias nhánh này. Tải lại trang Google Cloud xác nhận hai giá trị đã lưu; chưa tạo thêm alias/deployment.
 - Commit `1dcecc0` hiện chỉ ở local trên `codex/cencom-owner-preview`; chưa push nên alias chưa chạy phiên bản có migration 0014 và màn tra cứu lịch sử.
 - Vercel Preview có OAuth client variables scope riêng cho nhánh hiện tại; không đọc giá trị secret. Các database env có tên Preview nhưng endpoint/nhánh thực tế chưa được xác nhận an toàn từ metadata không giải mã. Chưa migrate/import, đăng nhập thật hoặc UAT.
+
+### Cập nhật lần 45 — baseline schema-only Preview và áp migration
+
+- Xác nhận Neon project `winter-river-11456796`, branch `uat/notifications-scale-android`, database `neondb`, endpoint `ep-late-breeze-b37o52e8`. Nhánh schema-only có 14 bảng nền, 21 index nền, đủ enum/sequence và không có bản ghi người dùng, khách hàng, đơn hàng, công nợ, cài đặt hoặc migration.
+- Migration registry trống dù schema nền `0000–0010` đã tồn tại; chạy migration từ đầu sẽ đụng bảng/type có sẵn. Đối chiếu schema với Drizzle xác nhận phần thiếu chỉ là 4 cột onboarding/SUP-ADMIN và 6 bảng review lịch sử của migration `0012–0014`.
+- Baseline các migration `0000–0010` sau khi kiểm tra đúng endpoint, schema/index/enum và trạng thái dữ liệu rỗng; tạo app settings/catalog mặc định theo SQL hiện hành; áp `0011–0014` trong một transaction. Sau đó `npm run db:migrate:dry` trên đúng host xác nhận cả 15 migration đều được bỏ qua vì đã ghi nhận; chưa có dữ liệu nghiệp vụ/import được thêm.
+- Vercel có `DATABASE_URL` dạng Secret scope riêng `Preview` + branch `codex/cencom-owner-preview`, trỏ về UAT endpoint; biến Production không thay đổi. CLI `env run` trên Windows không lấy được Secret và nạp `.env.local` thay thế, nên không dùng lệnh đó làm bằng chứng target; dry-run xác thực được chạy bằng URI Neon đã đối chiếu cục bộ, không in credential.
+- Chưa push nhánh hoặc deploy phiên bản mới; chưa đăng nhập Google, bootstrap SUP-ADMIN, import dữ liệu, hoàn tất tài khoản NVKD, browser UAT hay load test. Không thay đổi `main`/Production.
