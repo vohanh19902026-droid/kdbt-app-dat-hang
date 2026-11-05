@@ -11,6 +11,10 @@ import { sendPasswordResetEmail } from "@/lib/email";
 
 const secret = process.env.BETTER_AUTH_SECRET;
 const baseURL = getAuthBaseURL();
+const trustedOrigins = [
+  baseURL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+].filter((origin): origin is string => Boolean(origin));
 if (process.env.NODE_ENV === "production" && (!secret || secret.length < 32)) {
   throw new Error("BETTER_AUTH_SECRET must be set to at least 32 characters in production.");
 }
@@ -95,5 +99,5 @@ export const auth = betterAuth({
     },
   },
   plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), nextCookies()],
-  trustedOrigins: [baseURL],
+  trustedOrigins,
 });
