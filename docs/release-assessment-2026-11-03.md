@@ -424,3 +424,10 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Vercel alias duy nhất `kdbt-app-dat-hang-git-codex-cencom-0462e1-vohanh19902026-droid.vercel.app` hiện vẫn gắn với deployment READY `8ca9a4e`; deployment sau `864561a` lỗi an toàn tại endpoint guard. Không dùng alias để đăng nhập hoặc UAT cho tới khi guard pass trên đúng endpoint UAT.
 - Tùy chọn Neon “Create Database Branch For Deployment: Preview” vẫn bật. Đã yêu cầu xác nhận tại thời điểm thao tác để tắt; chưa lưu thay đổi. Production vẫn không chọn.
 - Importer dry-run chạy lại thành công từ `_review_private`: 9 workbook, 22 NVKD từ roster vàng, 216 chứng cứ, 4.411 entity keys, 8.243 observations/snapshots, 7.337 observations có NVKD. Không ghi dữ liệu vào database.
+
+### Cập nhật lần 48 — tắt Neon Preview branch tự động
+
+- Người dùng đồng ý tiếp tục theo kế hoạch; trong kết nối Neon–Vercel của project `kdbt-app-dat-hang`, đã bỏ chọn `Create Database Branch For Deployment: Preview` và lưu thành công.
+- Đọc lại cấu hình sau lưu xác nhận Preview = tắt, Production = tắt, Require Active Resource = bật, Sensitive = bật. Không thay đổi môi trường Production.
+- Vercel CLI trước đó xác nhận biến `DATABASE_URL` Secret và `PREVIEW_DATABASE_ENDPOINT_ID` Config được scope riêng cho Preview branch `codex/cencom-owner-preview`. Các endpoint guard hiện hành sẽ chặn deployment nếu URL không khớp nhánh UAT đã xác minh.
+- Tiếp theo đẩy nhánh này để tạo Preview mới; trước khi đăng nhập/import cần xác nhận build READY, endpoint guard pass và alias URL duy nhất trỏ deployment mới.
