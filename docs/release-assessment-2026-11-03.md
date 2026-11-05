@@ -409,3 +409,11 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Baseline các migration `0000–0010` sau khi kiểm tra đúng endpoint, schema/index/enum và trạng thái dữ liệu rỗng; tạo app settings/catalog mặc định theo SQL hiện hành; áp `0011–0014` trong một transaction. Sau đó `npm run db:migrate:dry` trên đúng host xác nhận cả 15 migration đều được bỏ qua vì đã ghi nhận; chưa có dữ liệu nghiệp vụ/import được thêm.
 - Vercel có `DATABASE_URL` dạng Secret scope riêng `Preview` + branch `codex/cencom-owner-preview`, trỏ về UAT endpoint; biến Production không thay đổi. CLI `env run` trên Windows không lấy được Secret và nạp `.env.local` thay thế, nên không dùng lệnh đó làm bằng chứng target; dry-run xác thực được chạy bằng URI Neon đã đối chiếu cục bộ, không in credential.
 - Chưa push nhánh hoặc deploy phiên bản mới; chưa đăng nhập Google, bootstrap SUP-ADMIN, import dữ liệu, hoàn tất tài khoản NVKD, browser UAT hay load test. Không thay đổi `main`/Production.
+
+### Cập nhật lần 46 — chặn DB branch tự sinh của Vercel Preview
+
+- Sau push `8ca9a4e`, Vercel build chạy migration `0014` trên endpoint Preview tự sinh `ep-wandering-cake-b3nhebji`, khác endpoint UAT đã xác minh `ep-late-breeze-b37o52e8`. Chưa đăng nhập, chưa import dữ liệu khách hàng/công nợ và chưa chạy UAT trên deployment đó.
+- Neon/Vercel integration bật tạo branch cho mỗi Preview; Neon xác nhận URL động được inject sau biến Vercel và ghi đè biến theo branch. Build kế tiếp đã bị endpoint guard chặn trước migration vì endpoint không khớp.
+- Local typecheck, lint và `npm test` 62/62 đạt sau khi thêm kiểm tra endpoint. Deployment mới `fc8b50f` vẫn lỗi có chủ ý tại guard, không ghi DB; alias cũ chưa được dùng cho UAT.
+- Đang chờ xác nhận action-time để tắt tạo branch Neon tự động cho môi trường Preview của project. Thay đổi đó ảnh hưởng mọi Preview branch; `main`/Production không đổi. Sau đó cần xác nhận alias cố định dùng đúng endpoint UAT trước khi tiếp tục đăng nhập.
+- Dry-run import lại trên staging riêng tư vẫn cho 22 roster, 216 chứng cứ, 4.411 entity, 8.243 observations và 8.243 debt snapshots. Workbook đối chiếu email hiện chưa có địa chỉ email; tài khoản nhân viên chỉ được liên kết khi từng người tự xác thực Google.
