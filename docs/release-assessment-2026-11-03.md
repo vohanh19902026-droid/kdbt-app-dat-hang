@@ -328,3 +328,13 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Kiểm tra lại Android: `bubblewrap doctor` xác nhận JDK path và Android SDK path hợp lệ; `adb devices -l` không thấy thiết bị kết nối. Chưa tạo APK vì chưa chốt applicationId/chủ thể ký và chưa có thiết bị Android để kiểm thử TWA/Push.
 - API MCP đọc runtime logs Vercel bị từ chối 403; Request Logs qua dashboard vẫn đọc được mã HTTP. Load test trước đó chỉ đo GET `/api/health`, không đo POST booking hoặc tải nghiệp vụ.
 - Production app, Git `main` và Neon Production `main` chưa thay đổi. Migration 0011 chưa áp Production; chưa push/PR/deploy bản release. Cổng Production còn mở: làm rõ trạng thái gửi booking và xác nhận thông báo đến Sales; backup ngoài Neon hoặc lịch backup/retention phù hợp, RPO/RTO và quy trình rollback; Push VAPID trên thiết bị Android thật; hoàn thiện APK/TWA. Chưa đủ điều kiện tuyên bố sẵn sàng phát hành Production.
+
+### Cập nhật lần 36 — luồng đăng ký/khôi phục mật khẩu trên main cục bộ
+
+- Ngày 05/11/2026, đưa các thay đổi OAuth URL ổn định, trang quên mật khẩu công khai và luồng đăng ký Google chờ Admin duyệt vào `main` cục bộ. Không đưa các commit Key Lạnh vào `main` theo quyết định mới nhất của người dùng.
+- `main` đã có migration `0011_fix_default_sand_catalog_typo.sql`; migration đăng ký được đánh số `0012_google_registration_approval.sql` để không đụng phiên bản. Migration này chưa được áp Production.
+- Đã chạy trên working tree sau khi gộp: `npm test` 59/59; `npm run typecheck`, `npm run lint`, `npm run build` và `npm audit --omit=dev --audit-level=moderate` đều thoát mã 0. Lint phát hiện hai lỗi trong luồng mới; đã sửa trước khi chạy lại. Build sinh artifact `.next`, không chạy migration.
+- Kiểm kê tên biến Vercel chỉ đọc, không lấy giá trị: Production có biến DB, auth secret/URL và VAPID nhưng chưa có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER`, `SMTP_APP_PASSWORD`. Preview có hai biến Google nhưng chưa có SMTP. Vì vậy đăng nhập Google và mail khôi phục mật khẩu chưa sẵn sàng Production/Preview tương ứng.
+- Các commit mới hiện chỉ nằm trên `main` cục bộ (`origin/main` chưa được cập nhật). Không push vì push `main` sẽ kích hoạt Production trong khi migration 0012, Google OAuth, SMTP và các cổng backup/rollback chưa đạt. Neon Production không bị thay đổi.
+- Giai đoạn 2: kết quả kiểm tra 9 workbook tháng 01–09 và đề xuất SQLite staging + XLSX thẩm tra được ghi tại `docs/phase2-concrete-data-assessment.md`. Chưa trích dữ liệu, tạo staging DB/XLSX hoặc nhập vào ứng dụng; chưa dùng dữ liệu khách hàng thật làm UAT.
+
