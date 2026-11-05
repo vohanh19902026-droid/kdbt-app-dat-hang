@@ -338,3 +338,13 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Các commit mới hiện chỉ nằm trên `main` cục bộ (`origin/main` chưa được cập nhật). Không push vì push `main` sẽ kích hoạt Production trong khi migration 0012, Google OAuth, SMTP và các cổng backup/rollback chưa đạt. Neon Production không bị thay đổi.
 - Kiểm tra Vercel CLI chỉ đọc xác nhận Production deployment mới nhất vẫn `READY` trên commit `6037661` (`docs: publish interactive CENCOM user handbook`), URL deployment `https://kdbt-app-dat-hang-8m0zfcwe7-vohanh19902026-droid.vercel.app`; deployment phát hành mới chưa được tạo.
 - Giai đoạn 2: kết quả kiểm tra 9 workbook tháng 01–09 và đề xuất SQLite staging + XLSX thẩm tra được ghi tại `docs/phase2-concrete-data-assessment.md`. Chưa trích dữ liệu, tạo staging DB/XLSX hoặc nhập vào ứng dụng; chưa dùng dữ liệu khách hàng thật làm UAT.
+
+### Cập nhật lần 37 — SUP-ADMIN cục bộ và xác minh Preview
+
+- Commit local `6762e9a feat: add platform owner admin controls` bổ sung cờ SUP-ADMIN, partial unique index, giới hạn tạo/cấp ADMIN và lệnh bootstrap offline có xác nhận môi trường. Không chạy bootstrap và chưa có hồ sơ SUP-ADMIN nào được nâng quyền.
+- Quality gates sau thay đổi: `npm test` 62/62, typecheck, lint, build Next.js 16.4.3 và `npm audit --omit=dev --audit-level=moderate` (0 lỗ hổng) đều đạt.
+- Rà soát biến Vercel chỉ đọc: Google OAuth Preview hiện gắn riêng nhánh `codex/google-auth-preview`; chưa có SMTP Preview. Không thay đổi OAuth/SMTP hoặc Production.
+- `.env.local` hiện trỏ Neon project khác với Preview đã cấu hình nên không dùng để migrate. `vercel env pull` tạo `.env.preview.local`, nhưng các Secret được thay bằng `[SENSITIVE]`; xác nhận được Preview project `winter-river-11456796`, database `neondb`, chưa xác nhận được host/endpoint thực tế. Chưa chạy dry-run/apply migration, bootstrap, browser UAT hoặc load test.
+- Nhánh `codex/google-auth-preview` có các commit Key Lạnh ngoài phạm vi main; không dùng nhánh đó làm nguồn code cho đợt kiểm thử mới khi Key Lạnh đang ở giai đoạn nghiên cứu.
+- Roster trước đó lấy nhầm sheet nhân viên riêng. Theo hiệu chỉnh của người dùng, nguồn chính xác là các ô tên NVKD tô vàng trong hai sheet `PKDBT- DA` và `PKDBT DC`; việc trích lại và đối chiếu vẫn đang làm. Chưa tạo tài khoản sales hoặc import dữ liệu khách hàng/công nợ.
+- Không push/PR/deploy; không thay đổi GitHub remote, Vercel settings, Neon Production hay Production app.
