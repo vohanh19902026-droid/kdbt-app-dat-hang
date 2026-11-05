@@ -4,6 +4,12 @@
 
 **Not ready to release the feature branch to Production.** The active Production deployment still returned HTTP 500 from `GET /api/notifications` after the migration was applied to Neon Production `main`. Neon confirms that the table exists on `main`; the remaining evidence points to a mismatch between the database/schema used by the live deployment and the database/schema that was migrated. Do not merge or deploy the feature branch until this is reconciled and the live endpoint is verified.
 
+### Update — 2026-11-05: Production DB guard added
+
+- Added `scripts/verify-production-database.mjs`; Production builds now require the effective `DATABASE_URL` host to resolve to the independently verified Neon main endpoint and database `neondb` before migrations can run. The guard logs only the sanitized hostname and database name, never credentials.
+- Production Vercel Config now contains the expected endpoint ID and database name. On the next Production build, the guard will stop the build before writes if the linked URL points at another endpoint/database. If it matches, the build runs migration dry-run followed by the idempotent migrations before compiling.
+- `node --check` passed for the updated build script and new guard; `git diff --check` passed. This change has not yet been pushed or exercised on Vercel. Preview, Production endpoint, notification route, browser UAT, and Android device checks remain release gates.
+
 The app's Production database has been changed during this handoff. A recovery branch was created before migration; details are below.
 
 ## Production database change and verification
