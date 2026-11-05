@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 
 type Environment = "preview" | "production";
 
-export function ColdKeyRecovery({ email }: { email: string }) {
+export function ColdKeyRecovery({ email, initialEnvironment }: { email: string; initialEnvironment: Environment }) {
   const router = useRouter();
-  const [environment, setEnvironment] = useState<Environment>("production");
+  const [environment, setEnvironment] = useState<Environment>(initialEnvironment);
   const [challengeId, setChallengeId] = useState("");
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
