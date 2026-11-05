@@ -337,4 +337,3 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Kiểm kê tên biến Vercel chỉ đọc, không lấy giá trị: Production có biến DB, auth secret/URL và VAPID nhưng chưa có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER`, `SMTP_APP_PASSWORD`. Preview có hai biến Google nhưng chưa có SMTP. Vì vậy đăng nhập Google và mail khôi phục mật khẩu chưa sẵn sàng Production/Preview tương ứng.
 - Các commit mới hiện chỉ nằm trên `main` cục bộ (`origin/main` chưa được cập nhật). Không push vì push `main` sẽ kích hoạt Production trong khi migration 0012, Google OAuth, SMTP và các cổng backup/rollback chưa đạt. Neon Production không bị thay đổi.
 - Giai đoạn 2: kết quả kiểm tra 9 workbook tháng 01–09 và đề xuất SQLite staging + XLSX thẩm tra được ghi tại `docs/phase2-concrete-data-assessment.md`. Chưa trích dữ liệu, tạo staging DB/XLSX hoặc nhập vào ứng dụng; chưa dùng dữ liệu khách hàng thật làm UAT.
-
