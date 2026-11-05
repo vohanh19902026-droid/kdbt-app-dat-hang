@@ -1,32 +1,45 @@
 # CENCOM production handoff assessment — 2026-11-05
 
-## Release state
+## Release decision
 
-**Not released to Production.** The release branch is pushed and a Preview deployment is ready. Production database target and migration history do not reconcile across Vercel and Neon, and the live application currently returns errors from its notification count endpoint. No Production database migration or deployment was performed in this handoff.
+**Not ready to release the feature branch to Production.** The active Production deployment still returned HTTP 500 from `GET /api/notifications` after the migration was applied to Neon Production `main`. Neon confirms that the table exists on `main`; the remaining evidence points to a mismatch between the database/schema used by the live deployment and the database/schema that was migrated. Do not merge or deploy the feature branch until this is reconciled and the live endpoint is verified.
 
-## Delivered and verified
+The app's Production database has been changed during this handoff. A recovery branch was created before migration; details are below.
 
-- Branch `feature/notifications-scale-android` is pushed through commit `6611ab3`.
-- Vercel Preview deployment for commit `6611ab3` reached Ready. Neon created branch `preview/feature/notifications-scale-android` with parent `main` and linked it to that deployment in the separate Preview project `cencom-preview-isolated`.
-- Preview build migration skipped `0000`–`0010` and applied `0011_fix_default_sand_catalog_typo.sql`.
-- Preview read-only health load: concurrency 10, 85 requests, 0 errors, 10.91 seconds; request p95 3,714 ms and database round-trip p95 1,636 ms.
-- Local checks after the Preview guard change: 59/59 tests, typecheck, lint, build and `npm audit --omit=dev` (0 vulnerabilities).
-- The Preview migration guard now checks the expected Neon project ID, database name and Neon hostname. The Vercel Preview environment has `PREVIEW_DATABASE_PROJECT_ID=winter-river-11456796` and `PREVIEW_DATABASE_NAME=neondb`; the Neon integration provides the matching Preview project ID.
+## Production database change and verification
 
-## Production blockers
+- Confirmed Neon Production project `neon-cinnabar-bucket`, branch `main`, database `neondb`.
+- Created persistent copy-on-write recovery branch `pre-release-20261105` before applying migrations. It is not configured to auto-delete. The branch has not been used for restore testing and must be retained until release risk is resolved.
+- Dry-run against the verified Neon `main` target listed migrations `0005` through `0011` as pending.
+- Applied migrations `0005_app_notifications.sql` through `0011_fix_default_sand_catalog_typo.sql` to that Neon `main` target. The migration command reported 7 new files and 12 total.
+- A read-only Neon SQL query then confirmed `app_notifications` exists and `_app_migrations` contains `0000` through `0011`. Counts remained 1 order and 1 customer; the active runtime user ID was present.
+- Neon reports a six-hour PITR window. The recovery branch provides a pre-release copy-on-write recovery point. No restore/rollback exercise has been performed.
 
-1. **Live error:** Vercel runtime logs for the current Production deployment repeatedly show `GET /api/notifications` failing because `app_notifications` does not exist.
-2. **Database identity/history mismatch:** a read-only check in Neon Production project `neon-cinnabar-bucket`, branch `main`, showed only migrations `0000`–`0004` and no `app_notifications` table. A dry-run through the current Vercel Production environment instead resolved a different database target and reported only migration `0011` pending. These results conflict, so the current Vercel Production `DATABASE_URL` must be reconciled with the live deployment's actual database before migration or deployment.
-3. **Recovery:** Neon Production shows a six-hour point-in-time history window. One manual snapshot from about 15 hours earlier exists; no snapshot schedule is set. A restore/rollback exercise has not been completed.
-4. **Push:** Production VAPID keys are not configured. Preview has separate VAPID configuration, but push delivery has not been verified on a real Android device.
-5. **Fresh browser UAT:** the current Preview app reaches its login screen, but the clean Preview branch has no test user. Browser role-flow UAT was previously completed on an older Preview commit, not `6611ab3`.
-6. **Android package:** `bubblewrap doctor` passed after SDK licenses were accepted, but no Android device is attached. APK signing, Digital Asset Links and device push checks remain open.
+## Live Production checks
 
-## Handoff sequence
+- Vercel Production deployment `dpl_7h4xShHzCca2hR3yZAenNZjNh4AJ` continued to return HTTP 500 for `/api/notifications` after the migration. The latest observed failures were at 2026-11-05 01:37 UTC, about 20 minutes after the migrations completed. Runtime logs still reported PostgreSQL `42P01: relation "app_notifications" does not exist`.
+- `https://kdbt-app-dat-hang-five.vercel.app/api/health` returned `{"status":"ok","database":"up"}`. This confirms database reachability, but it does not identify the target branch or prove the notification query succeeds.
+- The Vercel project has Production `DATABASE_URL` configured as a hidden secret. It was not read into chat or changed. Vercel MCP requests returned 403 for deployment/runtime/environment data; the Vercel CLI could list environment variable names and request/runtime logs, but not values.
+- Therefore, the active deployment's DB host/database/schema has **not** been proven to match the migrated Neon Production `main`. Investigate the active Production deployment's effective `DATABASE_URL` target through the authorized Vercel/Neon integration settings without exposing the credential, then apply any missing migration only to the verified active Production target. Re-run the authenticated notification endpoint check after that.
 
-1. Confirm which Neon project/branch the active Production deployment actually uses; align Vercel Production `DATABASE_URL` with that branch and rerun a read-only migration dry-run against the same target.
-2. Confirm a current restore point and the exact rollback path before touching Production.
-3. Bootstrap disposable users on the linked Preview branch and rerun the role-based browser UAT on the ready deployment. Run real Android push tests after Production VAPID is configured.
-4. Review and merge the draft PR, then migrate and deploy only after the prior checks agree on one Production database target.
+## Branch, Preview, and local verification
 
-Production `main`, its database and the Production deployment were left unchanged by this handoff.
+- Branch `feature/notifications-scale-android` is pushed through commit `b33b276`.
+- Draft PR #1 is open and the Vercel check passed: https://github.com/vohanh19902026-droid/kdbt-app-dat-hang/pull/1
+- Preview deployment for commit `6611ab3` reached Ready. Neon created `preview/feature/notifications-scale-android` under the isolated Preview project `cencom-preview-isolated`; its migration build skipped `0000`–`0010` and applied `0011_fix_default_sand_catalog_typo.sql`.
+- Preview read-only health load: concurrency 10, 85 requests, 0 failures, 10.91 seconds; request p95 3,714 ms and database round-trip p95 1,636 ms.
+- Local checks after the Preview guard change passed: 59/59 tests, typecheck, lint, build, and `npm audit --omit=dev` with 0 vulnerabilities.
+- Fresh Preview browser role UAT remains incomplete because the isolated branch has no test user. Earlier role-flow UAT was completed on an older Preview commit.
+
+## Remaining release gates
+
+1. Reconcile the active Production deployment's effective `DATABASE_URL` target with Neon Production `main` without disclosing the secret. Verify the app's `/api/notifications` route no longer returns 500 and inspect fresh runtime logs.
+2. Keep the pre-release recovery branch. PITR is six hours; the branch restore path has not been exercised.
+3. Create separate VAPID keys for Production and configure them only in Vercel Production. Production VAPID variables are currently absent. No real Android push delivery has been verified.
+4. Complete role-based browser UAT against an isolated Preview user/branch after the current Preview deployment is refreshed.
+5. Android tooling passed `bubblewrap doctor`, but no device is attached. APK signing, Digital Asset Links, APK build/install, and real-device push checks remain open.
+6. Only after these gates pass, mark PR #1 ready, merge, and verify the Production deployment and core order/notification flows.
+
+## Handoff summary
+
+Production currently has migrations `0000`–`0011` on Neon project `neon-cinnabar-bucket` branch `main`, and the pre-migration recovery branch `pre-release-20261105` is retained. However, the live Production app still logs missing-table failures for `/api/notifications`. Treat Production as **partially migrated and not release-verified** until the runtime DB target is reconciled. Do not remove the recovery branch or switch the Production DB connection based on assumption.
