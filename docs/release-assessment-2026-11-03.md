@@ -348,3 +348,11 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Nhánh `codex/google-auth-preview` có các commit Key Lạnh ngoài phạm vi main; không dùng nhánh đó làm nguồn code cho đợt kiểm thử mới khi Key Lạnh đang ở giai đoạn nghiên cứu.
 - Roster trước đó lấy nhầm sheet nhân viên riêng. Theo hiệu chỉnh của người dùng, nguồn chính xác là các ô tên NVKD tô vàng trong hai sheet `PKDBT- DA` và `PKDBT DC`; việc trích lại và đối chiếu vẫn đang làm. Chưa tạo tài khoản sales hoặc import dữ liệu khách hàng/công nợ.
 - Không push/PR/deploy; không thay đổi GitHub remote, Vercel settings, Neon Production hay Production app.
+
+### Cập nhật lần 38 — sửa nguồn roster NVKD
+
+- Theo hiệu chỉnh của người dùng, rà soát lại đúng hai sheet `PKDBT- DA` và `PKDBT DC`, nhận diện ô NVKD bằng màu vàng và dấu thứ tự ở cột `TT` liền kề; tự tìm cột tên vì vị trí thay đổi giữa các tháng. Phạm vi gồm 9 workbook tháng 01–09/2026.
+- Kết quả hiện có 21 ứng viên tên NVKD (7 từ DA, 14 từ DC), xuất hiện qua 9 kỳ; 2 dòng nhóm/công nợ được tách loại, không tính là nhân viên. Đây là roster theo bằng chứng workbook, chưa xác nhận tình trạng nhân sự hiện tại.
+- Kiểm tra metadata artifact: review 21 dòng, audit ô nguồn 207 dòng, exclusions 2 dòng; ACL thư mục `_review_private` chỉ tài khoản Windows hiện tại có FullControl. Không ghi tên/email vào repo. Nguồn workbook không sửa.
+- Email đăng nhập không có trong các sheet. Chưa tạo account hay suy đoán địa chỉ; cần ghép email Google đã xác minh cho từng người trước khi lập tài khoản.
+- Private artifacts: `sales-roster-yellow-review.csv`, `sales-roster-yellow-observations.csv`, `sales-roster-excluded-groups.csv` trong thư mục `_review_private` của source reports. Parser dữ liệu giao dịch và XLSX thẩm tra vẫn đang triển khai.
