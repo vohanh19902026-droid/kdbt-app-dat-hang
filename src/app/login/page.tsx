@@ -28,7 +28,7 @@ export default function LoginPage() {
   async function signInWithGoogle() {
     setBusy(true); setError("");
     try {
-      const result = await authClient.signIn.social({ provider: "google", callbackURL: "/orders" });
+      const result = await authClient.signIn.social({ provider: "google", callbackURL: "/pending-approval" });
       if (result.error) setError("Chưa thể đăng nhập Google. Vui lòng thử lại hoặc đăng nhập bằng email và mật khẩu.");
     } catch {
       setError("Đăng nhập Google chưa được cấu hình. Vui lòng đăng nhập bằng email và mật khẩu.");

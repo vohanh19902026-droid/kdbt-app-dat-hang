@@ -72,17 +72,8 @@ export const auth = betterAuth({
         },
       },
     },
-    session: {
-      create: {
-        before: async (newSession) => {
-          const [account] = await db.select({ isActive: schema.user.isActive })
-            .from(schema.user)
-            .where(eq(schema.user.id, newSession.userId))
-            .limit(1);
-          if (!account?.isActive) return false;
-        },
-      },
-    },
+      // Pending Google registrations need a limited session to submit their
+      // profile and view approval status. Business access is gated in session.ts.
   },
   // Better Auth stores limits in memory by default. Keep login attempts low
   // for this small internal app; use shared storage if it scales to many instances.

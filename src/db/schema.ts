@@ -1,5 +1,5 @@
 import {
-  boolean, decimal, index, pgEnum, pgSequence, pgTable, text, timestamp,
+  boolean, decimal, index, integer, pgEnum, pgSequence, pgTable, text, timestamp,
   uniqueIndex, uuid, jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -27,6 +27,9 @@ export const user = pgTable("user", {
   employeeCode: text("employee_code"),
   phone: text("phone"),
   department: text("department"),
+  jobTitle: text("job_title"),
+  age: integer("age"),
+  requestedAppRole: appRoleEnum("requested_app_role"),
   monthlyTargetM3: decimal("monthly_target_m3", { precision: 10, scale: 2 }),
   notificationPreferences: jsonb("notification_preferences").$type<Record<string, unknown>>().notNull().default({}),
 });

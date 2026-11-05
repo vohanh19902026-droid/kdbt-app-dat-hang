@@ -9,7 +9,7 @@ import { ProductCatalogManager } from "@/components/product-catalog-manager";
 import type { AppSettings } from "@/lib/app-settings";
 import type { AppRole } from "@/lib/types";
 
-type AdminUser = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null };
+type AdminUser = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null; jobTitle?: string | null; age?: number | null; requestedAppRole?: AppRole | null };
 type SalesVolume = { salesRepName: string; bookedM3: string };
 type FinanceSummary = { bookedThisMonthM3: string; chargesThisMonthVnd: string; outstandingVnd: string };
 type Section = "appearance" | "company" | "accounts" | "business" | "catalog" | "system" | "roadmap";

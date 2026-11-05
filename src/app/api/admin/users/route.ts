@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     id: user.id, name: user.name, email: user.email, appRole: user.appRole,
     isActive: user.isActive, createdAt: user.createdAt, employeeCode: user.employeeCode,
     phone: user.phone, department: user.department, monthlyTargetM3: user.monthlyTargetM3,
+    jobTitle: user.jobTitle, age: user.age, requestedAppRole: user.requestedAppRole,
   }).from(user).orderBy(asc(user.name));
   return NextResponse.json(rows);
 }
@@ -64,6 +65,8 @@ export async function PATCH(request: NextRequest) {
     userId: z.string().min(1), appRole: z.enum(["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"]).optional(), isActive: z.boolean().optional(),
     employeeCode: z.string().trim().max(40).nullable().optional(), phone: z.string().trim().max(30).nullable().optional(),
     department: z.string().trim().max(80).nullable().optional(), monthlyTargetM3: z.coerce.number().min(0).max(1000000).nullable().optional(),
+    jobTitle: z.string().trim().max(80).nullable().optional(),
+    age: z.coerce.number().int().min(16).max(100).nullable().optional(),
   }).safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Dữ liệu cập nhật chưa hợp lệ." }, { status: 400 });
   const data = parsed.data;
@@ -92,6 +95,8 @@ export async function PATCH(request: NextRequest) {
     ...(data.employeeCode !== undefined ? { employeeCode: data.employeeCode || null } : {}),
     ...(data.phone !== undefined ? { phone: data.phone || null } : {}),
     ...(data.department !== undefined ? { department: data.department || null } : {}),
+    ...(data.jobTitle !== undefined ? { jobTitle: data.jobTitle || null } : {}),
+    ...(data.age !== undefined ? { age: data.age } : {}),
     ...(data.monthlyTargetM3 !== undefined ? { monthlyTargetM3: data.monthlyTargetM3 === null ? null : String(data.monthlyTargetM3) } : {}),
   };
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: "Không có trường nào cần cập nhật." }, { status: 400 });
