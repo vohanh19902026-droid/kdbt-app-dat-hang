@@ -1,6 +1,6 @@
 # Đánh giá phát hành 03/11/2026
 
-> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 32 (04/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
+> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 35 (05/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
 
 ## Phạm vi
 
@@ -308,3 +308,23 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - `vercel curl` tự tạo automation bypass trên project UAT khi kiểm tra health. Đã thu hồi và xác nhận còn 0 automation bypass; không công bố secret hoặc link bypass. Không dùng cách này cho phép đo tải.
 - Load test đọc `/api/health` bằng token Trusted Sources ngắn hạn trên deployment Preview: lần chạy lại concurrency 10, 90 request, 0 lỗi, p50/p95 tổng 1.081/2.227 ms, p50/p95 DB 601/1.605 ms; wrapper thoát mã 0. Lần trước đo 88 request, 0 lỗi nhưng trình bao thu thập bị lỗi mã hóa sau khi in kết quả. Không có ngưỡng SLA được xác định; phép đo chỉ bao phủ endpoint đọc health.
 - Project Production của ứng dụng và Neon Production không bị thay đổi. Còn xác minh luồng nghiệp vụ Preview, backup/restore và rollback Production, Android Push và các cổng phát hành khác; chưa push/PR.
+
+### Cập nhật lần 33 — snapshot và khôi phục sang nhánh riêng
+
+- Neon Production `neon-cinnabar-bucket` xác nhận History 6 giờ, chưa có lịch snapshot. Đã tạo một snapshot thủ công lúc 04/11/2026 17:31 GMT+7; giao diện báo không hết hạn và đã chạm giới hạn snapshot thủ công của gói hiện tại. Snapshot này cùng dịch vụ Neon, không phải bản sao lưu độc lập ngoài nhà cung cấp.
+- Chọn multi-step restore từ snapshot, Neon báo thành công và tạo nhánh riêng `br-sweet-moon-aoqjdwrf`; nhánh `main` giữ nguyên và vẫn là default. Danh sách nhánh khôi phục hiển thị hai database `neondb` và `cencom_preview`. Truy vấn chỉ đọc trên `neondb` khôi phục xác nhận truy cập được, có bảng orders và customers, bảng migration có 5 bản ghi; truy vấn đếm trả 1 order, 1 customer và 4 users. Chưa đối chiếu với nguồn tại thời điểm snapshot hoặc kiểm tra đầy đủ tính toàn vẹn, chưa chuyển kết nối; dữ liệu Production không được dùng cho UAT.
+- Nhánh khôi phục chứa bản sao dữ liệu Production, hiện không có thời hạn tự xóa và chưa kết nối với Vercel. Cần quản lý quyền truy cập, lưu giữ hoặc dọn nhánh theo chính sách sau khi kiểm tra xong. RPO/RTO nghiệp vụ, khôi phục dữ liệu có xác minh và quy trình rollback Vercel vẫn cần được xác nhận trước release.
+
+### Cập nhật lần 34 — sửa danh mục cát lệch giữa migration và ứng dụng
+
+- Browser UAT từ chối booking tổng hợp vì database có `Cát Lọc` trong khi ứng dụng dùng `Cát Lộc`. Blame xác nhận `Cát Lộc` có từ commit 62b4422 ngày 02/11; migration 0009 được thêm sau đó đã viết sai một ký tự. Các giá trị còn lại không cần sửa.
+- Thêm migration 0011 chỉ thay chính xác `Cát Lọc` thành `Cát Lộc` trong catalog cài sẵn, giữ thứ tự và các tùy chọn khác. Chưa áp migration này lên Production.
+
+### Cập nhật lần 35 — kiểm chứng cục bộ và UAT vai trò
+
+- Trên Neon UAT cô lập, chạy dry-run rồi áp migration 0011; không kết nối hoặc ghi lên Neon Production. Trang UAT chạy code của deployment Preview cô lập; sau khi gửi booking mẫu, dữ liệu xuất hiện khi lọc đúng ngày. Sales tạo được booking với catalog `Cát Lộc`; tài khoản Kế hoạch nhìn thấy booking và chuyển một booking sang `Đã xác nhận`. Badge Tin báo ở tài khoản Kế hoạch hiển thị 2 thông báo tương ứng với hai booking tổng hợp.
+- Vercel Request Logs xác nhận hai lần POST `/api/orders` trả HTTP 201; bảng Kế hoạch thấy hai booking tổng hợp `BOOK-7431`/`BOOK-7432`, một booking đã xác nhận qua PATCH HTTP 200 và một còn chờ duyệt. Giao diện accessibility vẫn báo `Đang lưu...` ngay sau submit, cần xác minh lại trên phiên trình duyệt ổn định; không có bằng chứng request bị lỗi máy chủ. Badge Tin báo của Kế hoạch hiện 2. Chưa xác nhận người nhận thông báo phía Sales.
+- Chạy lại sau migration: `npm test` đạt 59/59; `npm run typecheck`, `npm run lint`, `npm run build` và `npm audit --omit=dev` đều thoát mã 0; audit không phát hiện lỗ hổng production dependency.
+- Kiểm tra lại Android: `bubblewrap doctor` xác nhận JDK path và Android SDK path hợp lệ; `adb devices -l` không thấy thiết bị kết nối. Chưa tạo APK vì chưa chốt applicationId/chủ thể ký và chưa có thiết bị Android để kiểm thử TWA/Push.
+- API MCP đọc runtime logs Vercel bị từ chối 403; Request Logs qua dashboard vẫn đọc được mã HTTP. Load test trước đó chỉ đo GET `/api/health`, không đo POST booking hoặc tải nghiệp vụ.
+- Production app, Git `main` và Neon Production `main` chưa thay đổi. Migration 0011 chưa áp Production; chưa push/PR/deploy bản release. Cổng Production còn mở: làm rõ trạng thái gửi booking và xác nhận thông báo đến Sales; backup ngoài Neon hoặc lịch backup/retention phù hợp, RPO/RTO và quy trình rollback; Push VAPID trên thiết bị Android thật; hoàn thiện APK/TWA. Chưa đủ điều kiện tuyên bố sẵn sàng phát hành Production.
