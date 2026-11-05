@@ -18,7 +18,8 @@
     "db:migrate:dry": "tsx scripts/apply-migrations.ts --dry",
     "db:seed": "tsx scripts/seed.ts",
     "auth:create-admin": "tsx scripts/bootstrap-admin.ts",
-    "auth:reset-admin-password": "tsx scripts/reset-admin-password.ts"
+    "auth:reset-admin-password": "tsx scripts/reset-admin-password.ts",
+    "auth:cold-key": "tsx scripts/cold-key-code.ts"
   },
   "dependencies": {
     "@next/env": "^16.4.3",

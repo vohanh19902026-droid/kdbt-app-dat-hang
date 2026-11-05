@@ -212,3 +212,12 @@ export const adminAuditEvents = pgTable("admin_audit_events", {
   newValue: text("new_value"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("admin_audit_events_created_idx").on(t.createdAt), index("admin_audit_events_actor_created_idx").on(t.actorUserId, t.createdAt)]);
+
+export const coldRecoveryChallenges = pgTable("cold_recovery_challenges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  attempts: integer("attempts").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("cold_recovery_challenges_user_created_idx").on(t.userId, t.createdAt)]);

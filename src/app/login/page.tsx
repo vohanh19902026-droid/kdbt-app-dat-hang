@@ -37,11 +37,23 @@ export default function LoginPage() {
     }
   }
 
+  async function signInForOwnerRecovery() {
+    setBusy(true); setError("");
+    try {
+      const result = await authClient.signIn.social({ provider: "google", callbackURL: "/cold-key-recovery" });
+      if (result.error) setError("Chưa thể xác thực chủ sở hữu bằng Google. Vui lòng thử lại.");
+    } catch { setError("Chưa thể xác thực chủ sở hữu bằng Google. Vui lòng thử lại."); }
+    finally { setBusy(false); }
+  }
+
   return <main className="login-bg"><section className="login-card">
     <div className="login-brand"><div className="brandmark">C</div><div className="brandname">CENCOM<small>ĐIỀU PHỐI BÊ TÔNG</small></div></div>
     <h1>Đăng nhập hệ thống</h1><p className="sub">Sử dụng tài khoản công ty để tiếp tục.</p>
     <button type="button" className="btn secondary" onClick={signInWithGoogle} disabled={busy} style={{ width: "100%", justifyContent: "center", minHeight: 44, marginBottom: 16 }}>
       Đăng nhập / đăng ký bằng Google
+    </button>
+    <button type="button" className="btn secondary" onClick={signInForOwnerRecovery} disabled={busy} style={{ width: "100%", justifyContent: "center", minHeight: 42, marginBottom: 16 }}>
+      Chìa khóa lạnh · khôi phục Admin chủ sở hữu
     </button>
     <p className="sub" style={{ textAlign: "center", marginTop: -8, marginBottom: 18 }}>Khuyến nghị dùng Gmail công ty. Tài khoản mới cần Admin kích hoạt.</p>
     <form onSubmit={submit}>
