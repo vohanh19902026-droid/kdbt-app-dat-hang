@@ -27,8 +27,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Hãy dùng chức năng đổi mật khẩu trong menu tài khoản của chính bạn." }, { status: 400 });
   }
 
-  const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, parsed.data.userId)).limit(1);
+  const [target] = await db.select({ id: user.id, appRole: user.appRole, isPlatformOwner: user.isPlatformOwner }).from(user).where(eq(user.id, parsed.data.userId)).limit(1);
   if (!target) return NextResponse.json({ error: "Không tìm thấy tài khoản." }, { status: 404 });
+  if (target.isPlatformOwner) return NextResponse.json({ error: "Mật khẩu SUP-ADMIN chỉ được khôi phục bằng email đã xác minh hoặc Google." }, { status: 403 });
+  if (target.appRole === "ADMIN" && !session.isPlatformOwner) return NextResponse.json({ error: "Chỉ SUP-ADMIN được đặt lại mật khẩu của Admin." }, { status: 403 });
 
   try {
     await auth.api.revokeUserSessions({ body: { userId: target.id }, headers: request.headers });

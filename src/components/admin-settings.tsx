@@ -9,7 +9,7 @@ import { ProductCatalogManager } from "@/components/product-catalog-manager";
 import type { AppSettings } from "@/lib/app-settings";
 import type { AppRole } from "@/lib/types";
 
-type AdminUser = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null; jobTitle?: string | null; age?: number | null; requestedAppRole?: AppRole | null };
+type AdminUser = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; isPlatformOwner?: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null; jobTitle?: string | null; age?: number | null; requestedAppRole?: AppRole | null };
 type SalesVolume = { salesRepName: string; bookedM3: string };
 type FinanceSummary = { bookedThisMonthM3: string; chargesThisMonthVnd: string; outstandingVnd: string };
 type Section = "appearance" | "company" | "accounts" | "business" | "catalog" | "system" | "roadmap";
@@ -32,7 +32,7 @@ const colors = [
 const money = (value: string) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(Number(value || 0));
 const volume = (value: string) => `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(Number(value || 0))} m³`;
 
-export function AdminSettings({ initialSettings, users, salesVolumes, financeSummary, monthLabel, currentUserId }: { initialSettings: AppSettings; users: AdminUser[]; salesVolumes: SalesVolume[]; financeSummary: FinanceSummary; monthLabel: string; currentUserId: string }) {
+export function AdminSettings({ initialSettings, users, salesVolumes, financeSummary, monthLabel, currentUserId, currentUserIsPlatformOwner }: { initialSettings: AppSettings; users: AdminUser[]; salesVolumes: SalesVolume[]; financeSummary: FinanceSummary; monthLabel: string; currentUserId: string; currentUserIsPlatformOwner: boolean }) {
   const router = useRouter();
   const [section, setSection] = useState<Section>("appearance");
   const [settings, setSettings] = useState<AppSettings>(initialSettings);
@@ -90,7 +90,7 @@ export function AdminSettings({ initialSettings, users, salesVolumes, financeSum
       <div className="settings-note">Logo tải lên và nhiều chi nhánh có thể bổ sung sau khi thống nhất định dạng nhận diện và mô hình tenant.</div>
     </div>}
 
-    {section === "accounts" && <><div className="settings-section-intro"><div><h2>Nhân sự và phân quyền</h2><p>Tạo tài khoản, khóa/mở truy cập, phân vai trò và cập nhật hồ sơ nhân viên.</p></div></div><UsersManager users={users} currentUserId={currentUserId} /></>}
+    {section === "accounts" && <><div className="settings-section-intro"><div><h2>Nhân sự và phân quyền</h2><p>Tạo tài khoản, khóa/mở truy cập, phân vai trò và cập nhật hồ sơ nhân viên.</p></div></div><UsersManager users={users} currentUserId={currentUserId} currentUserIsPlatformOwner={currentUserIsPlatformOwner} /></>}
 
     {section === "business" && <>
       <div className="settings-section-intro"><div><h2>Tổng quan kinh doanh</h2><p>Số liệu thực tế từ lệnh đặt và sổ công nợ, kỳ {monthLabel}.</p></div><a className="btn secondary" href="/accounting">Mở sổ công nợ</a></div>

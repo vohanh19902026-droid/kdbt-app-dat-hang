@@ -24,6 +24,7 @@ export const user = pgTable("user", {
   banExpires: timestamp("ban_expires", { withTimezone: true }),
   appRole: appRoleEnum("app_role").default("SALES").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
+  isPlatformOwner: boolean("is_platform_owner").default(false).notNull(),
   employeeCode: text("employee_code"),
   phone: text("phone"),
   department: text("department"),
@@ -32,7 +33,7 @@ export const user = pgTable("user", {
   requestedAppRole: appRoleEnum("requested_app_role"),
   monthlyTargetM3: decimal("monthly_target_m3", { precision: 10, scale: 2 }),
   notificationPreferences: jsonb("notification_preferences").$type<Record<string, unknown>>().notNull().default({}),
-});
+}, (table) => [uniqueIndex("user_single_platform_owner_idx").on(table.isPlatformOwner).where(sql`${table.isPlatformOwner} = true`)]);
 
 export const appSettings = pgTable("app_settings", {
   id: text("id").primaryKey().default("default"),

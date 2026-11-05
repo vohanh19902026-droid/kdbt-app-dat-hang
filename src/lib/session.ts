@@ -9,18 +9,18 @@ import {eq} from "drizzle-orm";
 export async function getSession() {
   const current = await auth.api.getSession({ headers: await headers() });
   if (!current) return null;
-  const [record] = await db.select({ appRole: user.appRole, isActive: user.isActive })
+  const [record] = await db.select({ appRole: user.appRole, isActive: user.isActive, isPlatformOwner: user.isPlatformOwner })
     .from(user).where(eq(user.id, current.user.id)).limit(1);
   if (!record) return null;
-  return { ...current, user: { ...current.user, appRole: record.appRole, isActive: record.isActive } };
+  return { ...current, user: { ...current.user, appRole: record.appRole, isActive: record.isActive, isPlatformOwner: record.isPlatformOwner } };
 }
 
 export async function getApiSession(requestHeaders:Headers) {
   const current=await auth.api.getSession({headers:requestHeaders});
   if(!current)return null;
-  const [record]=await db.select({appRole:user.appRole,isActive:user.isActive}).from(user).where(eq(user.id,current.user.id)).limit(1);
+  const [record]=await db.select({appRole:user.appRole,isActive:user.isActive,isPlatformOwner:user.isPlatformOwner}).from(user).where(eq(user.id,current.user.id)).limit(1);
   if(!record||!record.isActive)return null;
-  return {...current,appRole:record.appRole};
+  return {...current,appRole:record.appRole,isPlatformOwner:record.isPlatformOwner};
 }
 
 export async function requireSession(roles?: AppRole[]) {

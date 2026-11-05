@@ -91,6 +91,7 @@ export const auth = betterAuth({
     additionalFields: {
       appRole: { type: "string", required: false, defaultValue: "SALES", input: false },
       isActive: { type: "boolean", required: false, defaultValue: true, input: false },
+      isPlatformOwner: { type: "boolean", required: false, defaultValue: false, input: false },
     },
   },
   plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), nextCookies()],

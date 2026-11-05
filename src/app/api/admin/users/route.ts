@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { logServerError } from "@/lib/server-logger";
+import { canCreateRole, canPatchUserAuthority } from "@/lib/platform-owner-policy";
 
 export const runtime = "nodejs";
 const inputSchema = z.object({
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
     isActive: user.isActive, createdAt: user.createdAt, employeeCode: user.employeeCode,
     phone: user.phone, department: user.department, monthlyTargetM3: user.monthlyTargetM3,
     jobTitle: user.jobTitle, age: user.age, requestedAppRole: user.requestedAppRole,
+    isPlatformOwner: user.isPlatformOwner,
   }).from(user).orderBy(asc(user.name));
   return NextResponse.json(rows);
 }
@@ -41,6 +43,9 @@ export async function POST(request: NextRequest) {
   const parsed = inputSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Thông tin chưa hợp lệ." }, { status: 400 });
   const data = parsed.data;
+  if (!canCreateRole(access.session.isPlatformOwner, data.appRole)) {
+    return NextResponse.json({ error: "Chỉ SUP-ADMIN được tạo tài khoản Admin." }, { status: 403 });
+  }
   const initialPassword = data.password;
   try {
     const created = await auth.api.createUser({
@@ -73,8 +78,17 @@ export async function PATCH(request: NextRequest) {
   if (data.userId === access.session.user.id && data.isActive === false) {
     return NextResponse.json({ error: "Không thể khóa tài khoản đang đăng nhập." }, { status: 400 });
   }
-  const [target] = await db.select({ appRole: user.appRole, isActive: user.isActive }).from(user).where(eq(user.id, data.userId)).limit(1);
+  const [target] = await db.select({ appRole: user.appRole, isActive: user.isActive, isPlatformOwner: user.isPlatformOwner }).from(user).where(eq(user.id, data.userId)).limit(1);
   if (!target) return NextResponse.json({ error: "Không tìm thấy tài khoản." }, { status: 404 });
+  if (target.isPlatformOwner && !access.session.isPlatformOwner) {
+    return NextResponse.json({ error: "Chỉ SUP-ADMIN được cập nhật hồ sơ chủ sở hữu." }, { status: 403 });
+  }
+  if (target.isPlatformOwner && (data.appRole !== undefined || data.isActive !== undefined)) {
+    return NextResponse.json({ error: "Không thể thay đổi vai trò hoặc khóa tài khoản SUP-ADMIN qua giao diện." }, { status: 403 });
+  }
+  if (!canPatchUserAuthority(access.session.isPlatformOwner, target, data)) {
+    return NextResponse.json({ error: "Chỉ SUP-ADMIN được cấp hoặc thu hồi quyền Admin." }, { status: 403 });
+  }
   const removingAdmin = target.appRole === "ADMIN" && target.isActive && (data.appRole && data.appRole !== "ADMIN" || data.isActive === false);
   if (removingAdmin) {
     const admins = await db.select({ id: user.id }).from(user).where(and(eq(user.appRole, "ADMIN"), eq(user.isActive, true)));

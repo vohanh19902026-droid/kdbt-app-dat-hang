@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/accounting-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts tests/login-error.test.ts tests/auth-base-url.test.ts tests/sales-report.test.ts tests/product-catalog.test.ts tests/customer-workbook.test.ts tests/order-notification.test.ts tests/db-pool-config.test.ts tests/notification-preferences.test.ts tests/preview-database-guard.test.mjs",
+    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/accounting-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts tests/login-error.test.ts tests/auth-base-url.test.ts tests/sales-report.test.ts tests/product-catalog.test.ts tests/customer-workbook.test.ts tests/order-notification.test.ts tests/db-pool-config.test.ts tests/notification-preferences.test.ts tests/platform-owner-policy.test.ts tests/preview-database-guard.test.mjs",
     "load:test": "node scripts/load-test.mjs",
     "uat:local:start": "node scripts/start-local-uat.mjs",
     "uat:local": "tsx scripts/run-local-uat.ts",
@@ -18,6 +18,7 @@
     "db:migrate:dry": "tsx scripts/apply-migrations.ts --dry",
     "db:seed": "tsx scripts/seed.ts",
     "auth:create-admin": "tsx scripts/bootstrap-admin.ts",
+    "auth:bootstrap-platform-owner": "tsx scripts/bootstrap-platform-owner.ts",
     "auth:reset-admin-password": "tsx scripts/reset-admin-password.ts"
   },
   "dependencies": {
