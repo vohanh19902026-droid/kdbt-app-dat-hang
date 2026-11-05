@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { roleLabels, type AppRole } from "@/lib/types";
 
@@ -40,6 +41,6 @@ export function PendingRegistration({ name, email, requestedRole }: { name: stri
       {error && <p className="login-error" role="alert">{error}</p>}
       <button className="btn" disabled={busy} style={{ width: "100%", justifyContent: "center", marginTop: 20 }}>{busy ? "Đang gửi…" : "Gửi đăng ký chờ duyệt"}</button>
     </form>}
-    <div className="login-footer"><a href="/api/auth/sign-out">Đăng xuất</a></div>
+    <div className="login-footer"><Link href="/api/auth/sign-out">Đăng xuất</Link></div>
   </section></main>;
 }

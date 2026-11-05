@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [token, setToken] = useState("");
+  const tokenRef = useRef("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -17,17 +17,15 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const resetToken = query.get("token") || "";
+    tokenRef.current = query.get("error") === "INVALID_TOKEN" ? "" : resetToken;
     window.history.replaceState(null, "", "/reset-password");
-    setToken(resetToken);
-    if (!resetToken || query.get("error") === "INVALID_TOKEN") {
-      setError("Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu gửi liên kết mới.");
-    }
   }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setNotice("");
+    const token = tokenRef.current;
     if (!token) {
       setError("Liên kết không hợp lệ hoặc đã hết hạn. Hãy yêu cầu gửi liên kết mới.");
       return;
@@ -66,7 +64,7 @@ export default function ResetPasswordPage() {
       <div className="field"><label htmlFor="confirm-password">Nhập lại mật khẩu</label><input id="confirm-password" type="password" autoComplete="new-password" minLength={10} maxLength={128} required value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></div>
       {error && <p className="login-error" role="alert">{error}</p>}
       {notice && <p className="auth-notice" role="status">{notice}</p>}
-      <button className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 20, minHeight: 44 }} disabled={busy || !token}>{busy ? "Đang cập nhật..." : "Xác nhận mật khẩu mới"}</button>
+      <button className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 20, minHeight: 44 }} disabled={busy}>{busy ? "Đang cập nhật..." : "Xác nhận mật khẩu mới"}</button>
     </form>
     <div className="login-footer"><Link href="/forgot-password">Yêu cầu liên kết mới</Link><span aria-hidden="true"> · </span><Link href="/login">Đăng nhập</Link></div>
   </section></main>;
