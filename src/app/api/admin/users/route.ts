@@ -7,15 +7,9 @@ import { auth } from "@/lib/auth";
 import { getApiSession } from "@/lib/session";
 import { isCrossOriginRequest } from "@/lib/request-guard";
 import { logServerError } from "@/lib/server-logger";
-import { canCreateRole, canPatchUserAuthority } from "@/lib/platform-owner-policy";
+import { canPatchUserAuthority } from "@/lib/platform-owner-policy";
 
 export const runtime = "nodejs";
-const inputSchema = z.object({
-  name: z.string().trim().min(2).max(100), email: z.email().max(254),
-  password: z.string().min(10).max(128), appRole: z.enum(["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"]),
-  employeeCode: z.string().trim().max(40).optional(), phone: z.string().trim().max(30).optional(),
-  department: z.string().trim().max(80).optional(), monthlyTargetM3: z.coerce.number().min(0).max(1000000).optional(),
-});
 async function adminSession(request: NextRequest) {
   const session = await getApiSession(request.headers);
   if (!session) return { error: NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 }) };
@@ -40,26 +34,7 @@ export async function POST(request: NextRequest) {
   if (isCrossOriginRequest(request)) return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
   const access = await adminSession(request);
   if ("error" in access) return access.error;
-  const parsed = inputSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Thông tin chưa hợp lệ." }, { status: 400 });
-  const data = parsed.data;
-  if (!canCreateRole(access.session.isPlatformOwner, data.appRole)) {
-    return NextResponse.json({ error: "Chỉ SUP-ADMIN được tạo tài khoản Admin." }, { status: 403 });
-  }
-  const initialPassword = data.password;
-  try {
-    const created = await auth.api.createUser({
-      body: { name: data.name, email: data.email, password: initialPassword, role: data.appRole === "ADMIN" ? "admin" : "user" },
-      headers: request.headers,
-    });
-    await db.update(user).set({ appRole: data.appRole, isActive: true, employeeCode: data.employeeCode || null,
-      phone: data.phone || null, department: data.department || null,
-      monthlyTargetM3: data.monthlyTargetM3 === undefined ? null : String(data.monthlyTargetM3), updatedAt: new Date() }).where(eq(user.id, created.user.id));
-    return NextResponse.json({ id: created.user.id, name: data.name, email: data.email, appRole: data.appRole }, { status: 201 });
-  } catch (error) {
-    logServerError("admin_create_user_failed", error, request);
-    return NextResponse.json({ error: "Không tạo được tài khoản. Email có thể đã tồn tại." }, { status: 400 });
-  }
+  return NextResponse.json({ error: "Tài khoản phải tự đăng ký bằng Google, xác minh email và chờ Admin phê duyệt." }, { status: 410 });
 }
 
 export async function PATCH(request: NextRequest) {

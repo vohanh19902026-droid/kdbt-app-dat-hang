@@ -87,15 +87,21 @@ Giữ riêng ô trống, số 0, dấu gạch và giá trị âm. Không dùng s
 6. Phê duyệt crosswalk khách hàng/dự án và quy tắc khử trùng trước khi nhập. Các workbook liên kết số liệu tháng trước; nối tất cả tháng có thể nhân đôi giao dịch và không thấy mã phiếu giao hàng duy nhất rõ ràng.
 7. Sau khi duyệt, chuyển các bản ghi cần dùng sang PostgreSQL qua migration/import có kiểm tra tổng trước-sau. Không dùng Production làm nơi staging hay thẩm tra.
 
-## XLSX thẩm tra cần tạo ở bước trích xuất
+## Trạng thái trích xuất và hồ sơ thẩm tra
 
-Các tab đề xuất: `Hướng dẫn`, `Tổng đối soát`, `Khách hàng`, `Dự án`, `Dòng bán hàng`, `Snapshot công nợ`, `Cần xử lý`, `Ánh xạ nguồn`, `Đối chiếu công thức`. Mỗi dòng chi tiết mang `source_file`, `sheet`, `row`, `cell_range`, `formula`, `cached_value`, `import_version` và `review_status`. Workbook nguồn giữ nguyên; XLSX kiểm tra là bản mới có thể tái tạo.
+Đã tạo kho SQLite raw và kho SQLite chuẩn hóa ứng viên trong thư mục riêng `_review_private` cạnh các workbook nguồn. Cả hai kho chỉ phục vụ thẩm tra; chưa nhập dữ liệu vào app, Preview hay Production. Workbook nguồn không bị sửa.
 
-Lệnh tái tạo nên được đóng gói thành script có tham số `--source-dir`, `--output-dir`, `--from-month`, `--to-month` và `--mode review`; log manifest lưu SHA-256 từng file, thời gian chạy, số dòng mỗi loại và phiên bản schema. **Chưa tạo script, SQLite hay XLSX trích xuất trong lượt đánh giá này** vì cần xử lý layout theo tháng và duyệt quy tắc phân loại trước để tránh tạo số liệu sai.
+Workbook thẩm tra hiện hành: `cencom-2026-01_09-human-review.xlsx`, gồm các tab `Guide`, `Roster`, `Roster evidence`, `Customer balances`, `Carry-forward exceptions` và `Review issues`. Workbook có bộ lọc, cố định hàng tiêu đề và giữ tên workbook, SHA-256, sheet, hàng/ô hoặc vùng nguồn. Chi tiết 15.123 dòng hoạt động vẫn nằm trong SQLite và `activity-candidates.csv`; không xem tất cả là phiếu giao hàng cho tới khi rà loại dòng.
+
+Roster NVKD được xác định **chỉ từ ô tên có tô vàng** trong hai sheet `PKDBT- DA` và `PKDBT DC` của 9 workbook tháng 01–09/2026. Ô tên được đối chiếu trực tiếp theo màu nền Excel theme accent 6; dấu `TT`, tên trên sheet khác và các dải màu ở cột khác không phải tiêu chí chọn NVKD. Rà soát ô nguồn xác nhận 216 quan sát màu vàng, thuộc 22 tên ứng viên (7 DA, 15 DC); 18 ô nhãn loại trừ màu vàng được giữ riêng và loại khỏi roster. Tên/email chưa được xác minh để tạo tài khoản. Các CSV roster cũ có 21 ứng viên/207 dòng chứng cứ đã được ghi rõ là bản lịch sử trong `README-roster-correction.txt`; không dùng để tạo tài khoản. `sales-roster-excluded-groups.csv` là bản tổng hợp hợp lệ của 2 nhãn nhóm, nhưng không thay thế 18 dòng chứng cứ trong corrected JSON/XLSX.
+
+Kết quả staging: 8.243 quan sát khách hàng/dự án theo tháng (không phải số khách hàng duy nhất), 4.411 khóa tổ hợp ứng viên, 103 ứng viên dự án/799 quan sát dự án và 15.123 dòng hoạt động ứng viên. Cân đối cùng kỳ có 230 dòng khớp và 8.013 thiếu đầu vào số; đối chiếu chuyển kỳ có 1.172 khớp, 26 lệch và 725 chưa ghép chắc chắn. Có 995 khóa lặp trong tháng, 397 tên gắn với nhiều khóa và 632 khóa yếu chỉ dựa trên tên. Các mục này cần rà soát người dùng, không được tự gộp hay cân chỉnh.
+
+Tái tạo ở thư mục riêng theo thứ tự: `extract_concrete_staging.py`, `normalize_concrete_candidates.py`, `export-human-review-inputs.py`, `build-concrete-review.mjs`. Đầu ra gốc/chuẩn hóa, CSV, JSON trung gian và XLSX thẩm tra đều nằm ngoài repo, trong `_review_private`, có ACL giới hạn cho tài khoản Windows hiện tại. Giữ các file CSV/SQLite làm nguồn chi tiết; XLSX là lớp rà soát trình bày.
 
 ## Việc còn lại cho Giai đoạn 2
 
 1. Người phụ trách kế toán/kinh doanh xác nhận ý nghĩa các cột thay đổi theo tháng, công thức DA tháng 03 và cách phân biệt dòng điều chỉnh với giao hàng.
-2. Xây parser XML an toàn cho 9 workbook và ghi dữ liệu raw vào SQLite staging.
-3. Sinh XLSX thẩm tra, giải quyết các `review_issue` và ký xác nhận tổng đối soát.
-4. Thiết kế migration PostgreSQL/import chỉ cho các dữ liệu được duyệt; giữ dữ liệu gốc và khả năng truy ngược.
+2. Kế toán/kinh doanh rà 26 lệch chuyển kỳ, 725 trường hợp ghép thiếu/trùng khóa, các cờ dữ liệu và ý nghĩa cột thay đổi; xác nhận đơn vị tiền và công thức DA tháng 03.
+3. Duyệt crosswalk khách hàng/dự án, xác định rõ quan sát khách hàng, dòng giao hàng, tổng, chuyển kỳ và điều chỉnh; lập gói nhập có lineage sau khi ký xác nhận.
+4. Tạo migration/import PostgreSQL chỉ cho dữ liệu đã duyệt, có kiểm tra tổng trước-sau, khóa idempotent và phương án rollback; không dùng Production làm nơi staging hay thẩm tra.

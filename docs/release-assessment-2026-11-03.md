@@ -351,8 +351,46 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 
 ### Cập nhật lần 38 — sửa nguồn roster NVKD
 
-- Theo hiệu chỉnh của người dùng, rà soát lại đúng hai sheet `PKDBT- DA` và `PKDBT DC`, nhận diện ô NVKD bằng màu vàng và dấu thứ tự ở cột `TT` liền kề; tự tìm cột tên vì vị trí thay đổi giữa các tháng. Phạm vi gồm 9 workbook tháng 01–09/2026.
-- Kết quả hiện có 21 ứng viên tên NVKD (7 từ DA, 14 từ DC), xuất hiện qua 9 kỳ; 2 dòng nhóm/công nợ được tách loại, không tính là nhân viên. Đây là roster theo bằng chứng workbook, chưa xác nhận tình trạng nhân sự hiện tại.
-- Kiểm tra metadata artifact: review 21 dòng, audit ô nguồn 207 dòng, exclusions 2 dòng; ACL thư mục `_review_private` chỉ tài khoản Windows hiện tại có FullControl. Không ghi tên/email vào repo. Nguồn workbook không sửa.
-- Email đăng nhập không có trong các sheet. Chưa tạo account hay suy đoán địa chỉ; cần ghép email Google đã xác minh cho từng người trước khi lập tài khoản.
-- Private artifacts: `sales-roster-yellow-review.csv`, `sales-roster-yellow-observations.csv`, `sales-roster-excluded-groups.csv` trong thư mục `_review_private` của source reports. Parser dữ liệu giao dịch và XLSX thẩm tra vẫn đang triển khai.
+- Theo hiệu chỉnh của người dùng, nguồn NVKD KDBT chỉ là các tên được tô màu trong hai sheet `PKDBT- DA` (dự án) và `PKDBT DC` (dân cư); không dùng các sheet phòng ban khác. Tái trích xuất từ 9 workbook tháng 01–09/2026, dựa trên hàng tiêu đề NVKD có dải tô màu cùng kiểu; sheet DC tháng 02 ghi tên ở cột C, các tháng còn lại ở cột D. DA ghi tên ở cột C.
+- Kết quả sửa: 22 ứng viên tên NVKD (7 DA, 15 DC), xuất hiện trong 9 tháng. Bản 21 người trước đã bỏ sót 1 tên DC. Hai nhãn tình trạng DA được loại khỏi roster nhưng giữ 18 dòng chứng cứ; không tạo tài khoản cho nhãn này.
+- Workbook đối chiếu mới có 22 dòng roster, 216 dòng chứng cứ, và 18 dòng nhãn loại trừ; mỗi dòng lưu workbook, SHA-256, sheet, ô nguồn và dấu màu. ACL thư mục `_review_private` vẫn giới hạn cho tài khoản Windows hiện tại. Workbook gốc không sửa; tên/email không ghi vào repo.
+- Email đăng nhập không có trong các sheet; email để trống và chưa tạo tài khoản. Cần xác nhận roster hiện hành và ghép Google email đã xác minh trước khi cấp tài khoản.
+- Artifact riêng: `sales-roster-yellow-corrected-review.xlsx` trong `_review_private` của source reports; có các sheet Guide, Roster, Evidence, Excluded labels. Parser giao dịch, rà soát khách hàng/công nợ và XLSX thẩm tra vẫn là việc tiếp theo.
+
+### Cập nhật lần 39 — staging dữ liệu khách hàng/công nợ để thẩm tra
+
+- Rà soát độc lập xác nhận lại roster chỉ từ ô tên tô màu trong `PKDBT- DA` và `PKDBT DC`: 22 ứng viên, 216 bằng chứng, 18 dòng nhãn nhóm loại trừ. Các CSV cũ 21 ứng viên/207 bằng chứng được ghi rõ là bản lịch sử trong thư mục riêng; không dùng để tạo tài khoản. Chưa có email xác minh và chưa tạo tài khoản NVKD.
+- Đã chuẩn hóa riêng 9 workbook vào SQLite ứng viên; integrity check đạt, mỗi bản ghi giữ workbook/SHA-256/sheet/hàng hoặc ô nguồn. Có 8.243 quan sát theo tháng (không phải số khách duy nhất), 15.123 dòng hoạt động ứng viên, 4.411 khóa tổ hợp và 103 ứng viên dự án/799 quan sát.
+- Đối chiếu cùng kỳ: 230 khớp, 8.013 thiếu đầu vào. Đối chiếu chuyển kỳ: 1.172 khớp, 26 lệch, 725 thiếu/trùng khóa. Rà soát có 995 khóa lặp trong tháng, 397 tên nhiều khóa và 632 khóa yếu chỉ dựa tên. Không tự gộp/cân chỉnh.
+- Tạo workbook riêng tư `cencom-2026-01_09-human-review.xlsx` gồm hướng dẫn, roster và chứng cứ roster, quan sát công nợ khách hàng, ngoại lệ chuyển kỳ, cờ rà soát. ZIP integrity `ok`; ACL chỉ tài khoản Windows hiện tại có FullControl. Dòng chi tiết hoạt động vẫn có trong SQLite/CSV để tránh workbook quá nặng.
+- Chưa nhập dữ liệu vào app/Preview/Production. Cần kế toán/kinh doanh xác nhận đơn vị tiền, mapping khách hàng/dự án, ý nghĩa dòng giao hàng/điều chỉnh và xử lý các ngoại lệ trước khi tạo gói nhập. Không dùng Production làm nơi staging.
+
+### Cập nhật lần 40 — kiểm tra đăng nhập Google trên Preview hiện hành
+
+- Mở login trên deployment Preview hiện hành. Bấm đăng nhập Google trả thông báo chung “Chưa thể đăng nhập Google”; chưa đăng nhập thành công, chưa tạo user và không có dữ liệu nào được submit.
+- Đọc cấu hình OAuth client trên Google Cloud xác nhận origin/callback hiện chỉ trỏ tới deployment Preview cũ `codex/google-auth-preview`, không phải nhánh owner-preview hiện hành. Không sửa OAuth client; cần xác định chính xác alias/callback từ Vercel trước khi đề nghị thêm URI.
+- Vercel MCP từ chối đọc metadata deployment/logs với HTTP 403 do team chưa được cấp cho connection. Đã tạo link consent một lần để chủ tài khoản xem và cấp quyền theo giao diện Vercel; chưa thay đổi project, variables, deployment hay Production.
+- Chưa bootstrap SUP-ADMIN. Tiếp tục sau khi Vercel access được cấp, callback Preview chính xác được xác định và Google login của chủ tài khoản được xác minh. Không dùng mật khẩu Admin tạm.
+
+### Cập nhật lần 41 — Preview origin authentication
+
+- Vercel team access hoạt động lại. Deployment Preview hiện hành READY trên nhánh `codex/cencom-owner-preview`, commit `f425b38`; metadata trả về branch alias. Chưa có thay đổi external trong bước đọc này.
+- Danh sách environment metadata được đọc với `decrypt=false`: có database vars và Web Push VAPID cho Preview; Google client vars chỉ gắn riêng branch `codex/cencom-owner-preview`. Không đọc/ghi lại giá trị secret. Production vars có target riêng, không thao tác.
+- Runtime error trong 30 phút gần nhất ghi Better Auth `Invalid origin` cho unique deployment URL khi POST `/api/auth/sign-in/social`. Runtime logs 7 ngày không khả dụng trên Hobby; truy vấn 30 phút thành công.
+- Đã sửa local `src/lib/auth.ts` để trusted origins gồm URL hiện tại do `VERCEL_URL` của deployment cung cấp và base URL của auth. Typecheck, lint file và `npm test` 62/62 đạt. Đã commit `83b3933` và push nhánh Preview `codex/cencom-owner-preview`; deployment `dpl_4UwBo3D4WywivJYE1aNVsp113DYU` READY trên SHA `83b3933`. Chưa kiểm tra lại runtime sign-in sau sửa.
+- Để hoàn tất OAuth Preview, callback alias cần được xác nhận trong Google Cloud: `https://kdbt-app-dat-hang-git-codex-cencom-0462e1-vohanh19902026-droid.vercel.app/api/auth/callback/google`. Chưa sửa authorized origins/redirect URIs; chờ xác nhận trực tiếp cho thay đổi này. Chưa có Google login, tài khoản, hay SUP-ADMIN được tạo.
+### Cập nhật lần 42 — gỡ Preview DATABASE_URL đã lộ khỏi override theo nhánh
+
+- Đã xác minh project link bằng `vercel project inspect --non-interactive`: `vohanh19902026-droid/kdbt-app-dat-hang` (`prj_UiCJLCgzJuvOvwtahXizC0JHfAtF`).
+- Đã xóa đúng biến `DATABASE_URL` có scope Preview branch `codex/cencom-owner-preview`, là biến trỏ tới endpoint UAT đã bị accessibility tree hiển thị plaintext. `vercel env ls --environment preview --git-branch codex/cencom-owner-preview` xác nhận biến đó không còn; Google OAuth vars vẫn scope riêng theo nhánh.
+- Biến `DATABASE_URL` tích hợp project-wide Preview vẫn tồn tại và có thể trỏ tới Neon Preview tự tạo; không dùng cho UAT vì nhánh được quan sát trước đó có dữ liệu. Production environment không thay đổi trong thao tác này.
+- Vercel cảnh báo xóa biến không thu hồi credential ở Neon. Neon xác nhận role và thao tác reset mật khẩu có phạm vi theo nhánh. Chủ tài khoản cần tự reset `neondb_owner` trên nhánh UAT; vì credential có thể đã được kế thừa từ `main`, rà và reset trên các nhánh Preview khác còn dùng cùng credential. Tại thời điểm rà có 5 nhánh: `main`, `preview/codex/cencom-owner-preview`, `preview/codex/google-auth-preview`, `preview/feature/notifications-scale-android`, và `uat/notifications-scale-android`. Không gửi mật khẩu/connection string vào chat. Sau khi xoay, mới cấu hình lại override cho Preview trỏ nhánh schema-only sạch và xác minh endpoint/database/project trước migration.
+- Chưa redeploy, migrate hoặc chạy UAT/load test; chưa thay đổi Production/main. Callback Google Preview cụ thể vẫn đang chờ xác nhận action-time riêng.
+
+### Cập nhật lần 43 — đăng ký Google, roster vàng và kho công nợ thẩm tra
+
+- Đồng bộ tiếp luồng đăng ký nội bộ: màn quản trị không còn tạo tài khoản/mật khẩu tạm kích hoạt ngay; nhân viên phải tự đăng nhập Google, gửi hồ sơ và chờ Admin phê duyệt. Trang quên mật khẩu phân biệt rõ: Gmail/Google khôi phục tại Google; tài khoản mật khẩu cũ dùng liên kết email xác minh.
+- Bổ sung migration 0014, giao diện đối chiếu 22 roster NVKD với tài khoản Google đã xác minh, tra cứu công nợ lịch sử DA/DC và xuất XLSX có nguồn ô/workbook. Roster được lấy trực tiếp chỉ từ ô tên vàng của hai sheet `PKDBT- DA`/`PKDBT DC`. Dữ liệu lịch sử ở trạng thái pending review, đơn vị tiền chưa xác nhận và được giữ riêng khỏi sổ công nợ vận hành.
+- Importer chạy dry-run trên 9 workbook riêng: checksum nguồn đạt; 22 ứng viên roster, 216 ô chứng cứ màu theme 9, 4.411 entity keys, 8.243 quan sát, 8.243 snapshot và 7.337 quan sát có NVKD. Script yêu cầu xác nhận Preview độc lập trước ghi; chưa ghi vào bất kỳ database nào.
+- Kiểm tra local đạt: typecheck, lint, build và 62/62 test. Không chạy migration lên DB.
+- Vercel team access hiện cần chủ tài khoản duyệt link consent mới tạo một lần. Chưa chọn alias Preview cuối, chưa sửa Google OAuth URI, chưa đăng nhập/đăng ký browser UAT, chưa bootstrap SUP-ADMIN, chưa migrate/import Preview, chưa chạy load test hoặc thay đổi Production/main.

@@ -66,6 +66,8 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
     { href: "/admin/settings", label: "Cài đặt", icon: Settings2, show: role === "ADMIN" },
     { href: "/technical/catalog", label: "Danh mục kỹ thuật", icon: Wrench, show: role === "ADMIN" || role === "TECHNICAL" },
     { href: "/accounting", label: "Công nợ", icon: Wallet, show: role === "ADMIN" || role === "ACCOUNTANT" || role === "SALES" },
+    { href: "/legacy-debt", label: "Công nợ báo cáo 2026", icon: ChartColumn, show: ["ADMIN", "ACCOUNTANT", "SALES"].includes(role) },
+    { href: "/admin/roster", label: "Đối chiếu roster NVKD", icon: Users, show: role === "ADMIN" },
   ].filter((item) => item.show);
   async function signOut() { await authClient.signOut(); router.replace("/login"); router.refresh(); }
   async function changePassword(event: React.FormEvent<HTMLFormElement>) {
@@ -95,14 +97,16 @@ export function WorkspaceShell({ children, userName, email, role, settings }: { 
   }
   const mobileNav = role === "TECHNICAL" ? ["/technical/catalog", "/notifications"] : role === "ADMIN"
     ? ["/orders", "/receiving", "/planning", "/notifications", "/admin/settings"]
-    : role === "SALES" ? ["/orders", "/notifications", "/accounting"]
-    : role === "ACCOUNTANT" ? ["/accounting", "/notifications"] : nav.slice(0, 4).map((item) => item.href);
+    : role === "SALES" ? ["/orders", "/notifications", "/legacy-debt"]
+    : role === "ACCOUNTANT" ? ["/accounting", "/legacy-debt", "/notifications"] : nav.slice(0, 4).map((item) => item.href);
   const mobileLabels: Record<string, string> = {
     "/notifications": "Tin báo",
     "/orders": "Đơn hàng",
     "/receiving": "Nhận đơn",
     "/planning": "Kế hoạch",
     "/accounting": "Công nợ",
+    "/legacy-debt": "Công nợ báo cáo",
+    "/admin/roster": "Roster NVKD",
     "/admin/users": "Tài khoản",
     "/admin/settings": "Cài đặt",
     "/reports": "Tổng hợp",

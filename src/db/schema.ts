@@ -1,5 +1,5 @@
 import {
-  boolean, decimal, index, integer, pgEnum, pgSequence, pgTable, text, timestamp,
+  boolean, date, decimal, index, integer, pgEnum, pgSequence, pgTable, text, timestamp,
   uniqueIndex, uuid, jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -213,3 +213,118 @@ export const adminAuditEvents = pgTable("admin_audit_events", {
   newValue: text("new_value"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (t) => [index("admin_audit_events_created_idx").on(t.createdAt), index("admin_audit_events_actor_created_idx").on(t.actorUserId, t.createdAt)]);
+
+// Legacy KDBT workbooks are retained as review-only snapshots. They are never
+// converted into the operational receivable ledger without an explicit review.
+export const legacyImportBatches = pgTable("legacy_import_batches", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  manifestSha256: text("manifest_sha256").notNull().unique(),
+  periodFrom: date("period_from", { mode: "string" }).notNull(),
+  periodTo: date("period_to", { mode: "string" }).notNull(),
+  sourceWorkbookCount: integer("source_workbook_count").notNull(),
+  mappingVersion: text("mapping_version").notNull(),
+  status: text("status").notNull().default("PENDING_HUMAN_REVIEW"),
+  sourceObservationCount: integer("source_observation_count").notNull().default(0),
+  importedBy: text("imported_by").references(() => user.id, { onDelete: "set null" }),
+  importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const legacySalesRoster = pgTable("legacy_sales_roster", {
+  id: text("id").primaryKey(),
+  segment: text("segment").notNull(),
+  displayName: text("display_name").notNull(),
+  normalizedName: text("normalized_name").notNull(),
+  observedMonths: integer("observed_months").notNull().default(0),
+  reviewStatus: text("review_status").notNull().default("NEEDS_EMPLOYER_CONFIRMATION"),
+  mappedUserId: text("mapped_user_id").references(() => user.id, { onDelete: "set null" }),
+  reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("legacy_sales_roster_segment_name_idx").on(t.segment, t.normalizedName),
+  index("legacy_sales_roster_user_idx").on(t.mappedUserId),
+]);
+
+export const legacySalesRosterEvidence = pgTable("legacy_sales_roster_evidence", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  rosterId: text("roster_id").notNull().references(() => legacySalesRoster.id, { onDelete: "cascade" }),
+  reportMonth: integer("report_month").notNull(),
+  sourceFile: text("source_file").notNull(),
+  sourceSha256: text("source_sha256").notNull(),
+  sourceSheet: text("source_sheet").notNull(),
+  sourceCell: text("source_cell").notNull(),
+  sourceName: text("source_name").notNull(),
+  fillColorType: text("fill_color_type").notNull(),
+  fillColor: text("fill_color").notNull(),
+  classification: text("classification").notNull().default("SALES_NAME"),
+}, (t) => [
+  uniqueIndex("legacy_sales_roster_evidence_source_idx").on(t.sourceSha256, t.sourceSheet, t.sourceCell),
+  index("legacy_sales_roster_evidence_roster_idx").on(t.rosterId, t.reportMonth),
+]);
+
+export const legacyCustomerEntities = pgTable("legacy_customer_entities", {
+  entityKey: text("entity_key").primaryKey(),
+  segment: text("segment").notNull(),
+  identityKeyQuality: text("identity_key_quality").notNull(),
+  reviewStatus: text("review_status").notNull().default("PENDING_HUMAN_REVIEW"),
+  linkedCustomerId: uuid("linked_customer_id").references(() => customers.id, { onDelete: "set null" }),
+  reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("legacy_customer_entities_link_idx").on(t.linkedCustomerId)]);
+
+export const legacyDebtObservations = pgTable("legacy_debt_observations", {
+  observationId: text("observation_id").primaryKey(),
+  batchId: uuid("batch_id").notNull().references(() => legacyImportBatches.id, { onDelete: "restrict" }),
+  entityKey: text("entity_key").notNull().references(() => legacyCustomerEntities.entityKey, { onDelete: "restrict" }),
+  segment: text("segment").notNull(),
+  reportMonth: date("report_month", { mode: "string" }).notNull(),
+  sourceFile: text("source_file").notNull(),
+  sourceSha256: text("source_sha256").notNull(),
+  sourceSheet: text("source_sheet").notNull(),
+  sourceRow: integer("source_row").notNull(),
+  sourceRange: text("source_range"),
+  sourceName: text("source_name").notNull(),
+  sourceProjectName: text("source_project_name"),
+  sourceAddress: text("source_address"),
+  sourcePhone: text("source_phone"),
+  sourceCustomerCode: text("source_customer_code"),
+  sourceSalesCode: text("source_sales_code"),
+  sourceSalesperson: text("source_salesperson"),
+  rosterId: text("roster_id").references(() => legacySalesRoster.id, { onDelete: "set null" }),
+  openingRaw: text("opening_raw"),
+  openingValue: decimal("opening_value", { precision: 20, scale: 3 }),
+  revenueRaw: text("revenue_raw"),
+  revenueValue: decimal("revenue_value", { precision: 20, scale: 3 }),
+  receiptsRaw: text("receipts_raw"),
+  receiptsValue: decimal("receipts_value", { precision: 20, scale: 3 }),
+  closingRaw: text("closing_raw"),
+  closingValue: decimal("closing_value", { precision: 20, scale: 3 }),
+  openingCell: text("opening_cell"),
+  revenueCell: text("revenue_cell"),
+  receiptsCell: text("receipts_cell"),
+  closingCell: text("closing_cell"),
+  residual: decimal("residual", { precision: 20, scale: 3 }),
+  reconciliationStatus: text("reconciliation_status").notNull().default("UNREVIEWED"),
+  unitStatus: text("unit_status").notNull().default("UNCONFIRMED_SOURCE_UNIT"),
+  identityKeyQuality: text("identity_key_quality").notNull(),
+  reviewStatus: text("review_status").notNull().default("PENDING_HUMAN_REVIEW"),
+  mappingVersion: text("mapping_version").notNull(),
+  importedAt: timestamp("imported_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("legacy_debt_observations_source_idx").on(t.sourceSha256, t.sourceSheet, t.sourceRow, t.mappingVersion),
+  index("legacy_debt_observations_month_idx").on(t.reportMonth, t.segment),
+  index("legacy_debt_observations_entity_idx").on(t.entityKey, t.reportMonth),
+  index("legacy_debt_observations_roster_idx").on(t.rosterId, t.reportMonth),
+  index("legacy_debt_observations_source_name_idx").on(sql`lower(${t.sourceName}) text_pattern_ops`),
+]);
+
+export const legacyDebtReviewEvents = pgTable("legacy_debt_review_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  observationId: text("observation_id").notNull().references(() => legacyDebtObservations.observationId, { onDelete: "restrict" }),
+  actorUserId: text("actor_user_id").notNull().references(() => user.id, { onDelete: "restrict" }),
+  decision: text("decision").notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [index("legacy_debt_review_events_observation_idx").on(t.observationId, t.createdAt)]);

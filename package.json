@@ -19,7 +19,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "auth:create-admin": "tsx scripts/bootstrap-admin.ts",
     "auth:bootstrap-platform-owner": "tsx scripts/bootstrap-platform-owner.ts",
-    "auth:reset-admin-password": "tsx scripts/reset-admin-password.ts"
+    "auth:reset-admin-password": "tsx scripts/reset-admin-password.ts",
+    "data:legacy:import": "tsx scripts/import-legacy-concrete.ts"
   },
   "dependencies": {
     "@next/env": "^16.4.3",
