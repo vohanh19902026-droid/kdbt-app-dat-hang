@@ -5,7 +5,7 @@ Chìa khóa lạnh là quy trình khôi phục chủ sở hữu khi mọi tài k
 ## Quy trình
 
 1. Mở `/cold-key-recovery` trên đúng môi trường CENCOM và đăng nhập bằng Google của chủ sở hữu. Email Google phải được xác minh và liên kết với tài khoản CENCOM.
-2. Tạo thử thách. Thử thách hiển thị công khai, chỉ gắn với phiên người dùng hiện tại, dùng một lần, hết hạn sau 5 phút và khóa sau 5 lần nhập sai.
+2. Tạo thử thách. Thử thách hiển thị công khai, chỉ gắn với phiên người dùng hiện tại, dùng một lần, hết hạn sau 5 phút, khóa sau 5 lần nhập sai và giới hạn tạo 3 thử thách mỗi giờ.
 3. Trên máy tính tin cậy đã liên kết đúng Vercel project, chọn cùng môi trường trong màn hình và chạy lệnh PowerShell hiển thị ở đó. Với Preview của nhánh `codex/google-auth-preview`, lệnh chỉ lấy biến Preview của đúng nhánh. Với Production, lệnh chỉ lấy biến Production.
 4. Lệnh dùng `BETTER_AUTH_SECRET` trong bộ nhớ để tạo mã 10 chữ số cho thử thách. Không ghi secret ra màn hình, file, Git, ảnh chụp hoặc chat. Nhập mã ngắn hạn vào app.
 5. CENCOM nâng chính tài khoản Google hiện tại thành Admin, bật trạng thái hoạt động, ghi `COLD_KEY_ADMIN_RECOVERY` vào audit và thu hồi mọi phiên đăng nhập của tài khoản. Chủ sở hữu đăng nhập lại sau đó.
