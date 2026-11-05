@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { KeyRound, UserPlus } from "lucide-react";
 import { roleLabels, type AppRole } from "@/lib/types";
 
-type UserRow = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null };
+type UserRow = { id: string; name: string; email: string; appRole: AppRole; isActive: boolean; createdAt: string; employeeCode: string | null; phone: string | null; department: string | null; monthlyTargetM3: string | null; jobTitle?: string | null; age?: number | null; requestedAppRole?: AppRole | null };
 const roles: AppRole[] = ["ADMIN", "PLANNER", "SALES", "ACCOUNTANT", "TECHNICAL"];
 
 export function UsersManager({ users, currentUserId }: { users: UserRow[]; currentUserId: string }) {
@@ -74,10 +74,10 @@ export function UsersManager({ users, currentUserId }: { users: UserRow[]; curre
     <div className="stats">{roles.slice(0, 3).map((role) => <div className="stat" key={role}><div className="stathead">{roleLabels[role]}</div><strong>{users.filter((user) => user.appRole === role && user.isActive).length}</strong><small>Tài khoản đang hoạt động</small></div>)}</div>
     {error && <div className="notice" role="alert">{error}</div>}
     <div className="tablewrap"><table className="grid"><thead><tr><th>NHÂN VIÊN</th><th>EMAIL / TÀI KHOẢN</th><th>VAI TRÒ</th><th>MÃ NV</th><th>SỐ ĐIỆN THOẠI</th><th>BỘ PHẬN</th><th>MỤC TIÊU M³/THÁNG</th><th>TRẠNG THÁI</th><th>NGÀY TẠO</th><th>TRUY CẬP</th></tr></thead>
-      <tbody>{users.map((user) => <tr key={user.id}><td><b>{user.name}</b></td><td>{user.email}</td><td><select className="pill" value={user.appRole} onChange={(event) => update(user.id, { appRole: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></td>
+      <tbody>{users.map((user) => <tr key={user.id}><td><b>{user.name}</b>{user.age ? <small>{user.age} tuoi</small> : null}{user.requestedAppRole && !user.isActive && <small>Cho duyet - de nghi {roleLabels[user.requestedAppRole]}</small>}</td><td>{user.email}</td><td><select className="pill" value={user.appRole} onChange={(event) => update(user.id, { appRole: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{roleLabels[role]}</option>)}</select></td>
         <td><input className="profile-input" aria-label={`Mã nhân viên ${user.name}`} defaultValue={user.employeeCode ?? ""} placeholder="—" onBlur={(event) => update(user.id, { employeeCode: event.target.value.trim() || null })} /></td>
         <td><input className="profile-input" aria-label={`Điện thoại ${user.name}`} defaultValue={user.phone ?? ""} placeholder="—" onBlur={(event) => update(user.id, { phone: event.target.value.trim() || null })} /></td>
-        <td><input className="profile-input" aria-label={`Bộ phận ${user.name}`} defaultValue={user.department ?? ""} placeholder="—" onBlur={(event) => update(user.id, { department: event.target.value.trim() || null })} /></td>
+        <td><input className="profile-input" aria-label={`Bo phan ${user.name}`} defaultValue={user.department ?? ""} placeholder="Bo phan" onBlur={(event) => update(user.id, { department: event.target.value.trim() || null })} /><input className="profile-input" aria-label={`Chuc vu ${user.name}`} defaultValue={user.jobTitle ?? ""} placeholder="Chuc vu" onBlur={(event) => update(user.id, { jobTitle: event.target.value.trim() || null })} />{user.requestedAppRole && !user.isActive && <small>De nghi: {roleLabels[user.requestedAppRole]}</small>}</td>
         <td><input className="profile-input numeric" aria-label={`Mục tiêu sản lượng ${user.name}`} type="number" min="0" step="0.5" defaultValue={user.monthlyTargetM3 ?? ""} placeholder="—" onBlur={(event) => update(user.id, { monthlyTargetM3: event.target.value ? Number(event.target.value) : null })} /></td>
         <td><select className="pill" value={user.isActive ? "yes" : "no"} onChange={(event) => update(user.id, { isActive: event.target.value === "yes" })}><option value="yes">Đang hoạt động</option><option value="no">Đã khóa</option></select></td>
         <td>{new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(new Date(user.createdAt))}</td>

@@ -8,8 +8,11 @@ import {eq} from "drizzle-orm";
 
 export async function getSession() {
   const current = await auth.api.getSession({ headers: await headers() });
-  if (!current || (current.user as typeof current.user & { isActive?: boolean }).isActive === false) return null;
-  return current;
+  if (!current) return null;
+  const [record] = await db.select({ appRole: user.appRole, isActive: user.isActive })
+    .from(user).where(eq(user.id, current.user.id)).limit(1);
+  if (!record) return null;
+  return { ...current, user: { ...current.user, appRole: record.appRole, isActive: record.isActive } };
 }
 
 export async function getApiSession(requestHeaders:Headers) {
@@ -23,6 +26,7 @@ export async function getApiSession(requestHeaders:Headers) {
 export async function requireSession(roles?: AppRole[]) {
   const session = await getSession();
   if (!session) redirect("/login");
+  if ((session.user as typeof session.user & { isActive?: boolean }).isActive === false) redirect("/pending-approval");
   const role = (session.user as typeof session.user & { appRole?: AppRole }).appRole ?? "SALES";
   if (roles && !roles.includes(role)) redirect("/orders?denied=1");
   return { ...session, appRole: role };
