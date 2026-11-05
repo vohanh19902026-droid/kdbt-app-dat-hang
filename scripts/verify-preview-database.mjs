@@ -16,11 +16,14 @@ export function validatePreviewDatabase(env) {
   }
   const hostname = url.hostname.toLowerCase();
   const actualEndpointId = hostname.split(".")[0]?.replace(/-pooler$/, "");
-  if (!["postgres:", "postgresql:"].includes(url.protocol) ||
-      !hostname.endsWith(".neon.tech") ||
-      actualProjectId !== expectedProjectId ||
-      actualEndpointId !== expectedEndpointId ||
-      url.pathname !== `/${encodeURIComponent(expectedDatabase)}`) {
-    throw new Error("Preview database does not match the independently verified Neon project, endpoint and database; migration blocked.");
+  const checks = {
+    postgresUrl: ["postgres:", "postgresql:"].includes(url.protocol),
+    neonHost: hostname.endsWith(".neon.tech"),
+    projectMatches: actualProjectId === expectedProjectId,
+    endpointMatches: actualEndpointId === expectedEndpointId,
+    databaseMatches: url.pathname === `/${encodeURIComponent(expectedDatabase)}`,
+  };
+  if (Object.values(checks).some((matches) => !matches)) {
+    throw new Error(`Preview database target mismatch (${JSON.stringify({ ...checks, actualEndpointId, expectedEndpointId })}); migration blocked.`);
   }
 }
