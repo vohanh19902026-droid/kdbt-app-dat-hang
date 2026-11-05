@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { canCreateRole, canPatchUserAuthority, canResetUserPassword } from "../src/lib/platform-owner-policy";
+import { canBootstrapPlatformOwner, PLATFORM_OWNER_EMAIL } from "../src/lib/platform-owner-bootstrap-policy";
 
 test("only platform owner can create or grant ADMIN", () => {
   assert.equal(canCreateRole(false, "SALES"), true);
@@ -26,4 +27,21 @@ test("platform owner authority cannot be changed through account APIs", () => {
   assert.equal(canResetUserPassword(true, owner), false);
   assert.equal(canResetUserPassword(false, { appRole: "ADMIN", isPlatformOwner: false }), false);
   assert.equal(canResetUserPassword(true, { appRole: "ADMIN", isPlatformOwner: false }), true);
+});
+
+test("SUP-ADMIN bootstrap requires the verified owner Google identity on Preview", () => {
+  const eligible = {
+    vercelEnvironment: "preview",
+    userId: "owner-user",
+    email: PLATFORM_OWNER_EMAIL.toUpperCase(),
+    emailVerified: true,
+    googleAccountLinked: true,
+    existingOwnerId: null,
+  };
+  assert.equal(canBootstrapPlatformOwner(eligible), true);
+  assert.equal(canBootstrapPlatformOwner({ ...eligible, vercelEnvironment: "production" }), false);
+  assert.equal(canBootstrapPlatformOwner({ ...eligible, email: "someone@example.com" }), false);
+  assert.equal(canBootstrapPlatformOwner({ ...eligible, emailVerified: false }), false);
+  assert.equal(canBootstrapPlatformOwner({ ...eligible, googleAccountLinked: false }), false);
+  assert.equal(canBootstrapPlatformOwner({ ...eligible, existingOwnerId: "another-user" }), false);
 });

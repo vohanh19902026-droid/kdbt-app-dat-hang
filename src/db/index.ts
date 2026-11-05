@@ -2,13 +2,15 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
 import { getDbPoolMax } from "@/lib/db-pool-config";
-import { validatePreviewDatabase } from "../../scripts/verify-preview-database.mjs";
+import { getDatabaseUrl, validatePreviewDatabase } from "../../scripts/verify-preview-database.mjs";
 
 if (process.env.VERCEL_ENV === "preview") validatePreviewDatabase(process.env);
 
+const connectionString = getDatabaseUrl(process.env);
+
 const globalForDb = globalThis as unknown as { pool?: Pool };
 const pool = globalForDb.pool ?? new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://missing:missing@localhost:5432/cencom",
+  connectionString: connectionString || "postgresql://missing:missing@localhost:5432/cencom",
   max: getDbPoolMax(),
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 5_000,

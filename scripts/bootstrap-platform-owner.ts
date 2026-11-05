@@ -21,7 +21,7 @@ async function main() {
     throw new Error("SUP_ADMIN_EMAIL must match the configured owner identity.");
   }
 
-  const databaseUrl = required("DATABASE_URL");
+  const databaseUrl = required(target === "PREVIEW" ? "PREVIEW_DATABASE_URL" : "DATABASE_URL");
   const parsedUrl = new URL(databaseUrl);
   if (!parsedUrl.hostname.endsWith(".neon.tech")) {
     throw new Error("Database host is not a Neon endpoint; no account was changed.");
@@ -52,6 +52,9 @@ async function main() {
     throw new Error("Production bootstrap requires a verified release gate and backup reference.");
   }
 
+  // The shared db module uses DATABASE_URL locally, while Vercel Preview selects
+  // PREVIEW_DATABASE_URL. Point this one-shot bootstrap at the confirmed target.
+  process.env.DATABASE_URL = databaseUrl;
   const [{ db }, schema] = await Promise.all([import("../src/db"), import("../src/db/schema")]);
   try {
     await db.transaction(async (tx) => {

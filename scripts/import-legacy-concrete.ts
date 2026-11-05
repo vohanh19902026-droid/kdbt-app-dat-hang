@@ -98,8 +98,8 @@ function requirePreviewWriteConsent(): void {
     throw new Error("Import writes require LEGACY_IMPORT_TARGET_ENV=PREVIEW and LEGACY_IMPORT_CONFIRM_TARGET_ENV=PREVIEW.");
   }
   if (process.env.LEGACY_IMPORT_ALLOW_WRITE !== "YES") throw new Error("Set LEGACY_IMPORT_ALLOW_WRITE=YES only after confirming the isolated Preview database.");
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) throw new Error("DATABASE_URL is required for --apply.");
+  const databaseUrl = process.env.PREVIEW_DATABASE_URL;
+  if (!databaseUrl) throw new Error("PREVIEW_DATABASE_URL is required for --apply.");
   const url = new URL(databaseUrl);
   const actualDatabase = decodeURIComponent(url.pathname.replace(/^\//, ""));
   const actualEndpoint = url.hostname.split(".")[0]?.replace(/-pooler$/, "");
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
   if (!apply) return;
   requirePreviewWriteConsent();
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1, application_name: "cencom-legacy-preview-import" });
+  const pool = new Pool({ connectionString: process.env.PREVIEW_DATABASE_URL, max: 1, application_name: "cencom-legacy-preview-import" });
   const client = await pool.connect();
   try {
     const migration = await client.query<{ present: string | null }>("SELECT to_regclass('legacy_debt_observations') AS present");

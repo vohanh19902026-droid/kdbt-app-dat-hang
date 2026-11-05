@@ -431,3 +431,11 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Đọc lại cấu hình sau lưu xác nhận Preview = tắt, Production = tắt, Require Active Resource = bật, Sensitive = bật. Không thay đổi môi trường Production.
 - Vercel CLI trước đó xác nhận biến `DATABASE_URL` Secret và `PREVIEW_DATABASE_ENDPOINT_ID` Config được scope riêng cho Preview branch `codex/cencom-owner-preview`. Các endpoint guard hiện hành sẽ chặn deployment nếu URL không khớp nhánh UAT đã xác minh.
 - Tiếp theo đẩy nhánh này để tạo Preview mới; trước khi đăng nhập/import cần xác nhận build READY, endpoint guard pass và alias URL duy nhất trỏ deployment mới.
+
+### Cập nhật lần 49 — tách database URL Preview và bootstrap owner bằng Google
+
+- Deployment `74871e9` đã dừng trước migration với lỗi `Preview DATABASE_URL is invalid`; không có migration/import nào chạy từ build đó. URL ổn định chưa chuyển sang deployment mới.
+- Để tránh biến URL do Neon integration ghi đè `DATABASE_URL`, code Preview nay dùng Secret riêng `PREVIEW_DATABASE_URL` cho build guard, migration và runtime. Import lịch sử cũng yêu cầu biến này và vẫn kiểm tra project/endpoint/database trước khi ghi.
+- Bổ sung nút bootstrap SUP-ADMIN trong luồng đăng nhập Google Preview: chỉ email owner allowlist đã xác minh, có Google account link, chưa có owner khác mới được bật quyền; route giới hạn Preview và ghi audit event. Không dùng tài khoản/mật khẩu Admin tạm.
+- Kiểm tra cục bộ sau thay đổi: typecheck đạt; lint đạt; 64/64 test đạt; build Next.js đạt. Import dry-run trước đó vẫn đạt 22 roster vàng, 216 chứng cứ, 4.411 entity keys, 8.243 observations/snapshots.
+- Chưa cấu hình Secret `PREVIEW_DATABASE_URL` mới, chưa xoay role DB, chưa có deployment READY với endpoint guard pass, chưa bootstrap SUP-ADMIN, chưa import dữ liệu hoặc tạo tài khoản NVKD. Không thay đổi Production/main.

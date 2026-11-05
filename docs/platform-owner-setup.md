@@ -10,6 +10,10 @@
 
 ## Thiết lập Preview
 
+Luồng khuyến nghị trên Preview: sau khi đăng nhập bằng Google đã xác minh, chủ tài khoản được hiển thị nút **Hoàn tất thiết lập SUP-ADMIN** tại trang `/pending-approval` nếu email đúng allowlist và database chưa có platform owner. API bootstrap chỉ chạy trên Preview, kiểm tra liên kết provider Google và `email_verified`, cập nhật vai trò trong transaction và ghi audit event. Không cần tài khoản/mật khẩu Admin tạm.
+
+Preview runtime, migration, owner bootstrap và import lịch sử dùng Secret `PREVIEW_DATABASE_URL` scope theo nhánh Preview đã pin. Biến `DATABASE_URL` chung không được dùng để chọn database Preview vì Neon integration có thể cấp URL riêng theo deployment. Nếu chạy bootstrap/import từ máy cục bộ, đặt `PREVIEW_DATABASE_URL` trong môi trường riêng tư; không đưa chuỗi kết nối vào repo, log hoặc chat.
+
 1. Cấu hình và kiểm tra Google OAuth trên Preview, rồi người sở hữu đăng nhập đúng Gmail ở trên. Tài khoản mới ban đầu vẫn ở trạng thái chờ.
 2. Áp migration `0012_google_registration_approval.sql` và `0013_platform_owner.sql` lên database Preview cô lập sau khi đối chiếu đúng project/database. Không dùng Neon Production cho bước này.
 3. Tại PowerShell cục bộ, tải environment Preview vào `.env.local` bằng công cụ Vercel chính thức. Không in nội dung file hay connection string ra console/chat.
