@@ -13,9 +13,15 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.
 6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. Để nạp 12 booking mẫu, dùng `npm run db:seed -- --allow-demo-data` chỉ với database dành riêng cho thử nghiệm; script từ chối chạy nếu thiếu cờ xác nhận và tự bỏ qua khi database đã có booking.
 
-### Khôi phục mật khẩu Admin bị quên
+### Người dùng tự khôi phục mật khẩu
 
-Trong PowerShell tại thư mục repo, chạy `vercel env run --environment production -- npm run auth:reset-admin-password`. Lệnh này chỉ đổi mật khẩu cho tài khoản Admin đang hoạt động đã tồn tại, yêu cầu xác nhận email bằng cách gõ `RESET <email>`, nhập mật khẩu mới hai lần (không hiển thị), cập nhật hash Better Auth và thu hồi các phiên cũ. Nó không tạo tài khoản, không hiển thị/ghi mật khẩu vào log và không thay đổi `BETTER_AUTH_SECRET`. Chỉ người có quyền Vercel Production mới lấy được kết nối database cần thiết. Sau khi hoàn tất, đăng nhập lại bằng mật khẩu vừa nhập.
+Trang đăng nhập có mục **Quên mật khẩu?**. Người dùng nhập email tài khoản; nếu tài khoản đang hoạt động, CENCOM gửi liên kết xác minh một lần, hết hạn sau 30 phút. Khi đổi mật khẩu, các phiên đăng nhập cũ bị thu hồi. App không yêu cầu xác minh email cho toàn bộ tài khoản hiện hữu, tránh khóa những tài khoản đã được Admin tạo trước khi bật tính năng này.
+
+Để gửi thư bằng Gmail/Google Workspace, bật SMTP trên mailbox gửi và cấu hình các biến `SMTP_HOST` (`smtp.gmail.com`), `SMTP_PORT` (`465`), `SMTP_SECURE` (`true`), `SMTP_USER`, `SMTP_APP_PASSWORD` và `MAIL_FROM` trong Vercel. Chỉ đặt `SMTP_APP_PASSWORD` trong Vercel Environment Variables dạng Sensitive, tách riêng Preview và Production; không đưa vào repo, `.env.example`, chat hoặc log. Dùng mailbox gửi chuyên dụng cho CENCOM, không dùng mật khẩu đăng nhập Google. Với Gmail cá nhân, App Password yêu cầu bật Xác minh 2 bước; Google đánh giá App Password kém an toàn hơn OAuth và không khuyến nghị nếu app hỗ trợ đăng nhập Google. Xem [hướng dẫn Google về App Password](https://support.google.com/mail/answer/185833), [cấu hình email Better Auth](https://better-auth.com/docs/concepts/email) và [khuyến nghị gửi email trên Vercel](https://vercel.com/kb/guide/serverless-functions-and-smtp).
+
+### Khôi phục mật khẩu Admin bằng terminal
+
+Nếu Admin chưa thể nhận email khôi phục, mở PowerShell ở thư mục repo và chạy `vercel env run -e production -- npm.cmd run auth:reset-admin-password`. Lệnh này chỉ đổi mật khẩu cho tài khoản Admin đang hoạt động đã tồn tại, yêu cầu xác nhận email bằng cách gõ `RESET <email>`, nhập mật khẩu mới hai lần (không hiển thị), cập nhật hash Better Auth và thu hồi các phiên cũ. Nó không tạo tài khoản, không hiển thị/ghi mật khẩu vào log và không thay đổi `BETTER_AUTH_SECRET`. Chỉ người có quyền Vercel Production mới lấy được kết nối database cần thiết. Sau khi hoàn tất, đăng nhập lại bằng mật khẩu vừa nhập.
 
 Không chạy seed trên database có dữ liệu vận hành. Không đưa `.env.local` hoặc thông tin Neon vào Git/Vercel source.
 

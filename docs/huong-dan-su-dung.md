@@ -8,7 +8,9 @@ Tài liệu dành cho người dùng CENCOM Đặt hàng và Điều phối bê 
 2. Khi đăng nhập lần đầu, đổi mật khẩu tạm bằng nút **Đổi mật khẩu** ở cuối menu bên trái. Trên điện thoại, mở menu tên tài khoản. Mật khẩu mới cần ít nhất 10 ký tự. Đổi mật khẩu sẽ đăng xuất các thiết bị khác.
 3. Để kết thúc phiên làm việc, chọn **Đăng xuất**.
 
-Chỉ dùng tài khoản cá nhân. Nếu quên mật khẩu hoặc không thấy chức năng cần thiết, liên hệ Admin; không dùng chung tài khoản giữa nhiều người.
+Nếu quên mật khẩu, chọn **Quên mật khẩu?** ở trang đăng nhập, nhập email tài khoản và mở liên kết xác minh được gửi tới hộp thư. Liên kết dùng một lần và hết hạn sau 30 phút. Nếu không nhận được thư, kiểm tra Spam hoặc liên hệ Admin.
+
+Chỉ dùng tài khoản cá nhân. Nếu không thấy chức năng cần thiết, liên hệ Admin; không dùng chung tài khoản giữa nhiều người.
 
 ### Vai trò và phạm vi
 

@@ -37,6 +37,7 @@ body { min-height:100vh; }
 .login-card h1 { font:800 23px Manrope,sans-serif; margin:0 0 7px; }
 .login-card .field { margin-top:15px; }
 .login-error { margin-top:14px; color:#a64242; font-size:12px; }
+.auth-notice { margin-top:14px; padding:11px 12px; border:1px solid #d7e9da; border-radius:9px; background:#f0f7f0; color:#315e40; font-size:12px; }
 .login-footer { margin-top:22px; text-align:center; color:#7d887e; font-size:11px; }
 .shell .role-select { max-width:220px; }
 .logout { background:transparent!important; color:#d2e1d8!important; margin-top:8px!important; }

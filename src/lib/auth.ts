@@ -2,9 +2,12 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
+import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { getAuthBaseURL } from "@/lib/auth-base-url";
+import { sendPasswordResetEmail } from "@/lib/email";
 
 const secret = process.env.BETTER_AUTH_SECRET;
 const baseURL = getAuthBaseURL();
@@ -26,6 +29,22 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     minPasswordLength: 10,
     maxPasswordLength: 128,
+    resetPasswordTokenExpiresIn: 30 * 60,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      const [account] = await db.select({ isActive: schema.user.isActive })
+        .from(schema.user)
+        .where(eq(schema.user.id, user.id))
+        .limit(1);
+      if (!account?.isActive) return;
+      after(async () => {
+        try {
+          await sendPasswordResetEmail({ to: user.email, url });
+        } catch {
+          console.error("[auth] Password reset email delivery failed.");
+        }
+      });
+    },
   },
   // Better Auth stores limits in memory by default. Keep login attempts low
   // for this small internal app; use shared storage if it scales to many instances.
@@ -36,6 +55,7 @@ export const auth = betterAuth({
     storage: "memory",
     customRules: {
       "/sign-in/email": { window: 60, max: 5 },
+      "/request-password-reset": { window: 300, max: 3 },
     },
   },
   user: {
