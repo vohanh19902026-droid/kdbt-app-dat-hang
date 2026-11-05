@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/accounting-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts tests/login-error.test.ts tests/auth-base-url.test.ts tests/sales-report.test.ts tests/product-catalog.test.ts tests/customer-workbook.test.ts tests/order-notification.test.ts",
+    "test": "tsx --test tests/order-rules.test.ts tests/plan-workbook.test.ts tests/accounting-workbook.test.ts tests/pwa-assets.test.ts tests/vn-date.test.ts tests/planning-schedule.test.ts tests/request-guard.test.ts tests/receivables.test.ts tests/server-logger.test.ts tests/login-error.test.ts tests/auth-base-url.test.ts tests/sales-report.test.ts tests/product-catalog.test.ts tests/customer-workbook.test.ts tests/order-notification.test.ts tests/db-pool-config.test.ts tests/notification-preferences.test.ts tests/preview-database-guard.test.mjs",
+    "load:test": "node scripts/load-test.mjs",
+    "uat:local:start": "node scripts/start-local-uat.mjs",
+    "uat:local": "tsx scripts/run-local-uat.ts",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx scripts/apply-migrations.ts",
     "db:migrate:dry": "tsx scripts/apply-migrations.ts --dry",
@@ -18,6 +21,7 @@
     "auth:reset-admin-password": "tsx scripts/reset-admin-password.ts"
   },
   "dependencies": {
+    "@next/env": "^16.4.3",
     "better-auth": "^1.7.14",
     "drizzle-orm": "^0.45.4",
     "exceljs": "^4.4.0",
@@ -27,14 +31,16 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tabulator-tables": "^6.7.1",
-    "zod": "^4.6.7",
-    "@next/env": "^16.4.3"
+    "web-push": "^3.6.7",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^24.5.2",
     "@types/pg": "^8.20.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.4.3",

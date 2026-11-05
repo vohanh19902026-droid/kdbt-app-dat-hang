@@ -139,3 +139,25 @@ body { min-height:100vh; }
   .mobile-account-menu button.logout { color:#a64242; }
   .theme-dark .mobile-account-trigger,.theme-dark .mobile-account-menu { background:#202b24;color:#e4eee7;border-color:#3b4a40; }
 }
+.notification-settings { padding:18px; margin-bottom:16px; border:1px solid var(--line); border-radius:13px; background:var(--panel,#fff); }
+.notification-settings-title { display:flex; align-items:flex-start; gap:10px; color:var(--green2); }
+.notification-settings-title b { color:var(--ink,#27352c); font-size:14px; }
+.notification-settings-title p { margin:4px 0 0; color:var(--muted); font-size:11px; }
+.notification-setting-row { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid var(--line); }
+.notification-setting-row b,.notification-setting-row small,.notification-source-list b,.notification-source-list small { display:block; }
+.notification-setting-row b,.notification-source-list b { font-size:12px; }
+.notification-setting-row small,.notification-source-list small { margin-top:3px; color:var(--muted); font-size:10px; }
+.notification-setting-row input,.notification-source-list input { width:17px; height:17px; accent-color:var(--green2); }
+.notification-sources { margin:14px 0 0; padding:12px; border:1px solid var(--line); border-radius:9px; }
+.notification-sources legend { padding:0 5px; font-size:11px; font-weight:700; }
+.notification-sources>.muted { margin:0 0 9px; font-size:10px; }
+.notification-source-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; max-height:210px; overflow:auto; }
+.notification-source-list label { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid var(--line); border-radius:7px; min-width:0; }
+.notification-source-list label span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.notification-setting-actions { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin-top:13px; }
+.notification-setting-actions .btn { display:inline-flex; align-items:center; gap:7px; min-height:38px; }
+.notification-setting-actions>.muted { font-size:10px; }
+.spin { animation:notification-spin 1s linear infinite; }
+@keyframes notification-spin { to { transform:rotate(360deg); } }
+.theme-dark .notification-settings { background:#202b24; }
+@media(max-width:680px){.notification-settings{padding:14px}.notification-source-list{grid-template-columns:1fr}.notification-setting-actions{display:grid}.notification-setting-actions .btn{width:100%;justify-content:center;min-height:42px}}

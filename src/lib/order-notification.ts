@@ -37,6 +37,9 @@ export function updatedOrderNotification(input: {
   customerName: string;
   changes: Array<{ fieldName: string | null; newValue: string | null }>;
 }) {
+  if (input.changes.some(({ fieldName, newValue }) => fieldName === "status" && newValue === "APPROVED")) {
+    return { title: `Booking ${input.bookingNo} đã được xác nhận`, body: `${input.customerName} · Kế hoạch đã duyệt đơn hàng.` };
+  }
   const details = input.changes.map(({ fieldName, newValue }) => {
     const label = fieldName ? fieldLabels[fieldName] ?? fieldName : "Thông tin booking";
     const value = fieldName === "status" && newValue

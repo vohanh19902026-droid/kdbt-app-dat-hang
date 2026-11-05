@@ -13,7 +13,6 @@ const readSchema = z.object({ id: z.uuid().optional(), all: z.boolean().optional
 export async function GET(request: NextRequest) {
   const session = await getApiSession(request.headers);
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
-  if (!["ADMIN", "PLANNER", "SALES"].includes(session.appRole)) return NextResponse.json({ error: "Bạn không có quyền." }, { status: 403 });
   const [result] = await db.select({ unread: count() }).from(appNotifications)
     .where(and(eq(appNotifications.recipientUserId, session.user.id), isNull(appNotifications.readAt)));
   return NextResponse.json({ unread: result?.unread ?? 0 }, { headers: { "Cache-Control": "no-store" } });
@@ -23,7 +22,6 @@ export async function PATCH(request: NextRequest) {
   if (isCrossOriginRequest(request)) return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
   const session = await getApiSession(request.headers);
   if (!session) return NextResponse.json({ error: "Vui lòng đăng nhập." }, { status: 401 });
-  if (!["ADMIN", "PLANNER", "SALES"].includes(session.appRole)) return NextResponse.json({ error: "Bạn không có quyền." }, { status: 403 });
   const parsed = readSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Dữ liệu không hợp lệ." }, { status: 400 });
   const conditions = [eq(appNotifications.recipientUserId, session.user.id), isNull(appNotifications.readAt)];

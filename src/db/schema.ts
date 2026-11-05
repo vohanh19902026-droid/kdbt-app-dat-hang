@@ -28,6 +28,7 @@ export const user = pgTable("user", {
   phone: text("phone"),
   department: text("department"),
   monthlyTargetM3: decimal("monthly_target_m3", { precision: 10, scale: 2 }),
+  notificationPreferences: jsonb("notification_preferences").$type<Record<string, unknown>>().notNull().default({}),
 });
 
 export const appSettings = pgTable("app_settings", {
@@ -150,6 +151,17 @@ export const appNotifications = pgTable("app_notifications", {
   index("app_notifications_recipient_created_idx").on(t.recipientUserId, t.createdAt),
   index("app_notifications_recipient_unread_idx").on(t.recipientUserId, t.readAt),
 ]);
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [uniqueIndex("push_subscriptions_user_endpoint_idx").on(t.userId, t.endpoint), index("push_subscriptions_user_idx").on(t.userId)]);
 
 // Append-only customer receivable ledger. Amounts are integer Vietnamese dong;
 // corrections should be recorded as a compensating entry, never edited away.

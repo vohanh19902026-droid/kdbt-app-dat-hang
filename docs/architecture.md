@@ -97,11 +97,12 @@ flowchart LR
 
 ### Khoảng trống còn lại
 
-- Chưa có kiểm thử browser end-to-end đăng nhập và thao tác theo từng vai trò; test hiện có chủ yếu là unit, còn demo vừa chạy xác nhận luồng PostgreSQL/XLSX ở mức tích hợp dữ liệu.
-- Hiện chưa có kiểm thử browser E2E tự động riêng; unit tests và UAT thủ công/integrated là các lớp kiểm chứng hiện có.
-- Migration `0005`–`0009` đã được áp trên Neon Production ngày 03/11/2026; Preview Vercel hiện lỗi vì thiếu `DATABASE_URL` Preview. Tạo Neon branch riêng trước khi dùng Preview để UAT.
+- Chưa có kiểm thử browser E2E tự động đăng nhập và thao tác theo từng vai trò; UAT thủ công đã xác nhận luồng NVKD → Kế hoạch → Admin trên Preview cô lập và local PostgreSQL.
+- Neon Preview cô lập `cencom-preview-isolated` đã được cấu hình riêng; migration `0000`–`0010` đã có trên DB này, dry-run tường minh không ghi dữ liệu. Dashboard và Vercel API read-only xác nhận Preview hostname `kdbt-app-dat-hang-d3p3i4sxy-vohanh19902026-droid.vercel.app`, deployment `dpl_6LUB6QziC5iQqut8cGiecVHMKNyo`, commit `ca9dce2` đang `READY`. Không dùng Neon `main`/Production cho UAT.
+- Browser phiên đăng nhập bình thường xác nhận 20 GET `/api/health` qua 10 tab/2 chu kỳ, 20/20 JSON `status: ok` và DB up; endpoint báo p50/p95 228 ms, max 1.610 ms. Tổng 16,42 giây gồm điều phối/đọc UI; đây chưa phải load test liên tục hay thông lượng Vercel đáng tin cậy. Harness dùng OIDC Trusted Sources trả trang Login HTML HTTP 200 nên bị loại; harness hiện kiểm tra body JSON và chỉ nhận URL Preview allowlist. Cần phương thức tải được duyệt; không dùng cookie, `vercel curl`, share link hay giảm Deployment Protection.
 - Cần workbook Excel gốc để nghiệm thu chính xác độ rộng cột/màu/in trang; hiện chỉ có ảnh tham khảo.
-- Sổ kế toán mới là nhật ký phải thu/thu tiền, chưa có hóa đơn, đối soát hoặc chứng từ giao từng chuyến; PWA offline chỉ là vỏ màn hình, chưa hỗ trợ nhập liệu offline/realtime push.
+- Sổ kế toán mới là nhật ký phải thu/thu tiền, chưa có hóa đơn, đối soát hoặc chứng từ giao từng chuyến. PWA chưa hỗ trợ nhập liệu offline. Web Push đã triển khai nhưng chưa xác minh gửi/nhận vì quyền trình duyệt chưa cấp và chưa thử trên thiết bị Android thật.
+- PITR/backup Production hiện chỉ được xác minh ở mức thông tin cấu hình; chưa có snapshot/restore drill phù hợp RPO, và rollback Vercel chưa diễn tập.
 
 ## Ranh giới triển khai
 - Pages/middleware không thay thế bảo vệ API: API tự xác minh session, vai trò và trạng thái tài khoản.
