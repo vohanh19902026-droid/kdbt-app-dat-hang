@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
 
   return <main className="login-bg"><section className="login-card">
     <div className="login-brand"><div className="brandmark">C</div><div className="brandname">CENCOM<small>ĐIỀU PHỐI BÊ TÔNG</small></div></div>
-    <h1>Quên mật khẩu?</h1><p className="sub">Nhập email gắn với tài khoản. Chúng tôi sẽ gửi liên kết xác minh để đặt mật khẩu mới.</p>
+    <h1>Quên mật khẩu CENCOM?</h1><p className="sub">Nhập email gắn với tài khoản dùng mật khẩu. Chúng tôi sẽ gửi liên kết xác minh để đặt mật khẩu mới. Nếu bạn đăng nhập bằng Google, hãy khôi phục tài khoản Google tại Google.</p>
     <form onSubmit={submit}>
       <div className="field"><label htmlFor="email">Email tài khoản</label><input id="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ten@congty.vn" /></div>
       {error && <p className="login-error" role="alert">{error}</p>}

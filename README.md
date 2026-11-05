@@ -8,6 +8,10 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 
 1. `npm install`
 2. Sao chép `.env.example` thành `.env.local`, điền `DATABASE_URL`, `BETTER_AUTH_SECRET` (ít nhất 32 ký tự) và `BETTER_AUTH_URL`.
+
+### Đăng nhập Google
+
+Tạo OAuth Client ID loại Web application trong Google Cloud. Thêm callback `https://YOUR_DOMAIN/api/auth/callback/google` (và URL tương ứng cho Preview nếu dùng OAuth trên Preview), sau đó đặt `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET` dạng Sensitive trong Vercel cho đúng môi trường. Không đưa client secret vào Git hoặc chat. Đăng nhập Google chỉ chấp nhận email được Google xác minh; email khớp tài khoản hiện có sẽ liên kết với tài khoản đó. Người đăng ký mới nhận vai trò NVKD, bị khóa cho đến khi Admin kích hoạt tại Quản trị > Tài khoản. Tài khoản đăng nhập Google không có mật khẩu CENCOM để đặt lại; nếu quên mật khẩu Google, hãy dùng trang khôi phục của Google.
 3. Chạy `npm run db:migrate` để áp các migration còn thiếu theo thứ tự. Với database trống, lệnh này tạo toàn bộ schema hiện hành; không chạy `db:seed` trên database vận hành.
 4. `npm run dev`, mở `http://localhost:3000`.
 5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.

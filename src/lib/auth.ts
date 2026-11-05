@@ -46,6 +46,44 @@ export const auth = betterAuth({
       });
     },
   },
+  socialProviders: process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          requireEmailVerification: true,
+        },
+      }
+    : {},
+  account: {
+    accountLinking: {
+      enabled: true,
+      allowDifferentEmails: false,
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (newUser, context) => {
+          // Google sign-ups get the least-privileged app role and require Admin activation.
+          if (context?.path?.includes("/callback/google")) {
+            return { data: { ...newUser, appRole: "SALES", isActive: false } };
+          }
+        },
+      },
+    },
+    session: {
+      create: {
+        before: async (newSession) => {
+          const [account] = await db.select({ isActive: schema.user.isActive })
+            .from(schema.user)
+            .where(eq(schema.user.id, newSession.userId))
+            .limit(1);
+          if (!account?.isActive) return false;
+        },
+      },
+    },
+  },
   // Better Auth stores limits in memory by default. Keep login attempts low
   // for this small internal app; use shared storage if it scales to many instances.
   rateLimit: {
