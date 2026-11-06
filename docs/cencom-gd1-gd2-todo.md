@@ -2,7 +2,7 @@
 
 **Cập nhật:** 06/11/2026
 **Phạm vi:** phát hành GD1 an toàn; hoàn thiện hồ sơ dữ liệu công nợ/bán hàng GD2.
-**Trạng thái hiện tại:** chưa đủ điều kiện phát hành Production; chưa nhập dữ liệu kế toán vào ứng dụng.
+**Trạng thái hiện tại:** SUP-ADMIN Preview đã khởi tạo; GD1 vẫn chưa đủ điều kiện phát hành Production; GD2 chưa nhập dữ liệu kế toán vào ứng dụng.
 **Quy tắc theo dõi:** hoàn tất và có bằng chứng cho bước nào thì đánh dấu `[x]` ngay tại bước đó trong file này; cập nhật ngày/trạng thái và ghi rõ bằng chứng hoặc điều kiện còn thiếu. Không đánh dấu các bước chỉ mới dự kiến.
 
 ## GD1 — một Preview được chọn làm ứng viên chính
@@ -14,14 +14,15 @@
 - [x] Build log xác nhận DB thuộc Neon cô lập, project/endpoint/database khớp (`ep-late-breeze-b37o52e8` / `neondb`); 15 migration đã có sẵn, không áp thêm file nào. `/api/health` trả `200`, database `up`.
 - [x] Sửa Preview chỉ dùng URL Neon tích hợp sau khi kiểm tra project, endpoint và database; thêm `BETTER_AUTH_URL` chỉ cho nhánh Preview. Google callback đã dùng đúng alias ổn định; trang đăng nhập và khôi phục mật khẩu hiển thị.
 - [x] Thử Google sign-in: redirect mismatch đã hết, đăng nhập tới trang khởi tạo chủ sở hữu Preview.
+- [x] Người dùng xác nhận và hoàn tất bootstrap SUP-ADMIN cho tài khoản Google hiện tại trên DB Preview cô lập; chuyển được tới `/orders`, mở được `/admin/settings` với trang Cài đặt quản trị. Xác nhận trên alias ổn định ngày 06/11/2026.
 
 ### Còn lại trước Production
 
-- [ ] Hoàn tất khởi tạo `SUP-ADMIN` trên Preview. Nút sẽ cấp quyền chủ sở hữu tối cao cho tài khoản Google hiện tại trong DB cô lập; đang chờ xác nhận ngay trước hành động.
-- [ ] Xoay role credential Neon đã từng lộ; đổi mật khẩu cần chủ tài khoản thao tác trong Neon. Không dùng credential hiện tại để phát hành Production.
-- [ ] SMTP chưa có cấu hình Preview; chưa kiểm thử gửi email khôi phục. Production cũng chưa có biến Google OAuth/SMTP cần thiết.
-- [ ] Sau khi có SUP-ADMIN và SMTP Preview: kiểm tra Admin duyệt tài khoản đăng ký mới, gửi email khôi phục, rồi đánh giá lại đường khôi phục Production trước khi đưa commit lên `main`.
-- [ ] Production chưa thay đổi. Snapshot restore tồn tại nhưng chưa diễn tập; chỉ chuyển alias/traffic Production sau khi các mục bắt buộc trên đạt.
+- [ ] Chủ sở hữu xoay credential role Neon đã lộ trực tiếp trong Neon Console; sau đó đồng bộ lại kết nối Preview và xác nhận `/api/health` vẫn báo database up. Đây là bước nhập credential, cần chủ sở hữu tự thực hiện; không gửi credential qua chat.
+- [ ] Cấu hình mailbox gửi chuyên dụng cho Preview trong Vercel: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_APP_PASSWORD` (Sensitive) và `MAIL_FROM`. Giá trị bí mật chỉ nhập trực tiếp trong Vercel; hiện chưa có SMTP ở Preview hoặc Production.
+- [ ] Sau khi SMTP Preview sẵn sàng, kiểm tra hồ sơ đăng ký bằng tài khoản Google test thứ hai, duyệt hồ sơ bằng SUP-ADMIN, rồi gửi và hoàn tất một email đặt lại mật khẩu. Chưa thể xác nhận luồng vì chưa có SMTP Preview và danh tính Google test thứ hai.
+- [ ] Chốt RPO/RTO nghiệp vụ, xác minh cửa sổ PITR/retention phù hợp, rồi diễn tập một lần khôi phục vào branch Neon riêng và ghi thời gian/kết quả đối chiếu. Hiện ghi nhận PITR 6 giờ và branch restore snapshot ngày 04/11/2026 còn tồn tại; chưa có lịch snapshot hoặc bằng chứng drill đạt RPO/RTO.
+- [ ] Sau các cổng trên: thêm `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` cùng SMTP vào Production và khai báo callback Production trong Google OAuth; áp migrations `0012_google_registration_approval.sql`, `0013_platform_owner.sql`, `0014_legacy_concrete_review.sql` bằng lệnh Production tường minh sau backup gate, đưa ứng viên đã duyệt vào `main`, rồi xác nhận deployment `READY`, đăng nhập Google và email khôi phục Production. Production đang chạy commit `6037661` ở trạng thái `READY`; chưa thay đổi.
 
 > Android/APK và load test không thuộc cổng của đợt web này. Không xóa nhánh chứa thay đổi chưa nhập vào release hoặc nhánh khôi phục dữ liệu Production.
 
@@ -76,4 +77,4 @@
 
 ## Ranh giới phát hành
 
-Không đánh dấu GD1 hoàn tất hoặc `production-ready` khi còn thiếu credential Preview đã xoay, deployment/UAT Preview, OAuth/SMTP, backup/restore/rollback hoặc kiểm thử cần thiết. Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy tắc, ngoại lệ và crosswalk. `origin/main` và Production chưa được thay đổi trong lượt kiểm tra này; `main` cục bộ vẫn chứa 13 commit chưa đẩy.
+Không đánh dấu GD1 hoàn tất hoặc `production-ready` khi còn thiếu credential Preview đã xoay, deployment/UAT Preview, OAuth/SMTP, backup/restore/rollback hoặc kiểm thử cần thiết. Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy tắc, ngoại lệ và crosswalk. `origin/main` và Production chưa được thay đổi; `main` cục bộ ở `f425b38`, ahead `origin/main` 13 commit. Nhánh ứng viên Preview ahead remote 2 commit tài liệu; deployment code vẫn là `3935b85`.
