@@ -32,6 +32,7 @@ test("Preview selects its dedicated database URL over Neon integration variables
   const pinned = "postgresql://preview:secret@ep-preview.c-4.ap-southeast-1.aws.neon.tech/neondb";
   const integration = "not-a-postgresql-url";
   assert.equal(getDatabaseUrl({ VERCEL_ENV: "preview", PREVIEW_DATABASE_URL: pinned, DATABASE_URL: integration }), pinned);
+  assert.equal(getDatabaseUrl({ VERCEL_ENV: "preview", DATABASE_URL: integration }), undefined);
   assert.equal(getDatabaseUrl({ VERCEL_ENV: "production", PREVIEW_DATABASE_URL: pinned, DATABASE_URL: integration }), integration);
 });
 

@@ -11,6 +11,7 @@ function runNpm(args) {
 
 if (process.env.VERCEL === "1" && process.env.VERCEL_ENV === "preview") {
   validatePreviewDatabase(process.env);
+  runNpm(["run", "db:migrate:dry"]);
   runNpm(["run", "db:migrate"]);
 }
 
