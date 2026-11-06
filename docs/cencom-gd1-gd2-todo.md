@@ -15,6 +15,7 @@
 - [x] Sửa Preview chỉ dùng URL Neon tích hợp sau khi kiểm tra project, endpoint và database; thêm `BETTER_AUTH_URL` chỉ cho nhánh Preview. Google callback đã dùng đúng alias ổn định; trang đăng nhập và khôi phục mật khẩu hiển thị.
 - [x] Thử Google sign-in: redirect mismatch đã hết, đăng nhập tới trang khởi tạo chủ sở hữu Preview.
 - [x] Người dùng xác nhận và hoàn tất bootstrap SUP-ADMIN cho tài khoản Google hiện tại trên DB Preview cô lập; chuyển được tới `/orders`, mở được `/admin/settings` với trang Cài đặt quản trị. Xác nhận trên alias ổn định ngày 06/11/2026.
+- [x] Đồng bộ ứng viên Preview vào `main` cục bộ bằng fast-forward tới `ba2772d` ngày 06/11; giữ nguyên `origin/main` (`6037661`) và không push/deploy.
 
 ### Còn lại trước Production
 
@@ -80,4 +81,4 @@
 
 ## Ranh giới phát hành
 
-Không đánh dấu GD1 hoàn tất hoặc `production-ready` khi còn thiếu SMTP Preview, UAT, backup/restore/rollback hoặc kiểm thử cần thiết. Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy tắc, ngoại lệ và crosswalk. Người dùng đã chọn Preview hiện tại làm ứng viên chính; `main` cục bộ được fast-forward tới `f24dec1` để đồng bộ mã và tài liệu. `origin/main` vẫn ở `6037661` và Production chưa thay đổi; không push cho tới khi các cổng GD1 đạt. Deployment Preview chạy mã `3935b85`, còn hai commit trên nhánh ứng viên là tài liệu. Đã kiểm tra ancestry: các commit Key Lạnh trên nhánh `codex/google-auth-preview` không thuộc `main` hoặc Preview candidate.
+Không đánh dấu GD1 hoàn tất hoặc `production-ready` khi còn thiếu SMTP Preview, UAT, backup/restore/rollback hoặc kiểm thử cần thiết. Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy tắc, ngoại lệ và crosswalk. Người dùng đã chọn Preview hiện tại làm ứng viên chính; `main` cục bộ và `codex/cencom-owner-preview` hiện cùng ở `ba2772d`. `origin/main` vẫn ở `6037661` (ahead 32 commit cục bộ) và Production chưa thay đổi; không push cho tới khi các cổng GD1 đạt. Deployment Preview chạy mã `3935b85`; các commit sau deployment chỉ cập nhật tài liệu. Đã kiểm tra ancestry: các commit Key Lạnh trên nhánh `codex/google-auth-preview` không thuộc `main` hoặc Preview candidate.
