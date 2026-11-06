@@ -14,6 +14,9 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { Pool } from "pg";
 import { loadEnvConfig } from "@next/env";
+import { resolveMigrationTarget } from "./migration-target-policy.mjs";
+import { getDatabaseUrl, validatePreviewDatabase } from "./verify-preview-database.mjs";
+import { validateProductionDatabase } from "./verify-production-database.mjs";
 
 loadEnvConfig(process.cwd());
 
@@ -29,11 +32,15 @@ function describeTarget(rawUrl: string): string {
 }
 
 async function main(): Promise<void> {
-  const connectionString = process.env.DATABASE_URL;
+  const migrationTarget = resolveMigrationTarget(process.env, process.argv.slice(2));
+  if (migrationTarget === "preview") validatePreviewDatabase(process.env);
+  if (migrationTarget === "production") validateProductionDatabase(process.env);
+  const connectionString = getDatabaseUrl(process.env);
   if (!connectionString) {
-    throw new Error("Thiếu DATABASE_URL. Chạy `vercel env pull .env.local` hoặc đặt biến môi trường.");
+    throw new Error("Thiếu biến URL database phù hợp với môi trường. Preview dùng PREVIEW_DATABASE_URL; các môi trường khác dùng DATABASE_URL.");
   }
 
+  console.log(`[migrate] Môi trường: ${migrationTarget}`);
   console.log(`[migrate] Đích: ${describeTarget(connectionString)}${DRY_RUN ? " (dry-run)" : ""}`);
 
   const pool = new Pool({ connectionString, max: 1 });

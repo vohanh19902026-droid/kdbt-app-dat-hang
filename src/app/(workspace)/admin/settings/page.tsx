@@ -16,7 +16,7 @@ export default async function AdminSettingsPage() {
   end.setDate(end.getDate() + 1);
   const [settings, accountRows, accounting, volumeRows] = await Promise.all([
     getAppSettings(),
-    db.select({ id: user.id, name: user.name, email: user.email, appRole: user.appRole, isActive: user.isActive, createdAt: user.createdAt, employeeCode: user.employeeCode, phone: user.phone, department: user.department, monthlyTargetM3: user.monthlyTargetM3 }).from(user).orderBy(asc(user.name)),
+    db.select({ id: user.id, name: user.name, email: user.email, appRole: user.appRole, isActive: user.isActive, isPlatformOwner: user.isPlatformOwner, createdAt: user.createdAt, employeeCode: user.employeeCode, phone: user.phone, department: user.department, monthlyTargetM3: user.monthlyTargetM3, jobTitle: user.jobTitle, age: user.age, requestedAppRole: user.requestedAppRole }).from(user).orderBy(asc(user.name)),
     getAccountingData(range.from, range.to),
     db.select({ salesRepName: orders.salesRepName, bookedM3: sql<string>`COALESCE(SUM(${orders.quantityM3}), 0)::text` }).from(orders)
       .where(and(gte(orders.requestedAt, start), lt(orders.requestedAt, end), ne(orders.status, "CANCELLED")))
@@ -25,6 +25,6 @@ export default async function AdminSettingsPage() {
   const bookedThisMonthM3 = volumeRows.reduce((total, row) => total + Number(row.bookedM3), 0);
   const users = accountRows.map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
   const monthLabel = new Intl.DateTimeFormat("vi-VN", { month: "long", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(start);
-  return <AdminSettings initialSettings={settings} users={users} salesVolumes={volumeRows} monthLabel={monthLabel} currentUserId={currentUser.id}
+  return <AdminSettings initialSettings={settings} users={users} salesVolumes={volumeRows} monthLabel={monthLabel} currentUserId={currentUser.id} currentUserIsPlatformOwner={Boolean((currentUser as typeof currentUser & {isPlatformOwner?:boolean}).isPlatformOwner)}
     financeSummary={{ bookedThisMonthM3: String(bookedThisMonthM3), chargesThisMonthVnd: accounting.periodTotals.chargesVnd, outstandingVnd: accounting.allTimeBalanceVnd }} />;
 }

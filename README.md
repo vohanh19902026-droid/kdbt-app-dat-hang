@@ -8,14 +8,24 @@ Yêu cầu Node.js 20.9 trở lên và PostgreSQL/Neon.
 
 1. `npm install`
 2. Sao chép `.env.example` thành `.env.local`, điền `DATABASE_URL`, `BETTER_AUTH_SECRET` (ít nhất 32 ký tự) và `BETTER_AUTH_URL`.
+
+### Đăng nhập Google
+
+Tạo OAuth Client ID loại Web application trong Google Cloud. Thêm callback `https://YOUR_DOMAIN/api/auth/callback/google` (và URL tương ứng cho Preview nếu dùng OAuth trên Preview), sau đó đặt `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET` dạng Sensitive trong Vercel cho đúng môi trường. Không đưa client secret vào Git hoặc chat. Đăng nhập Google chỉ chấp nhận email được Google xác minh; email khớp tài khoản hiện có sẽ liên kết với tài khoản đó. Người đăng ký mới cần hoàn tất hồ sơ (họ tên, bộ phận, chức vụ và vai trò đề nghị) rồi chờ Admin duyệt; chưa được vào không gian làm việc trước khi được kích hoạt. Tài khoản đăng nhập Google không có mật khẩu CENCOM để đặt lại; nếu quên mật khẩu Google, hãy dùng trang khôi phục của Google.
 3. Chạy `npm run db:migrate` để áp các migration còn thiếu theo thứ tự. Với database trống, lệnh này tạo toàn bộ schema hiện hành; không chạy `db:seed` trên database vận hành.
 4. `npm run dev`, mở `http://localhost:3000`.
 5. Chạy `npm run auth:create-admin` trên máy đã kết nối database để tạo Admin đầu tiên bằng lời nhắc nhập trong terminal. Mật khẩu được nhập ẩn.
 6. Đăng nhập Admin và tạo tài khoản NV kế hoạch/NV kinh doanh tại `/admin/users`. Để nạp 12 booking mẫu, dùng `npm run db:seed -- --allow-demo-data` chỉ với database dành riêng cho thử nghiệm; script từ chối chạy nếu thiếu cờ xác nhận và tự bỏ qua khi database đã có booking.
 
-### Khôi phục mật khẩu Admin bị quên
+### Người dùng tự khôi phục mật khẩu
 
-Trong PowerShell tại thư mục repo, chạy `vercel env run --environment production -- npm run auth:reset-admin-password`. Lệnh này chỉ đổi mật khẩu cho tài khoản Admin đang hoạt động đã tồn tại, yêu cầu xác nhận email bằng cách gõ `RESET <email>`, nhập mật khẩu mới hai lần (không hiển thị), cập nhật hash Better Auth và thu hồi các phiên cũ. Nó không tạo tài khoản, không hiển thị/ghi mật khẩu vào log và không thay đổi `BETTER_AUTH_SECRET`. Chỉ người có quyền Vercel Production mới lấy được kết nối database cần thiết. Sau khi hoàn tất, đăng nhập lại bằng mật khẩu vừa nhập.
+Trang đăng nhập có mục **Quên mật khẩu?**. Người dùng nhập email tài khoản; nếu tài khoản đang hoạt động, CENCOM gửi liên kết xác minh một lần, hết hạn sau 30 phút. Khi đổi mật khẩu, các phiên đăng nhập cũ bị thu hồi. App không yêu cầu xác minh email cho toàn bộ tài khoản hiện hữu, tránh khóa những tài khoản đã được Admin tạo trước khi bật tính năng này.
+
+Để gửi thư bằng Gmail/Google Workspace, bật SMTP trên mailbox gửi và cấu hình các biến `SMTP_HOST` (`smtp.gmail.com`), `SMTP_PORT` (`465`), `SMTP_SECURE` (`true`), `SMTP_USER`, `SMTP_APP_PASSWORD` và `MAIL_FROM` trong Vercel. Chỉ đặt `SMTP_APP_PASSWORD` trong Vercel Environment Variables dạng Sensitive, tách riêng Preview và Production; không đưa vào repo, `.env.example`, chat hoặc log. Dùng mailbox gửi chuyên dụng cho CENCOM, không dùng mật khẩu đăng nhập Google. Với Gmail cá nhân, App Password yêu cầu bật Xác minh 2 bước; Google đánh giá App Password kém an toàn hơn OAuth và không khuyến nghị nếu app hỗ trợ đăng nhập Google. Xem [hướng dẫn Google về App Password](https://support.google.com/mail/answer/185833), [cấu hình email Better Auth](https://better-auth.com/docs/concepts/email) và [khuyến nghị gửi email trên Vercel](https://vercel.com/kb/guide/serverless-functions-and-smtp).
+
+### Khôi phục mật khẩu Admin bằng terminal
+
+Nếu Admin chưa thể nhận email khôi phục, mở PowerShell ở thư mục repo và chạy `vercel env run -e production -- npm.cmd run auth:reset-admin-password`. Lệnh này chỉ đổi mật khẩu cho tài khoản Admin đang hoạt động đã tồn tại, yêu cầu xác nhận email bằng cách gõ `RESET <email>`, nhập mật khẩu mới hai lần (không hiển thị), cập nhật hash Better Auth và thu hồi các phiên cũ. Nó không tạo tài khoản, không hiển thị/ghi mật khẩu vào log và không thay đổi `BETTER_AUTH_SECRET`. Chỉ người có quyền Vercel Production mới lấy được kết nối database cần thiết. Sau khi hoàn tất, đăng nhập lại bằng mật khẩu vừa nhập.
 
 Không chạy seed trên database có dữ liệu vận hành. Không đưa `.env.local` hoặc thông tin Neon vào Git/Vercel source.
 
@@ -25,9 +35,9 @@ Không chạy seed trên database có dữ liệu vận hành. Không đưa `.en
 - Repo công khai: <https://github.com/vohanh19902026-droid/kdbt-app-dat-hang>.
 - Trạng thái production và kết nối Neon được xác minh qua deployment mới nhất trong Vercel; `/api/health` phải trả `status: ok`, `database: up`.
 - Database production hiện có tài khoản Admin và ba tài khoản UAT; có một khách hàng cùng booking smoke test `BOOK-7431` đã hủy. Đây là dữ liệu kiểm thử, không dùng để vận hành. Admin cần đổi mật khẩu khởi tạo, tạo tài khoản nhân sự thật và nhập danh sách khách hàng thật trước khi vận hành.
-- Vercel cần `DATABASE_URL`, `BETTER_AUTH_SECRET` và `BETTER_AUTH_URL`. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
+- Production dùng `DATABASE_URL` của môi trường Production. Preview của nhánh `codex/cencom-owner-preview` hiện lấy `DATABASE_URL` do Neon integration cấp riêng theo nhánh; trước khi migration, code đối chiếu project ID, endpoint ID và tên database với các biến pin Preview. Có thể đặt `PREVIEW_DATABASE_URL` làm override riêng. Không dùng URL Production cho Preview hoặc ngược lại. Build command `npm run build`, framework Next.js. `BETTER_AUTH_SECRET` phải là secret ngẫu nhiên dài ít nhất 32 ký tự; không đưa secret vào Git, tài liệu, chat hoặc ảnh chụp.
 - Các migration được quản lý qua `npm run db:migrate`; script áp theo thứ tự, ghi nhận migration đã chạy và có chế độ xem trước `npx tsx scripts/apply-migrations.ts --dry`.
-- Các schema thay đổi được quản lý bằng `drizzle/0000–0009`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng `npm run db:migrate:dry` để xem trước. Chế độ dry-run chỉ đọc database.
+- Các schema thay đổi được quản lý bằng các file versioned trong `drizzle/`; trước khi chạy migration trên Neon, xác nhận đúng database và dùng lệnh dry-run phù hợp môi trường. Không chạy lệnh migration Production như dry-run trên DB Production. Chế độ dry-run chỉ đọc database.
 - Admin đầu tiên đã được tạo trên database theo biên bản triển khai ngày 2026-11-02. Không lưu mật khẩu tài khoản trong repo. Admin đăng nhập và tạo tài khoản nội bộ ở `/admin/users`; người dùng có thể tự đổi mật khẩu trong menu tài khoản.
 - PWA cài từ trình duyệt cần HTTPS; service worker chỉ lưu màn offline và icon, không cache trang/API chứa dữ liệu riêng.
 
