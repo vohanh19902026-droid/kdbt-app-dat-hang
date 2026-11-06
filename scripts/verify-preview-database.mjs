@@ -1,6 +1,8 @@
 /** Require an independently configured, exact database target before Preview migrations. */
 export function getDatabaseUrl(env) {
-  return env.VERCEL_ENV === "preview" ? env.PREVIEW_DATABASE_URL : env.DATABASE_URL;
+  return env.VERCEL_ENV === "preview"
+    ? env.PREVIEW_DATABASE_URL || env.DATABASE_URL
+    : env.DATABASE_URL;
 }
 
 export function validatePreviewDatabase(env) {
@@ -8,9 +10,12 @@ export function validatePreviewDatabase(env) {
   const actualProjectId = env.DATABASE_NEON_PROJECT_ID;
   const expectedEndpointId = env.PREVIEW_DATABASE_ENDPOINT_ID;
   const expectedDatabase = env.PREVIEW_DATABASE_NAME;
-  const databaseUrl = env.PREVIEW_DATABASE_URL;
+  // Neon’s Vercel integration provides DATABASE_URL for the Preview target.
+  // Keep the dedicated variable as an override, but validate either value
+  // against the independently pinned project, endpoint, and database below.
+  const databaseUrl = env.PREVIEW_DATABASE_URL || env.DATABASE_URL;
   if (!expectedProjectId || !actualProjectId || !expectedEndpointId || !expectedDatabase || !databaseUrl) {
-    throw new Error("Preview requires PREVIEW_DATABASE_URL, matching Neon project IDs, PREVIEW_DATABASE_ENDPOINT_ID and PREVIEW_DATABASE_NAME before migrations can run.");
+    throw new Error("Preview requires DATABASE_URL, matching Neon project IDs, PREVIEW_DATABASE_ENDPOINT_ID and PREVIEW_DATABASE_NAME before migrations can run.");
   }
 
   let url;
@@ -24,7 +29,7 @@ export function validatePreviewDatabase(env) {
       containsWhitespace: /\s/.test(input),
       containsQuotes: /["'`]/.test(input),
     };
-    throw new Error(`Preview PREVIEW_DATABASE_URL is invalid (${JSON.stringify(diagnostics)}).`);
+    throw new Error(`Preview database URL is invalid (${JSON.stringify(diagnostics)}).`);
   }
   const hostname = url.hostname.toLowerCase();
   const actualEndpointId = hostname.split(".")[0]?.replace(/-pooler$/, "");
