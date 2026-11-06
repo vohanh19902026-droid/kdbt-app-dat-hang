@@ -1,6 +1,6 @@
 # Đánh giá phát hành 03/11/2026
 
-> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 35 (05/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
+> Các bảng và kết quả ban đầu là ảnh chụp tại ngày 03/11/2026. Những cập nhật đánh số bên dưới ghi tiến triển theo thời gian; trạng thái hiện hành ở Cập nhật lần 52 (06/11/2026) thay thế nhận định cũ về Preview, Browser, Android toolchain, load test và điểm sẵn sàng.
 
 ## Phạm vi
 
@@ -439,3 +439,54 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Bổ sung nút bootstrap SUP-ADMIN trong luồng đăng nhập Google Preview: chỉ email owner allowlist đã xác minh, có Google account link, chưa có owner khác mới được bật quyền; route giới hạn Preview và ghi audit event. Không dùng tài khoản/mật khẩu Admin tạm.
 - Kiểm tra cục bộ sau thay đổi: typecheck đạt; lint đạt; 64/64 test đạt; build Next.js đạt. Import dry-run trước đó vẫn đạt 22 roster vàng, 216 chứng cứ, 4.411 entity keys, 8.243 observations/snapshots.
 - Chưa cấu hình Secret `PREVIEW_DATABASE_URL` mới, chưa xoay role DB, chưa có deployment READY với endpoint guard pass, chưa bootstrap SUP-ADMIN, chưa import dữ liệu hoặc tạo tài khoản NVKD. Không thay đổi Production/main.
+
+### Cập nhật lần 50 — đối chiếu hai giai đoạn và chuẩn bị hồ sơ thẩm tra
+
+- Kiểm tra ngày 06/11/2026: checkout hiện tại là `codex/cencom-owner-preview`, ahead `origin/codex/cencom-owner-preview` 1 commit (`03220bd`). Local `main` ahead `origin/main` 13 commit (báo cáo trước ghi 10); không có thay đổi Production hoặc push `main` trong lần kiểm tra này.
+- `main` có commit điều khiển platform owner `6762e9a`; các commit luồng Key Lạnh `c634bc0`, `f149d49`, `cca7aea` hiện chỉ được branch `codex/google-auth-preview` chứa, không thuộc local `main`.
+- Neon/Vercel Preview auto-branch đã tắt; `Require Active Resource` và `Sensitive` bật. Kiểm kê Vercel env chỉ theo tên/target: Preview branch hiện có `DATABASE_URL`, `PREVIEW_DATABASE_ENDPOINT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`; chưa có `PREVIEW_DATABASE_URL` mà code hiện yêu cầu. Không đọc giá trị secret. Chưa có bằng chứng role password bị lộ đã được xoay.
+- Production env metadata không có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER`, `SMTP_APP_PASSWORD`; VAPID variables có mặt. Production deployment hiện hành vẫn `READY` trên URL `https://kdbt-app-dat-hang-8m0zfcwe7-vohanh19902026-droid.vercel.app`, tạo ngày 05/11/2026; không tạo deployment mới.
+- Đã tạo `docs/cencom-gd1-gd2-todo.md` để theo dõi các cổng và chủ sở hữu cần phối hợp. Không chạy lại test app trong lần này; kết quả local mới nhất ghi ở cập nhật 49 là 64/64, typecheck, lint và build đạt; cần chạy lại trên release candidate cuối.
+- Workbook GD2 được bổ sung tab `Control summary` và 15 câu hỏi nghiệp vụ có người phụ trách, trạng thái, kết luận, người xác nhận, ngày và căn cứ. Artifact Tool xác nhận 8 sheet; cả 15 câu hỏi đang `CHỜ`; mọi trường phê duyệt ở các sheet review đều trống. XLSX có 0 công thức/0 ô lỗi công thức; Control summary là số staging tĩnh. Workbook nằm ngoài repo trong `_review_private\outputs\01a1a100-147b-7a12-a58d-c96631e35580\`; ACL chỉ cấp FullControl cho `HANHVO\Admin`.
+- Chưa nhập dữ liệu vào app/Preview/Production. GD2 chờ kế toán/kinh doanh xác nhận đơn vị, công thức DA tháng 03, loại dòng, khóa khách hàng/dự án, lệch/chưa ghép chuyển kỳ và roster. Production/main chưa thay đổi.
+
+### Cập nhật lần 51 — xác minh lại release gates và kiểm kê công thức nguồn (06/11/2026)
+
+#### GD1 — trạng thái Vercel/Preview
+
+- Kiểm tra Vercel metadata chỉ đọc: deployment Production mới nhất vẫn `READY`, commit `6037661` trên `main`, URL `https://kdbt-app-dat-hang-8m0zfcwe7-vohanh19902026-droid.vercel.app`. Không tạo deployment Production và không thay đổi Production.
+- Checkout local là `codex/cencom-owner-preview` tại `03220bd`, ahead remote 1; `main` local tại `f425b38`, ahead `origin/main` 13. Không push nhánh hoặc `main` trong lần kiểm tra này.
+- Metadata env Vercel được đọc theo tên/target, không giải mã giá trị. Nhánh Preview `codex/cencom-owner-preview` có `DATABASE_URL`, `PREVIEW_DATABASE_ENDPOINT_ID`, `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET`; thiếu `PREVIEW_DATABASE_URL` mà code local hiện yêu cầu. Biến Neon Preview dùng chung ở project có một số metadata tên cần thiết, nhưng không có bằng chứng URL kết nối đã được pin đúng vào branch UAT; các biến integration `DATABASE_URL` không thay thế yêu cầu đó.
+- Deployment Preview mới nhất của nhánh đang ở `ERROR`, build của commit remote `74871e9` dừng với `Preview DATABASE_URL is invalid.` Đây là code cũ hơn commit local `03220bd`; chưa xác minh hành vi guard mới trên Vercel. Build không đạt nên chưa chạy migration/UAT. Mật khẩu role Neon bị lộ vẫn cần được chủ tài khoản xoay trước khi dùng lại DB.
+- Production env metadata không có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER` hoặc `SMTP_APP_PASSWORD`; luồng Google/reset mật khẩu chưa đủ cấu hình Production. VAPID key Production có metadata nhưng chưa có xác nhận push Android thật.
+
+#### GD2 — kiểm kê workbook và hiệu chỉnh kết luận
+
+- Đã chạy `_review_private/inventory_source_workbooks.py` ở chế độ chỉ đọc trên 9 workbook nguồn. Manifest riêng `source-workbook-inventory.json` lưu kích thước, modified UTC, SHA-256, danh sách sheet và số công thức/cache/lỗi cho đúng hai sheet `PKDBT- DA` và `PKDBT DC`; workbook nguồn không bị sửa.
+- XML xác nhận DA có tổng 18.841 công thức, toàn bộ có cached value, 0 ô lỗi; DC có 61.406, toàn bộ có cached value, 0 ô lỗi. DA tháng 03 có 4/4 công thức có cache; các tháng DA còn lại có 1.930–2.508 công thức mỗi sheet.
+- Con số trước đây “900–1.142 công thức” không cùng phạm vi đếm và đã được rút khỏi kết luận trong `docs/phase2-concrete-data-assessment.md` và checklist. Số lượng cache không chứng minh công thức hoặc số liệu đúng về nghiệp vụ; vẫn cần kế toán/kinh doanh giải thích khác biệt cấu trúc tháng 03.
+- Workbook thẩm tra vẫn chưa có quyết định/người duyệt/ngày/căn cứ; dữ liệu ứng viên chưa được nhập vào app, Preview hoặc Production.
+- Kiểm tra sâu extractor phát hiện ba công thức ở ô phụ của vùng gộp DC (tháng 03: V238, V1086; tháng 06: U1130) bị `openpyxl` bỏ qua. Extractor/normalizer riêng đã sửa để bổ sung công thức/cache từ XML và giữ Decimal chính xác; staging và workbook review đã tái tạo. Đối chiếu công thức XML↔SQLite hiện có 0 chênh lệch trên 18 sheet, `integrity_check=ok`; rollup candidate không đổi. XLSX review mới có đủ 8 tab, 15 câu hỏi `CHỜ`, 57.450 trường review trống, 0 công thức/lỗi và không còn câu Q06 dẫn khoảng cũ 900–1.142. Thao tác chỉ trên thư mục staging riêng; workbook nguồn và Production không đổi.
+
+#### Cổng tiếp theo
+
+1. Chủ tài khoản Neon xoay mật khẩu role đã lộ trong Neon; không gửi secret qua chat.
+2. Cấu hình `PREVIEW_DATABASE_URL` Preview trỏ đúng endpoint schema-only UAT và đủ metadata project/endpoint/database để guard hiện hành xác minh. Chưa đẩy `03220bd` trước khi cấu hình được xác nhận an toàn.
+3. Sau khi branch Preview mới `READY`, kiểm tra URL/deployment và guard; chạy dry-run rồi chỉ áp migration còn thiếu trên endpoint cô lập; thực hiện browser UAT và load test Preview đã được phép.
+4. Trước Production vẫn cần OAuth/SMTP, backup/PITR và restore drill, rollback, kiểm thử Android push thật và chấp thuận release.
+5. GD2 chờ người có thẩm quyền điền workbook thẩm tra và ký duyệt mapping, loại dòng, quy tắc công nợ và ngoại lệ trước khi thiết kế import.
+### Cập nhật lần 52 — kiểm tra Vercel và tái tạo end-to-end (06/11/2026)
+
+#### GD1 — trạng thái mới nhất
+
+- Kiểm tra Vercel chỉ đọc: Production vẫn `READY` trên `main` commit `6037661` (`docs: publish interactive CENCOM user handbook`); không thay đổi deployment.
+- Nhánh Preview `codex/cencom-owner-preview`: deployment mới nhất của commit remote `74871e9` vẫn `ERROR`; deployment `READY` gần nhất trong lịch sử nhánh là commit `8ca9a4e`, cũ hơn. Chưa có deployment `READY` cho commit local `03220bd`.
+- Metadata Preview theo nhánh hiện có `DATABASE_URL`, `PREVIEW_DATABASE_ENDPOINT_ID` và Google OAuth vars nhưng chưa có `PREVIEW_DATABASE_URL` theo yêu cầu của guard. Không đọc/giải mã giá trị biến. Không push nhánh, chạy migration hay UAT.
+- Metadata Production vẫn chưa có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER` và `SMTP_APP_PASSWORD`; các biến VAPID có tên trong target Production. Không xác minh nội dung key hoặc push Android thật.
+
+#### GD2 — tái tạo độc lập
+
+- Tái chạy toàn bộ pipeline trong `_review_private\validation-2026-11-06-e2e` để không ghi đè staging raw hiện đang bị Windows giữ mở. Đầu ra validation được tạo dưới ACL chỉ `HANHVO\Admin` có Full Control.
+- Đã chạy inventory 9 workbook, extraction 18 sheet/16.375 dòng/231.558 ô/80.247 công thức, normalization, review export, XLSX builder và hai audit. Rollup ứng viên giống staging bàn giao (`equal=true`); SQLite `integrity_check=ok`, XML↔SQLite `formula_cell_set_mismatches=0`; workbook 8 sheet, 15 câu hỏi `CHỜ`, 57.450 ô review trống, 0 công thức/lỗi.
+- Workbook nguồn và Production không đổi; không nhập dữ liệu vào app hay database. Bản validation tạm vẫn nằm trong thư mục private do công cụ tự động từ chối lệnh xóa đệ quy; đường dẫn và ACL đã được xác minh, không đưa dữ liệu ra ngoài thư mục riêng.
+- Một lần chạy lại trực tiếp tại chỗ không thể xóa raw SQLite đang mở (`WinError 32`). Pipeline đầy đủ vẫn được xác minh ở thư mục riêng; trước khi tái tạo đè staging bàn giao cần đóng process giữ file.
