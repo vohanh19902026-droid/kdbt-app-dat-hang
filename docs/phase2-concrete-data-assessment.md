@@ -111,3 +111,10 @@ Tái tạo ở thư mục riêng theo thứ tự: `extract_concrete_staging.py`,
 2. Kế toán/kinh doanh rà 26 lệch chuyển kỳ, 725 trường hợp ghép thiếu/trùng khóa, các cờ dữ liệu và ý nghĩa cột thay đổi; xác nhận đơn vị tiền và công thức DA tháng 03.
 3. Duyệt crosswalk khách hàng/dự án, xác định rõ quan sát khách hàng, dòng giao hàng, tổng, chuyển kỳ và điều chỉnh; lập gói nhập có lineage sau khi ký xác nhận.
 4. Tạo migration/import PostgreSQL chỉ cho dữ liệu đã duyệt, có kiểm tra tổng trước-sau, khóa idempotent và phương án rollback; không dùng Production làm nơi staging hay thẩm tra.
+
+## Cập nhật hiện trạng và artifact bàn giao (06/11/2026)
+
+- File raw mặc định `_review_private\cencom-2026-01_09-raw-staging.sqlite` hiện chỉ còn 1 workbook/tháng 01 sau lần chạy bị gián đoạn. Dù `PRAGMA integrity_check` trả `ok`, file này không đủ 9 tháng và không dùng làm nguồn bàn giao. Bản đầy đủ đã phục hồi bằng cách sao chép không ghi đè từ lần chạy kiểm chứng sang `E:\1. CENCOM 2026\1. BÁO CÁO ĐƠN VỊ\1. BÁO CÁO CÔNG NỢ\CÔNG NỢ NĂM 2026\NĂM 2026\_review_private\cencom-2026-01_09-raw-staging-verified.sqlite`.
+- Bản raw đã xác minh: 9 workbook, 18 sheet mục tiêu, 231.558 ô, 80.247 công thức; `integrity_check=ok`, tập ô công thức XML↔SQLite khớp trên cả 18 sheet. SHA-256 bản sao khớp artifact validation. SQLite normalized hiện tại có rollup bằng bản validation (`equal=true`).
+- Workbook review được dựng lại bằng `build-concrete-review.mjs`. Bảng `Business questions` hiện bật bộ lọc; các bảng roster, chứng cứ, số dư, chuyển kỳ và issue cũng có bộ lọc. `Control summary` là bảng tĩnh ngắn, không bật filter. Các tab dài giữ freeze pane ở `A2`. So sánh trước/sau xác nhận giá trị, kích thước và thứ tự tab không đổi.
+- Kiểm tra workbook cuối: 8 sheet; 15 câu hỏi `CHỜ`; 57.450 ô quyết định/người duyệt/ngày/căn cứ còn trống; 0 công thức và lỗi; không còn nhận định cũ `900–1.142`. Workbook nguồn khớp SHA-256 với manifest và chưa bị sửa. Đầu ra chưa được kế toán/kinh doanh phê duyệt và chưa được import vào ứng dụng.
