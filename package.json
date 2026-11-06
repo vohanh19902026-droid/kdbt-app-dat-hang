@@ -16,6 +16,7 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx scripts/apply-migrations.ts",
     "db:migrate:dry": "tsx scripts/apply-migrations.ts --dry",
+    "db:migrate:production": "tsx scripts/apply-migrations.ts --production",
     "db:seed": "tsx scripts/seed.ts",
     "auth:create-admin": "tsx scripts/bootstrap-admin.ts",
     "auth:bootstrap-platform-owner": "tsx scripts/bootstrap-platform-owner.ts",

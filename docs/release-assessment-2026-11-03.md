@@ -481,8 +481,10 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 
 - Kiểm tra Vercel chỉ đọc: Production vẫn `READY` trên `main` commit `6037661` (`docs: publish interactive CENCOM user handbook`); không thay đổi deployment.
 - Nhánh Preview `codex/cencom-owner-preview`: deployment mới nhất của commit remote `74871e9` vẫn `ERROR`; deployment `READY` gần nhất trong lịch sử nhánh là commit `8ca9a4e`, cũ hơn. Chưa có deployment `READY` cho commit local `03220bd`.
+- Sau khi cập nhật hồ sơ bàn giao cục bộ, checkout ahead remote 3 commit: commit code `03220bd` và hai commit tài liệu; chưa push nhánh.
 - Metadata Preview theo nhánh hiện có `DATABASE_URL`, `PREVIEW_DATABASE_ENDPOINT_ID` và Google OAuth vars nhưng chưa có `PREVIEW_DATABASE_URL` theo yêu cầu của guard. Không đọc/giải mã giá trị biến. Không push nhánh, chạy migration hay UAT.
 - Metadata Production vẫn chưa có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER` và `SMTP_APP_PASSWORD`; các biến VAPID có tên trong target Production. Không xác minh nội dung key hoặc push Android thật.
+- Kiểm tra chỉ đọc Neon Production xác nhận project `neon-cinnabar-bucket`, branch `main`, gắn Vercel deployment `6037661`; trang Backup & Restore cho biết history/PITR 6 giờ, 1 snapshot thủ công ngày 04/11/2026 không hết hạn và chưa có lịch snapshot. RPO/RTO, retention đủ dùng và restore drill chưa được xác nhận; không thay đổi Production.
 
 #### GD2 — tái tạo độc lập
 
@@ -490,3 +492,25 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Đã chạy inventory 9 workbook, extraction 18 sheet/16.375 dòng/231.558 ô/80.247 công thức, normalization, review export, XLSX builder và hai audit. Rollup ứng viên giống staging bàn giao (`equal=true`); SQLite `integrity_check=ok`, XML↔SQLite `formula_cell_set_mismatches=0`; workbook 8 sheet, 15 câu hỏi `CHỜ`, 57.450 ô review trống, 0 công thức/lỗi.
 - Workbook nguồn và Production không đổi; không nhập dữ liệu vào app hay database. Bản validation tạm vẫn nằm trong thư mục private do công cụ tự động từ chối lệnh xóa đệ quy; đường dẫn và ACL đã được xác minh, không đưa dữ liệu ra ngoài thư mục riêng.
 - Một lần chạy lại trực tiếp tại chỗ không thể xóa raw SQLite đang mở (`WinError 32`). Pipeline đầy đủ vẫn được xác minh ở thư mục riêng; trước khi tái tạo đè staging bàn giao cần đóng process giữ file.
+
+### Cập nhật lần 53 — tách migration Production khỏi build (06/11/2026)
+
+#### Bằng chứng từ Production hiện hành
+
+- Vercel Production deployment vẫn là `READY` commit `6037661`; deployment `READY` liền trước được xác minh là `c2c148f` (`kdbt-app-dat-hang-gtukpy6ds-vohanh19902026-droid.vercel.app`). Không có thao tác deploy/rollback trong lượt này.
+- Đọc log build `6037661` theo cách chỉ trích các dòng migration, không xuất DB target/credential: build Production đã chạy `db:migrate:dry` rồi `db:migrate`; `0000–0011` đều được bỏ qua, dry-run nói chưa ghi, bước apply báo 0 migration mới / 12 file tổng. Đây là hành vi của code Production đang deploy; local `main` có thêm `0012–0014`.
+- Việc build Production tự chạy dry-run trái với nguyên tắc không dùng DB Production cho dry-run, còn việc áp migration ngay trong build làm cho push `main` có thể ghi DB trước khi deployment `READY`. Không có migration mới nào được áp trong lượt này.
+
+#### Thay đổi local trên nhánh Preview
+
+- `scripts/vercel-build.mjs` không còn gọi migration khi `VERCEL_ENV=production`; production build chỉ chạy `next build`, không mở kết nối DB.
+- Production migration chuyển sang lệnh explicit `npm run db:migrate:production` (vận hành qua `vercel env run -e production -- npm run db:migrate:production`). Script yêu cầu cờ `--production`, kiểm tra `PRODUCTION_DATABASE_ENDPOINT_ID` và `PRODUCTION_DATABASE_NAME`, và từ chối `--dry` khi target là Production. Preview vẫn dùng URL riêng/endpoint guard; `--production` không dùng được trong Preview.
+- DDL `0010`, `0012`, `0013`, `0014` là bổ sung; rollback code giữ schema để tránh mất subscription, hồ sơ đăng ký, cờ owner hoặc dữ liệu review. `0011` sửa JSON danh mục và không có before-image; không có down migration chung an toàn. Runner transaction từng file; file lỗi rollback transaction hiện tại, migration trước đã commit vẫn giữ trong `_app_migrations`.
+- Đã xác minh: 66/66 tests, typecheck, lint, `npm audit` không có vulnerability. `npm run build` và giả lập `VERCEL=1 VERCEL_ENV=production npm run vercel-build` đều đạt với `DATABASE_URL` trỏ loopback cục bộ; build log giả lập không có dòng migration. `npm run db:migrate:production -- --dry` bị từ chối trước khi kết nối DB.
+- Các thay đổi mới chỉ ở local branch `codex/cencom-owner-preview`; chưa push. Việc tách migration này cần được kiểm tra trên Preview `READY` trước khi có bất kỳ cập nhật `main` nào.
+
+#### Cổng còn lại
+
+- Neon role password bị lộ chưa được xác nhận đã xoay; Preview branch chưa có `PREVIEW_DATABASE_URL`, deployment mới nhất remote còn `ERROR`. Không push candidate.
+- Production OAuth/SMTP, backup/PITR đủ RPO/RTO, restore drill trên branch riêng, browser UAT, load test và Android thật còn thiếu. Production không được coi là sẵn sàng.
+- Khi tất cả cổng đạt, migration Production chạy tường minh sau backup/restore gate và trước code deploy; không chạy dry-run trên Production. Xác minh lại deployment `READY` liền trước và quy trình rollback tại thời điểm phát hành.

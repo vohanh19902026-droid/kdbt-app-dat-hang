@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getDatabaseUrl, validatePreviewDatabase } from "../scripts/verify-preview-database.mjs";
+import { resolveMigrationTarget } from "../scripts/migration-target-policy.mjs";
 
 const expected = {
   PREVIEW_DATABASE_PROJECT_ID: "winter-river-11456796",
@@ -32,4 +33,18 @@ test("Preview selects its dedicated database URL over Neon integration variables
   const integration = "not-a-postgresql-url";
   assert.equal(getDatabaseUrl({ VERCEL_ENV: "preview", PREVIEW_DATABASE_URL: pinned, DATABASE_URL: integration }), pinned);
   assert.equal(getDatabaseUrl({ VERCEL_ENV: "production", PREVIEW_DATABASE_URL: pinned, DATABASE_URL: integration }), integration);
+});
+
+test("Production migrations require an explicit target and cannot dry-run", () => {
+  assert.equal(resolveMigrationTarget({}, ["--production"]), "production");
+  assert.equal(resolveMigrationTarget({ VERCEL_ENV: "production" }, ["--production"]), "production");
+  assert.throws(() => resolveMigrationTarget({ VERCEL_ENV: "production" }, []), /explicit --production/);
+  assert.throws(() => resolveMigrationTarget({ VERCEL_ENV: "production" }, ["--production", "--dry"]), /dry-runs are disabled/);
+  assert.throws(() => resolveMigrationTarget({}, ["--production", "--dry"]), /dry-runs are disabled/);
+});
+
+test("Preview migrations stay Preview-only and may use an isolated dry-run", () => {
+  assert.equal(resolveMigrationTarget({ VERCEL_ENV: "preview" }, []), "preview");
+  assert.equal(resolveMigrationTarget({ VERCEL_ENV: "preview" }, ["--dry"]), "preview");
+  assert.throws(() => resolveMigrationTarget({ VERCEL_ENV: "preview" }, ["--production"]), /cannot be used in a Preview/);
 });

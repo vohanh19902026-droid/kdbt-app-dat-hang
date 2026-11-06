@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process";
 import { validatePreviewDatabase } from "./verify-preview-database.mjs";
-import { validateProductionDatabase } from "./verify-production-database.mjs";
 
 function runNpm(args) {
   const npmCli = process.env.npm_execpath;
@@ -15,10 +14,6 @@ if (process.env.VERCEL === "1" && process.env.VERCEL_ENV === "preview") {
   runNpm(["run", "db:migrate"]);
 }
 
-if (process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production") {
-  validateProductionDatabase(process.env);
-  runNpm(["run", "db:migrate:dry"]);
-  runNpm(["run", "db:migrate"]);
-}
-
+// Production migrations are deliberately separate from builds. The release
+// operator must run the guarded `db:migrate:production` command after gates pass.
 runNpm(["run", "build"]);
