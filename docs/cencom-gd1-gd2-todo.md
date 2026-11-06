@@ -5,22 +5,25 @@
 **Trạng thái hiện tại:** chưa đủ điều kiện phát hành Production; chưa nhập dữ liệu kế toán vào ứng dụng.
 **Quy tắc theo dõi:** hoàn tất và có bằng chứng cho bước nào thì đánh dấu `[x]` ngay tại bước đó trong file này; cập nhật ngày/trạng thái và ghi rõ bằng chứng hoặc điều kiện còn thiếu. Không đánh dấu các bước chỉ mới dự kiến.
 
-## GD1 — một đường phát hành, các cổng bắt buộc
+## GD1 — một Preview được chọn làm ứng viên chính
 
-### Đã có
+### Đã hoàn tất
 
-- [x] Luồng Google đăng nhập, đăng ký chờ Admin duyệt và khôi phục mật khẩu qua email đã có trong `main` cục bộ (`f425b38`); Key Lạnh không nằm trong nhánh này.
-- [x] Kiểm tra cục bộ gần nhất được ghi nhận: 64/64 tests, typecheck, lint và build đạt.
-- [x] Đã chọn hướng gọn: một release candidate; không làm load test/APK thành điều kiện cho đợt web này; không tạo thêm Preview branch.
+- [x] Chọn `codex/cencom-owner-preview` làm nhánh duy nhất tiếp tục hoàn thiện; commit code hiện tại `3935b85`. Không chạy song song các Preview/nhánh khác.
+- [x] Tạo deployment `dpl_EWuzYS9zigJbQjRGd7ncQXc6JYDD` từ commit `3935b85`; trạng thái `READY`. Đã gắn alias ổn định `kdbt-app-dat-hang-git-codex-cencom-0462e1-vohanh19902026-droid.vercel.app` cho deployment này.
+- [x] Build log xác nhận DB thuộc Neon cô lập, project/endpoint/database khớp (`ep-late-breeze-b37o52e8` / `neondb`); 15 migration đã có sẵn, không áp thêm file nào. `/api/health` trả `200`, database `up`.
+- [x] Sửa Preview chỉ dùng URL Neon tích hợp sau khi kiểm tra project, endpoint và database; thêm `BETTER_AUTH_URL` chỉ cho nhánh Preview. Google callback đã dùng đúng alias ổn định; trang đăng nhập và khôi phục mật khẩu hiển thị.
+- [x] Thử Google sign-in: redirect mismatch đã hết, đăng nhập tới trang khởi tạo chủ sở hữu Preview.
 
-### Còn lại trước khi đưa bản chính thức
+### Còn lại trước Production
 
-- [ ] **Chốt một release candidate GD1.** Dùng `main` làm nền; lấy riêng phần tách migration Production khỏi build từ `codex/cencom-owner-preview` nếu cần. Không kèm tính năng import dữ liệu GD2 (`0014`) hay Key Lạnh vào đợt này.
-- [ ] **Một lần xác nhận Preview trên DB cô lập.** Xoay credential DB từng bị lộ; gắn đúng URL tới Neon UAT hiện hành; chạy migration cần thiết và kiểm tra gọn luồng đăng ký-chờ duyệt, Admin duyệt, đăng nhập và email khôi phục. Không dùng Production cho bước này.
-- [ ] **Xác nhận cấu hình Production tối thiểu.** Google OAuth và SMTP cần có đủ biến môi trường; xác minh đường lui khôi phục từ snapshot đã có. Hiện Production thiếu biến OAuth/SMTP; snapshot tồn tại nhưng chưa diễn tập khôi phục.
-- [ ] **Phát hành một lần.** Khi các cổng trên đạt: đưa release candidate lên `main`, áp migration có chủ đích, chờ deployment `READY`, xác nhận đăng nhập/đăng ký/khôi phục trên Production và ghi commit/deployment vào checklist.
+- [ ] Hoàn tất khởi tạo `SUP-ADMIN` trên Preview. Nút sẽ cấp quyền chủ sở hữu tối cao cho tài khoản Google hiện tại trong DB cô lập; đang chờ xác nhận ngay trước hành động.
+- [ ] Xoay role credential Neon đã từng lộ; đổi mật khẩu cần chủ tài khoản thao tác trong Neon. Không dùng credential hiện tại để phát hành Production.
+- [ ] SMTP chưa có cấu hình Preview; chưa kiểm thử gửi email khôi phục. Production cũng chưa có biến Google OAuth/SMTP cần thiết.
+- [ ] Sau khi có SUP-ADMIN và SMTP Preview: kiểm tra Admin duyệt tài khoản đăng ký mới, gửi email khôi phục, rồi đánh giá lại đường khôi phục Production trước khi đưa commit lên `main`.
+- [ ] Production chưa thay đổi. Snapshot restore tồn tại nhưng chưa diễn tập; chỉ chuyển alias/traffic Production sau khi các mục bắt buộc trên đạt.
 
-> Các lần kiểm tra Preview, migration và Neon đã ghi ở release assessment là bằng chứng lịch sử; không lặp lại. Chỉ cập nhật checklist khi có kết quả mới.
+> Android/APK và load test không thuộc cổng của đợt web này. Không xóa nhánh chứa thay đổi chưa nhập vào release hoặc nhánh khôi phục dữ liệu Production.
 
 
 ## GD2 — chuẩn hóa dữ liệu bê tông và thẩm tra
