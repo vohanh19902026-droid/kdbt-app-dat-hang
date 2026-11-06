@@ -1,58 +1,27 @@
-﻿# CENCOM GD1/GD2 — danh sách theo dõi công việc
+# CENCOM GD1/GD2 — danh sách theo dõi công việc
 
 **Cập nhật:** 06/11/2026
 **Phạm vi:** phát hành GD1 an toàn; hoàn thiện hồ sơ dữ liệu công nợ/bán hàng GD2.
 **Trạng thái hiện tại:** chưa đủ điều kiện phát hành Production; chưa nhập dữ liệu kế toán vào ứng dụng.
 **Quy tắc theo dõi:** hoàn tất và có bằng chứng cho bước nào thì đánh dấu `[x]` ngay tại bước đó trong file này; cập nhật ngày/trạng thái và ghi rõ bằng chứng hoặc điều kiện còn thiếu. Không đánh dấu các bước chỉ mới dự kiến.
 
-## GD1 — hoàn tất luồng và phát hành
+## GD1 — một đường phát hành, các cổng bắt buộc
 
-### Đã thực hiện
+### Đã có
 
-- [x] Đã phát triển luồng Google sign-in, đăng ký chờ Admin duyệt, hoàn tất hồ sơ và khôi phục mật khẩu qua email trong `main` cục bộ. Migration đăng ký là `0012_google_registration_approval.sql`; commit Key Lạnh không nằm trong danh sách commit của `main` hiện tại.
-- [x] Kết quả kiểm tra cục bộ mới nhất được ghi trong cập nhật release 49: 64/64 tests, typecheck, lint, build đạt. Phải chạy lại trên release candidate cuối trước phát hành.
-- [x] Kiểm tra Vercel chỉ đọc ngày 06/11: deployment Production mới nhất hiện `READY`, vẫn là bản đang chạy; chưa tạo deployment mới trong lượt này.
-- [x] Đối chiếu lại Vercel ngày 06/11: Production `READY` ở commit `6037661`; Preview mới nhất của nhánh mục tiêu `ERROR` ở `74871e9`, nhánh chưa có `PREVIEW_DATABASE_URL`; chỉ xem tên/target, không giải mã secret.
-- [x] Đối chiếu lại read-only Vercel ngày 06/11: Production mới nhất `dpl_GEzr5DWujDfgerJE2iompH5PQuHU` là `READY` trên `main` commit `6037661`. Preview mới nhất `dpl_CniJ3gj17CNGKHs8puSPUzhGd84P` là `ERROR` trên commit remote `74871e9`; log báo `Preview DATABASE_URL is invalid`. Preview `dpl_EwCkgGt1Lpi5igSpC3xciKdNGGvh` bị guard chặn vì endpoint không khớp. Metadata theo nhánh có `DATABASE_URL`, `PREVIEW_DATABASE_ENDPOINT_ID`, Google OAuth, nhưng không có `PREVIEW_DATABASE_URL` mà code local hiện yêu cầu. Ba Preview gần nhất đều lỗi; một deployment cũ hơn còn `READY`, chưa có deployment cho candidate local. Chỉ đọc metadata tên/target và log lỗi đã lọc; không giải mã biến, kết nối DB hay chạy migration.
-- [x] Đối chiếu lại Git: local `main` ở `f425b38`, ahead `origin/main` 13 commit; các commit Key Lạnh `c634bc0`, `f149d49`, `cca7aea` không thuộc `main`; migration đánh số liên tục qua `0012_google_registration_approval.sql`.
-- [x] Kiểm tra read-only Neon Production: project `neon-cinnabar-bucket`, branch `main`, gắn deployment `6037661`; PITR hiển thị 6 giờ, 1 snapshot thủ công ngày 04/11 không hết hạn, chưa có lịch snapshot. Không tạo snapshot hoặc đổi cấu hình Production.
-- [x] Đọc build log của Production `6037661` mà không in giá trị DB: migrations `0000–0011` đều được bỏ qua, dry-run báo chưa ghi, bước apply có 0 file mới (12 file tổng). Log xác nhận code Production đang chạy dry-run/apply trong build; local `main` hiện có `0012–0013`, candidate mới thêm `0014`.
-- [x] Rà DDL/rollback `0010–0014` và runner: từng file chạy transaction riêng, không có down migration an toàn cho cập nhật data `0011`; schema/additive data cần được giữ khi rollback code, ưu tiên forward-fix/restore sang branch riêng.
-- [x] Tách Production migration khỏi Vercel build trong release candidate; thêm lệnh explicit `db:migrate:production` có endpoint/database guard và chặn Production dry-run. Kiểm tra lệnh dry-run bị từ chối trước DB; giả lập `VERCEL_ENV=production` với DB loopback build thành công và không gọi migration.
-- [x] Đã tắt cấu hình tự tạo DB branch cho mọi Preview deployment. Neon–Vercel chỉ chọn Preview; Production không chọn; `Require Active Resource` và `Sensitive` đang bật.
-- [x] Đã chuẩn bị branch Neon schema-only `uat/notifications-scale-android`. Baseline và migration `0011–0014` trong báo cáo trước thuộc branch ID cũ `br-small-voice-b30e2cqk`; Console hiện cho thấy branch cùng tên nhưng ID mới `br-sparkling-fog-b3olxzet`. Không coi migration/registry cũ là đã có trên branch hiện tại; phải xác minh từ đầu trước UAT.
-- [x] Đã bổ sung kiểm tra endpoint DB Preview trong code để deployment dừng trước migration nếu endpoint không đúng.
-- [x] Kiểm tra lại ancestry/migration ngày 06/11: `main` local `f425b38` có migrations liên tục `0000–0013`; candidate `929a9ef` có thêm `0014_legacy_concrete_review.sql`. Ba commit Key Lạnh `c634bc0`, `f149d49`, `cca7aea` không nằm trong ancestry của `main` hoặc candidate.
-- [x] Xác minh chỉ đọc Neon Preview ngày 06/11: project `cencom-preview-isolated` (`winter-river-11456796`), branch schema-only `uat/notifications-scale-android` (`br-sparkling-fog-b3olxzet`), database `neondb`, endpoint `ep-late-breeze-b37o52e8`; compute đang `SUSPENDED`, trang branch hiển thị hết hạn `2026-11-06 16:37`. Không mở connection detail/secret, không kết nối DB và không chạy migration.
-- [x] Xác minh chỉ đọc Neon Production ngày 06/11: project `neon-cinnabar-bucket` (`purple-shadow-60251840`), branch `main` (`br-curly-sun-aohw9l6e`), History window 6 giờ. Branch khôi phục từ snapshot 04/11 (`branch_from_snapshot_Nov 4, 2026 5:31 PM GMT+7`, `br-sweet-moon-aoqjdwrf`) còn tồn tại; UI ghi restore thành công sang branch riêng và branch này hiển thị không hết hạn. Chưa kết nối hoặc đối chiếu dữ liệu.
-- [x] Kiểm tra lại Android toolchain theo config Bubblewrap trong tiến trình riêng: Temurin JDK `17.0.20.1`, Bubblewrap `1.27.0`, `bubblewrap doctor` đạt; ADB không liệt kê thiết bị Android kết nối. Không sinh APK/keystore.
-- [x] Commit hai tài liệu TODO/release assessment dạng docs-only trên `codex/cencom-owner-preview`; không push, không đổi code hoặc secrets, không tạo deployment.
+- [x] Luồng Google đăng nhập, đăng ký chờ Admin duyệt và khôi phục mật khẩu qua email đã có trong `main` cục bộ (`f425b38`); Key Lạnh không nằm trong nhánh này.
+- [x] Kiểm tra cục bộ gần nhất được ghi nhận: 64/64 tests, typecheck, lint và build đạt.
+- [x] Đã chọn hướng gọn: một release candidate; không làm load test/APK thành điều kiện cho đợt web này; không tạo thêm Preview branch.
 
-### Còn phải làm
+### Còn lại trước khi đưa bản chính thức
 
-- [ ] **Xoay mật khẩu role DB Neon bị lộ.** Thực hiện trực tiếp trong Neon. Không gửi mật khẩu/connection string qua chat.
-- [ ] **Cấu hình Vercel Preview đúng đích DB cô lập.** Metadata theo nhánh hiện có `DATABASE_URL`, `PREVIEW_DATABASE_ENDPOINT_ID` và Google OAuth, nhưng chưa có `PREVIEW_DATABASE_URL` mà `scripts/verify-preview-database.mjs` yêu cầu. Preview mới nhất vẫn build từ commit remote cũ `74871e9` và dừng với `Preview DATABASE_URL is invalid`; log một Preview trước đó cho thấy endpoint không khớp. Cấu hình `PREVIEW_DATABASE_URL` riêng trỏ đúng endpoint UAT, rồi xác minh project/endpoint/database qua metadata an toàn; không dùng `DATABASE_URL` integration chưa xác minh.
-- [ ] Sau khi credential được xoay và Vercel secret được cấu hình, xác nhận `PREVIEW_DATABASE_URL`, `PREVIEW_DATABASE_PROJECT_ID`, `PREVIEW_DATABASE_NAME` và `PREVIEW_DATABASE_ENDPOINT_ID` đồng khớp đúng target Neon UAT vừa kiểm tra (`ep-late-breeze-b37o52e8` / `neondb`), rồi kiểm tra guard. Branch hiện có thời hạn hiển thị 06/11 16:37 và compute suspended; trước deploy phải xác nhận branch còn hiệu lực. Không kết nối Neon `main`/Production.
-- [ ] Sau khi DB secret được xoay và biến Preview được cấu hình, đẩy nhánh `codex/cencom-owner-preview` (code candidate `da7f906`, nhánh local ahead remote 4 commit sau cập nhật hồ sơ; chưa push) và tạo deployment Preview mới. Chỉ tiếp tục nếu deployment `READY`, đúng alias và endpoint guard đạt.
-- [ ] Chạy migration dry-run trên DB UAT đã xác nhận. Áp dụng **chỉ migration còn thiếu** nếu có; không chạy lại toàn bộ migration đã có baseline.
-- [ ] Xác nhận Google OAuth origin/callback khớp đúng URL Preview duy nhất; chạy browser UAT: đăng nhập Google, đăng ký mail mới, hoàn tất hồ sơ, trạng thái chờ duyệt, Admin duyệt/đổi role, đăng xuất/đăng nhập và quên mật khẩu.
-- [ ] Cấu hình SMTP riêng cho Preview bằng secret manager rồi thử email xác minh/đặt lại mật khẩu. Không ghi secret vào repo, log hoặc chat.
-- [ ] Chạy browser UAT theo các role và load test read-only trên deployment Preview `READY`; lưu evidence không chứa secrets hoặc PII không cần thiết.
-- [x] Kiểm tra read-only Vercel Production variables theo tên/target ngày 06/11, không giải mã secret: chưa có `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER` hoặc `SMTP_APP_PASSWORD`.
-- [ ] Sau khi Preview UAT đạt và chủ hệ thống chốt cấu hình mail/OAuth, cấu hình Google OAuth và SMTP cho Production trong Vercel Secret Manager; xác minh callback/domain và gửi mail kiểm chứng theo release window.
-- [ ] Chủ nghiệp vụ xác nhận RPO/RTO và yêu cầu retention; Production đang ở PITR 6 giờ. Nhánh khôi phục từ snapshot 04/11 đã được Neon xác nhận tạo thành công, nhưng chưa đối chiếu tính toàn vẹn với thời điểm snapshot hay đo thời gian khôi phục. Xác nhận snapshot schedule/retention trong Console; quyết định xử lý nhánh khôi phục `br-sweet-moon-aoqjdwrf` đang giữ bản sao dữ liệu Production và không hết hạn. Không dùng Production để UAT hoặc thử restore lên nhánh `main`.
-- [ ] Thử Web Push trên Android thật với key Preview riêng; xác nhận key Production riêng. Chưa có thiết bị kết nối. TWA/APK còn chờ chốt applicationId/chủ chứng thư ký, Digital Asset Links và qua release gate GD1.
-- [x] Xác minh local candidate `da7f906`: 66/66 tests, typecheck, lint, build, `npm audit` và giả lập Production build đạt; lệnh Production dry-run bị chặn trước DB. Kiểm tra ancestry xác nhận ba commit Key Lạnh không nằm trong nhánh candidate.
-- [ ] Sau khi các cổng và backup/PITR đạt, chủ tài khoản chạy migration Production tường minh bằng `vercel env run -e production -- npm run db:migrate:production` rồi xác nhận migration log. Build Vercel Production không tự migrate; không chạy Production dry-run.
-- [ ] Chỉ sau khi mọi cổng trên có evidence mới chốt release commit trên `main`, kế hoạch PR/push, migration Production, cửa sổ phát hành và rollback. `main` local hiện ahead `origin/main` **13 commits**; candidate trên `codex/cencom-owner-preview` và các cập nhật hồ sơ vẫn chỉ ở local, chưa push.
+- [ ] **Chốt một release candidate GD1.** Dùng `main` làm nền; lấy riêng phần tách migration Production khỏi build từ `codex/cencom-owner-preview` nếu cần. Không kèm tính năng import dữ liệu GD2 (`0014`) hay Key Lạnh vào đợt này.
+- [ ] **Một lần xác nhận Preview trên DB cô lập.** Xoay credential DB từng bị lộ; gắn đúng URL tới Neon UAT hiện hành; chạy migration cần thiết và kiểm tra gọn luồng đăng ký-chờ duyệt, Admin duyệt, đăng nhập và email khôi phục. Không dùng Production cho bước này.
+- [ ] **Xác nhận cấu hình Production tối thiểu.** Google OAuth và SMTP cần có đủ biến môi trường; xác minh đường lui khôi phục từ snapshot đã có. Hiện Production thiếu biến OAuth/SMTP; snapshot tồn tại nhưng chưa diễn tập khôi phục.
+- [ ] **Phát hành một lần.** Khi các cổng trên đạt: đưa release candidate lên `main`, áp migration có chủ đích, chờ deployment `READY`, xác nhận đăng nhập/đăng ký/khôi phục trên Production và ghi commit/deployment vào checklist.
 
-### Chủ sở hữu cần phối hợp
+> Các lần kiểm tra Preview, migration và Neon đã ghi ở release assessment là bằng chứng lịch sử; không lặp lại. Chỉ cập nhật checklist khi có kết quả mới.
 
-- Chủ tài khoản Neon: xoay role password.
-- Chủ Vercel: thêm `PREVIEW_DATABASE_URL` Preview theo nhánh và các secret Preview cần thiết.
-- Admin/đầu mối OAuth: kiểm tra test user, callback và luồng Google.
-- Đầu mối mail: cấu hình/kiểm tra SMTP Preview và Production.
-- Chủ nghiệp vụ/IT: xác nhận RPO/RTO, restore và rollback.
 
 ## GD2 — chuẩn hóa dữ liệu bê tông và thẩm tra
 
