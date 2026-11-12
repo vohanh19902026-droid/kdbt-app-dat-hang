@@ -144,3 +144,8 @@ Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy 
 - [x] Đẩy trạng thái bàn giao lên GitHub nhánh `handoff/cencom-2026-11-12` để không kích hoạt tự deploy Production từ `main`. `main` trên GitHub chưa đổi; Production vẫn giữ bản đã rollback.
 - [x] Không đưa `.env.local` hoặc dữ liệu nguồn/raw staging vào Git.
 - [ ] Sau khi migration Production được xác minh và phát hành được duyệt, mới chuyển trạng thái bàn giao sang nhánh chính/Production. Hiện phiên bản 20 dòng có trên GitHub nhưng chưa chạy trên Production.
+
+### Cập nhật lần 68 — tài liệu giao việc cho AI tiếp theo (12/11/2026)
+
+- [x] Soạn [AI handoff](AI-HANDOFF.md) gồm ref/commit nhận việc, nội dung đã có, trạng thái Production/DB đã biết, việc cần làm theo thứ tự và giới hạn xử lý dữ liệu GD2.
+- [x] Kiểm tra đường dẫn các file kỹ thuật được dẫn trong tài liệu; không đưa secrets, workbook nguồn hoặc dữ liệu staging vào repo.
