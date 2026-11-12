@@ -149,3 +149,22 @@ Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy 
 
 - [x] Soạn [AI handoff](AI-HANDOFF.md) gồm ref/commit nhận việc, nội dung đã có, trạng thái Production/DB đã biết, việc cần làm theo thứ tự và giới hạn xử lý dữ liệu GD2.
 - [x] Kiểm tra đường dẫn các file kỹ thuật được dẫn trong tài liệu; không đưa secrets, workbook nguồn hoặc dữ liệu staging vào repo.
+
+### Cập nhật lần 69 — review sơ bộ code & security (12/11/2026; phạm vi hiệu chỉnh lần 70)
+
+- [~] Review 8 file rủi ro cao, không phải toàn bộ 63 file thay đổi. Không kết luận toàn hệ thống không có bug.
+- [x] Quét pattern secret trong `src/`, `scripts/`, `drizzle/`: không có giá trị hardcode khớp pattern; đây không thay thế secret scanner toàn diện.
+- [x] Kiểm tra `.gitignore` có quy tắc cho `.env*`, `node_modules/`, `.next/`, `.vercel/`, `*.tsbuildinfo`.
+- [ ] Error handling chưa được audit ở mọi API route; các handler không có `try/catch` cần đánh giá riêng, không thể khẳng định “đầy đủ” từ review mẫu.
+- [~] Validation và security được rà một số route/policy; chưa audit toàn bộ input, IDOR và CSRF coverage.
+- [x] P0 quality gates được chạy lại trong phiên 12/11: 66/66 tests, typecheck, lint, build và `npm audit --omit=dev --audit-level=moderate` đạt; `git diff --check` được chạy ở cuối lượt cập nhật.
+- [ ] Chưa deploy Production; migration `0013_platform_owner.sql` và kiểm tra live còn là cổng riêng.
+
+### Cập nhật lần 70 — giao diện public, E2E và lỗi reset-password (12/11/2026)
+
+- [x] Thêm Playwright config/script và 6 E2E checks cho trang đăng nhập, quên/đặt lại mật khẩu, trạng thái busy/error bằng API mock, responsive login 375/414px và redirect khi chưa đăng nhập. Chromium đã cài; `npm run test:e2e`: 6/6 pass.
+- [x] E2E phát hiện `/reset-password` chưa nằm trong danh sách public của `src/proxy.ts`; email reset mở khi chưa có session sẽ bị chuyển về `/login`. Đã cho phép route reset-password public; test xác nhận form mở và báo lỗi thân thiện khi thiếu token.
+- [~] Kiểm chứng ở local với API mock và DB URL giả `127.0.0.1:65432`; không kết nối DB, không gửi email, không đăng nhập Google, không sửa Vercel env hay Production.
+- [~] `/orders` và `/admin/settings` chỉ xác minh redirect khi signed-out; chưa kiểm tra render/role thật vì không có DB test cô lập.
+- [~] Vercel env metadata (decrypt=false): OAuth và biến SMTP cơ bản chỉ gắn Preview branch `codex/cencom-owner-preview`; không thấy `SMTP_APP_PASSWORD`. VAPID variable names tồn tại ở Preview/Production nhưng key validity/send chưa xác minh. Không đổi env.
+- [ ] Google/SMTP/VAPID end-to-end chưa test thật trong Preview. CRUD, tìm khách, phân quyền theo role E2E chờ test DB/fixtures cô lập.

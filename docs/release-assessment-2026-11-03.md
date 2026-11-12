@@ -600,3 +600,59 @@ Không có dữ liệu thử, secret, connection string hoặc token nào đư�
 - Chạy `audit_review_workbook.py` trên `cencom-2026-01_09-human-review.xlsx`: 8 sheet, 15 câu hỏi `CHỜ`, 57.450/57.450 trường review trống, 0 công thức/lỗi công thức. Chạy `compare_candidate_rollups.py` so với DB kiểm chứng: `equal=true`, 4.411 khóa ứng viên, 8.243 quan sát, 15.123 hoạt động ứng viên, 26 variance và 725 ghép mơ hồ. Đây không phải phê duyệt giao dịch hay số dư.
 - Đọc manifest rồi tính lại SHA-256/kích thước/mtime của 9 workbook nguồn hiện tại, không trích xuất nội dung thêm: 9/9 tệp tồn tại, hash và kích thước khớp; mtime khớp manifest trong ngưỡng 2 giây. Workbook nguồn không bị ghi.
 - Kết quả chỉ xác nhận tính toàn vẹn kỹ thuật/tái lập. 15 câu hỏi vẫn `CHỜ`; trường duyệt trống; kế toán/kinh doanh chưa xác nhận đơn vị, quy tắc loại dòng hoặc crosswalk. Chưa tạo gói import hoặc ghi dữ liệu vào app/Preview/Production.
+
+### Cập nhật lần 69 — review sơ bộ code & security (12/11/2026; phạm vi hiệu chỉnh lần 70)
+
+#### Local quality gates
+
+- `npm run test`: 66/66 pass.
+- `npm run typecheck`: pass.
+- `npm run lint`: pass.
+- `npm run build`: pass (Next.js 16.4.3).
+- `git diff --check`: clean.
+- `npm audit --omit=dev --audit-level=moderate`: 0 vulnerabilities.
+
+#### Code review có trọng điểm (8 files rủi ro cao trong 63 files thay đổi)
+
+- Review 8 files quan trọng nhất: `auth.ts`, `platform-owner-policy.ts`, `bootstrap-owner/route.ts`, `customers/lookup/route.ts`, `email.ts`, `session.ts`, `admin/users/route.ts`, `legacy/debt/route.ts`.
+- **Kết quả:** Không phát hiện vấn đề trong phần được xem; chưa review đủ 63 file và không kết luận toàn hệ thống không có bug.
+- **Ghi chú kỹ thuật:**
+  - `auth.ts`: Thêm Google OAuth, password reset (30 phút expires, revoke sessions), account linking, database hooks cho pending registration (`appRole: "SALES"`, `isActive: false`).
+  - `platform-owner-policy.ts`: RBAC logic chặt chẽ — `canCreateRole()`, `canPatchUserAuthority()`, `canResetUserPassword()` tách biệt platform owner vs admin.
+  - `bootstrap-owner/route.ts`: Transaction với row lock (`for("update")`), audit trail (`adminAuditEvents`), giới hạn môi trường Preview.
+  - `customers/lookup/route.ts`: Giới hạn 30 kết quả, giới hạn scope role SALES và escape ký tự wildcard `%_\`.
+  - `email.ts`: Timeout (10s connection/greeting, 15s socket), error handling không leak SMTP errors, `transporter.close()` trong finally.
+  - `session.ts`: Sử dụng React `cache()` để tránh duplicate queries trong cùng render pass.
+
+#### Security review
+
+- **RBAC (#21):** `platform-owner-policy.ts` + `platform-owner-bootstrap-policy.ts` — fail-closed, chỉ platform owner được tạo/cấp ADMIN.
+- **IDOR (#22):** Đã rà một số route; `admin/users/route.ts` kiểm tra `target.isPlatformOwner` và `canPatchUserAuthority()`. Chưa audit mọi API read/write.
+- **CSRF (#23):** `isCrossOriginRequest()` xuất hiện ở **39 locations**; chưa đối chiếu với toàn bộ route mutation.
+- **XSS (#24):** Quét `dangerouslySetInnerHTML` trong `src/` — **0 match**.
+- **Rate limiting (#25):** `auth.ts` — `/sign-in/email`: 5 attempts/60s; `/request-password-reset`: 3 attempts/300s.
+
+#### Secret scan (#8)
+
+- Quét `src/`, `scripts/`, `drizzle/` với pattern `(api_key|apikey|secret|password|token)\s*[=:]\s*["'][^"']{8,}` — **0 match**.
+- `.env.example` có placeholder trống cho `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_USER`, `SMTP_APP_PASSWORD`.
+
+#### .gitignore (#9)
+
+- Cover: `node_modules/`, `.next/`, `.vercel/`, `.env` và `.env.*` (trừ `.env.example`), `*.tsbuildinfo`.
+- **Kết quả:** Không có file nhạy cảm nào bị track.
+
+#### Kết luận
+
+- Đây là review có trọng điểm, không phải security audit đầy đủ; error handling, input validation, IDOR và CSRF coverage toàn app còn mở.
+- Production vẫn `READY` tại commit `6037661`; migration `0013_platform_owner.sql` chưa áp (xem AI-HANDOFF.md Phase 1).
+- Chưa push `main`, chưa deploy Production.
+
+### Cập nhật lần 70 — E2E public UI và sửa route xác minh mật khẩu (12/11/2026)
+
+- Tạo `playwright.config.ts`, script `npm run test:e2e`, và `tests/e2e/public-auth-ux.spec.ts`. Chạy local Chromium: **6/6 pass** trên public auth pages, mock sign-in/reset responses, mobile viewport 375/414px và signed-out redirects. Dev server dùng URL DB giả `127.0.0.1:65432`; không kết nối database.
+- Test tìm được lỗi: `/reset-password` bị `src/proxy.ts` chuyển về `/login` nếu user chưa đăng nhập. Đã thêm route này vào danh sách public; test reset form mở và báo liên kết thiếu/không hợp lệ đạt.
+- Local checks sau sửa: `npm run test` 66/66; `npm run typecheck`, `npm run lint`, `npm run build` đạt; `npm audit --omit=dev --audit-level=moderate` báo 0 vulnerabilities.
+- Chưa kiểm thử booking/admin render, customer lookup, CRUD hoặc phân quyền theo role vì cần database/session test cô lập. Chưa gửi email, gọi Google OAuth thật, sửa Preview/Production env hay triển khai.
+- Vercel env metadata ở chế độ không giải mã: Google OAuth và các biến SMTP cơ bản chỉ được khai báo cho Preview branch `codex/cencom-owner-preview`; không thấy `SMTP_APP_PASSWORD`. Tên biến VAPID có ở Preview/Production, nhưng chưa xác minh giá trị hoặc gửi push.
+- **Release status không đổi:** code mới chưa lên Production; lỗi schema `user.is_platform_owner` và migration `0013_platform_owner.sql` vẫn cần xử lý theo AI-HANDOFF trước khi phát hành.
