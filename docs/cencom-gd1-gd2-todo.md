@@ -137,3 +137,10 @@ Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy 
 - [x] Rollback alias Production về deployment ổn định `dpl_GEzr5DWujDfgerJE2iompH5PQuHU`; browser xác nhận `/orders` mở lại. Production hiện không chạy giới hạn 20 dòng.
 - [x] Đo Production sau rollback bằng phiên trình duyệt đã đăng nhập, ngày 09/11 không có booking: 3 lượt tải hoàn chỉnh mất 3.064, 3.292 và 3.084 giây (trung vị 3.084 giây). Đây là mã cũ và ngày không có dòng; không phải benchmark tải booking 20 dòng.
 - [ ] Đang chờ người dùng nhập mã xác minh trực tiếp tại tab Vercel đang mở. Browser policy chặn đọc Gmail trong phiên này; Gmail connector không cung cấp nội dung mã. Không gửi mã vào chat. Sau khi xác minh, đối chiếu endpoint Production với Neon, áp migration cần thiết qua đích đã xác minh, redeploy 20 dòng và đo lại.
+
+### Cập nhật lần 67 — đưa mã nguồn lên GitHub bàn giao (12/11/2026)
+
+- [x] Gộp sửa đổi phân trang 20 booking, tìm khách qua API server, khử truy vấn lặp theo request và checklist vào commit `1ace62e`.
+- [x] Đẩy trạng thái bàn giao lên GitHub nhánh `handoff/cencom-2026-11-12` để không kích hoạt tự deploy Production từ `main`. `main` trên GitHub chưa đổi; Production vẫn giữ bản đã rollback.
+- [x] Không đưa `.env.local` hoặc dữ liệu nguồn/raw staging vào Git.
+- [ ] Sau khi migration Production được xác minh và phát hành được duyệt, mới chuyển trạng thái bàn giao sang nhánh chính/Production. Hiện phiên bản 20 dòng có trên GitHub nhưng chưa chạy trên Production.
