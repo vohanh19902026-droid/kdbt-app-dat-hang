@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { appSettings } from "@/db/schema";
@@ -38,7 +39,7 @@ export function normalizeAppSettings(value: unknown): AppSettings {
   return { ...defaultAppSettings, ...settings, catalog, catalogArchived: normalizeArchivedProductCatalog(settings.catalogArchived, catalog) };
 }
 
-export async function getAppSettings(): Promise<AppSettings> {
+export const getAppSettings = cache(async function getAppSettings(): Promise<AppSettings> {
   try {
     const [row] = await db.select({ values: appSettings.values }).from(appSettings).where(eq(appSettings.id, "default")).limit(1);
     if (row?.values && typeof row.values === "object") return normalizeAppSettings(row.values);
@@ -46,4 +47,4 @@ export async function getAppSettings(): Promise<AppSettings> {
     // Keep app pages available while the settings migration is being rolled out.
   }
   return defaultAppSettings;
-}
+});

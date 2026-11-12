@@ -94,3 +94,46 @@ Người dùng chấp nhận GD1 ở mức demo khoảng 98%, với hai ngoại 
 - [x] Gộp 42 commit local thành một commit chốt trên `main` dựa trên `origin/main`; working tree sạch và `main` ahead một commit. Không tạo nhánh release mới, chưa push/deploy. Việc gom lịch sử không đồng nghĩa với phát hành Production.
 
 Không đánh dấu GD2 hoàn tất khi kế toán/kinh doanh chưa duyệt quy tắc, ngoại lệ và crosswalk. Các commit Key Lạnh trên `codex/google-auth-preview` không thuộc `main`.
+
+### Cập nhật lần 62 — đánh giá Production trực tiếp (09/11/2026)
+
+- Vercel xác nhận domain Production `kdbt-app-dat-hang-five.vercel.app` đang trỏ deployment `dpl_GEzr5DWujDfgerJE2iompH5PQuHU`, `READY`, commit `6037661e9d996f212604f4b337dca44ccc7d5d91` (`docs: publish interactive CENCOM user handbook`). Git local vẫn `main` ahead `origin/main` 1 commit (`698ede0`); commit release chưa được đẩy nên chưa thể là code Production.
+- Kiểm tra live ngày 09/11: `/api/health` trả HTTP 200, `status=ok`, `database=up`, `latencyMs=2136`; `/login` trả trang đăng nhập tài khoản do Admin cấp. Đây chỉ xác nhận trang và health endpoint, không phải UAT toàn vai trò.
+- Metadata môi trường Vercel (không giải mã secret): Google OAuth, SMTP và VAPID chỉ được khai báo cho Preview; không thấy biến SMTP App Password. Production thiếu cấu hình Google sign-in, email đặt lại mật khẩu và Web Push.
+- Log Vercel 7 ngày có 3.292 lỗi truy cập `app_notifications` (lần cuối 05/11) và lỗi `usage_events`; log 24 giờ gần nhất chỉ có cảnh báo SSL mode, không có bằng chứng UAT chức năng mới. Không coi log cũ là lỗi đang tái diễn, nhưng đây là bằng chứng luồng thông báo từng thiếu migration.
+- Neon Production đã nhận dữ liệu history review-only (1 batch, 22 NVKD, 4.411 entity, 8.243 quan sát); toàn bộ 8.243 quan sát vẫn `PENDING_HUMAN_REVIEW` / `UNCONFIRMED_SOURCE_UNIT`, không phải khách hàng/công nợ nghiệp vụ đã duyệt. Code Production hiện hành không có màn tra cứu history tương ứng.
+- **Kết luận bàn giao:** chưa đủ điều kiện bàn giao sử dụng chính thức cho các đơn vị. Có thể mở demo/pilot giới hạn các luồng cũ nếu tài khoản cấp sẵn và người dùng xác nhận nghiệp vụ ngoài app; không dùng làm hệ thống xác thực Gmail/khôi phục mật khẩu, thông báo push hoặc tra cứu lịch sử công nợ. Cổng còn mở: phát hành commit chốt, áp và xác minh migrations 0011–0013 cùng app migration state, kiểm tra đăng nhập/booking/quyền theo vai trò trên Production, cấu hình và thử OAuth/email/Push Production, và chốt quy trình phục hồi ứng dụng trước khi coi là bàn giao vận hành.
+
+### Cập nhật lần 63 — rà soát tốc độ mở trang (09/11/2026)
+
+- Đo trực tiếp từ máy làm việc, chưa đăng nhập: `/login` lần đầu 1.624 ms, hai lần sau 124–126 ms (CDN `HIT`); `/orders` trả redirect đăng nhập 359 ms rồi 118–137 ms; `/api/health` lần đầu 2.218 ms, hai lần sau 586–587 ms (`MISS`, có truy vấn DB). Đây không phải phép đo booking page sau đăng nhập; cần đo lại bằng trình duyệt đã đăng nhập sau khi phát hành.
+- Đọc code thấy workspace layout và trang `/orders` gọi lặp `getSession()` và `getAppSettings()` trong cùng lần render; bảng booking tải tối đa 2.000 booking và toàn bộ khách hàng đang hoạt động. Theo hướng dẫn Next.js 16 trong `node_modules/next/dist/docs/01-app/02-guides/caching-without-cache-components.md`, dùng React `cache` để khử lặp truy vấn ORM trong một render pass.
+- Đã bọc `getSession` và `getAppSettings` bằng React `cache` ở source local để giảm truy vấn lặp trong request; cache chỉ theo request, không chia dữ liệu đăng nhập/cài đặt giữa người dùng. Chưa chạy test/typecheck theo yêu cầu hiện hành và chưa deploy nên Production chưa được hưởng thay đổi này.
+- [x] Triển khai cục bộ phân trang booking, hiện đặt 20 dòng mỗi trang, lọc trạng thái và tìm booking/khách/địa chỉ ở truy vấn server; tổng số và KPI lấy aggregate cho cả ngày. Bộ chọn khách không tải toàn bộ danh bạ, tìm tối đa 30 kết quả qua `/api/customers/lookup` sau khi nhập ít nhất 2 ký tự; NVKD chỉ tìm khách được giao hoặc chưa giao. Không thêm migration.
+- [ ] Sau khi phát hành, đo bằng tài khoản thật: thời gian render lần đầu và tải lại, số booking/khách gửi về, thời gian API/truy vấn DB, cold vs warm start. Chưa có phép đo lại trên deployment; Production chưa đổi.
+
+### Cập nhật lần 64 — phân trang dữ liệu booking (09/11/2026)
+
+- [x] Trang booking hiện chỉ tải tối đa 40 dòng; điều hướng Trước/Tiếp, tìm kiếm và trạng thái được áp dụng phía server và giữ trong URL. Bảng điều phối, quyền NVKD, bộ lọc ngày/view và xuất XLSX toàn ngày được giữ nguyên phạm vi.
+- [x] KPI/tổng số booking vẫn tính trên toàn bộ ngày/view bằng aggregate DB, không phụ thuộc trang đang xem. Bộ chọn khách truy vấn theo chữ nhập, tối đa 30 kết quả; không tải danh bạ lúc mở trang. API lọc quyền NVKD theo khách được giao/chưa giao.
+- [x] Kiểm tra `npm run typecheck`, `npm run lint`, `npm run build` và `git diff --check`: đều đạt ngày 09/11. Build production local hoàn tất trong 83,57 giây.
+- [x] Browser benchmark trên PostgreSQL local tạm, dữ liệu giả lập 2.500 booking + 2.500 khách: 5 lần mở trang, lần đầu tới bảng 259 ms; trung vị 4 lần tải ấm 133,5 ms (làm tròn 134 ms); response body trang 62.244 byte; bảng render 40 dòng. Tìm booking tới bảng 82 ms; API tìm khách 12 ms, trả tối đa 30 khách/4.019 byte; không có lỗi trình duyệt.
+- [x] So sánh số liệu tuần tự hóa local: mô hình cũ (2.000 booking + 2.500 khách) 2.065.066 byte JSON; trang mới (40 booking, không gửi danh bạ ban đầu) 34.249 byte booking JSON, giảm xấp xỉ 98%. Đây là so sánh JSON local, không phải so sánh HTTP nén trên Vercel.
+- [ ] Đo lại sau khi có deployment mới trên Preview và DB cô lập: thời gian mạng/cold start/serverless và tải trên thiết bị người dùng. Deployment Preview đang có chạy commit cũ; không tải thử Production. Chưa push/deploy.
+- [ ] Đã dừng server và PostgreSQL benchmark; thư mục dữ liệu giả lập còn ở `D:\Temp\cencom-perf-1794194151-719786` vì chính sách workspace chặn thao tác xóa đệ quy. Đây chỉ là cụm DB local cô lập, không chứa dữ liệu Production; cần xóa thư mục này thủ công nếu muốn dọn sạch máy.
+
+### Cập nhật lần 65 — giảm trang booking còn 20 dòng và rà điều kiện Preview (09/11/2026)
+
+- [x] Đổi giới hạn từ 40 xuống **20 booking/trang** trong trang `/orders`; phân trang server, lọc, tìm kiếm và aggregate giữ nguyên.
+- [x] Rà cấu hình môi trường Vercel không giải mã secrets: `PREVIEW_DATABASE_URL` và `PREVIEW_DATABASE_ENDPOINT_ID` được ghim theo Git branch `codex/cencom-owner-preview`; cấu hình DB Preview chung và cấu hình theo nhánh cùng tồn tại. Deployment Preview gần nhất (`5c34d73`) là code cũ, không có thay đổi 20 dòng.
+- [ ] Chưa tạo deployment mới để xem: Neon tab hiện đang ở dự án `neon-cinnabar-bucket`, nhánh `main`; chưa chứng minh project/endpoint hiện tại khớp với URL DB ghim cho Vercel Preview. Build Preview tự chạy migration nên không deploy khi chưa đối chiếu được DB cô lập với endpoint. Không đụng Production.
+- [ ] Sau khi cấu hình Preview trỏ tới endpoint cô lập đang dùng và xác minh đúng project/branch, deploy Preview để kiểm tra giao diện 20 dòng và benchmark mạng/DB trực tiếp.
+
+### Cập nhật lần 66 — Production deploy thử, lỗi schema và rollback (09/11/2026)
+
+- [x] Gửi working tree local từ `main` lên Production deployment `dpl_7bFpNSKrgoVezRV78mcvxAE2AJdb`; Vercel build đạt `READY`, không tự chạy migration theo `scripts/vercel-build.mjs`.
+- [x] Browser smoke phát hiện `/orders` lỗi `Better Auth` vì Production DB thiếu cột `user.is_platform_owner` (Postgres `42703`). Migration liên quan là `drizzle/0013_platform_owner.sql` (thêm cột mặc định false và unique partial index).
+- [x] Không áp migration vì lệnh guarded từ máy local không khớp endpoint Production; `vercel env run` báo hai secret không thể tải về, guard `verify-production-database.mjs` đã chặn trước khi chạy SQL. Không đọc/ghi database bằng URL khác.
+- [x] Rollback alias Production về deployment ổn định `dpl_GEzr5DWujDfgerJE2iompH5PQuHU`; browser xác nhận `/orders` mở lại. Production hiện không chạy giới hạn 20 dòng.
+- [x] Đo Production sau rollback bằng phiên trình duyệt đã đăng nhập, ngày 09/11 không có booking: 3 lượt tải hoàn chỉnh mất 3.064, 3.292 và 3.084 giây (trung vị 3.084 giây). Đây là mã cũ và ngày không có dòng; không phải benchmark tải booking 20 dòng.
+- [ ] Đang chờ người dùng nhập mã xác minh trực tiếp tại tab Vercel đang mở. Browser policy chặn đọc Gmail trong phiên này; Gmail connector không cung cấp nội dung mã. Không gửi mã vào chat. Sau khi xác minh, đối chiếu endpoint Production với Neon, áp migration cần thiết qua đích đã xác minh, redeploy 20 dòng và đo lại.

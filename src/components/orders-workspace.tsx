@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Plus, RefreshCw, Search } from "lucide-react";
 import type { TabulatorFull } from "tabulator-tables";
@@ -162,7 +162,7 @@ function PlanGrid({ rows, canEdit, catalog, onToast, onHistory, onRefresh, view 
               plannedEndTime: timeVN(saved.plannedEndAt),
             });
             onToast("Đã lưu thay đổi và ghi lịch sử booking.");
-            if (view === "receiving" && field === "status") onRefresh();
+            if (["status", "plannedDate", "customerName", "siteAddress"].includes(field)) onRefresh();
           } catch {
             cell.restoreOldValue();
             onToast("Mất kết nối tới máy chủ. Vui lòng thử lại.");
@@ -185,18 +185,21 @@ function PlanGrid({ rows, canEdit, catalog, onToast, onHistory, onRefresh, view 
 }
 
 export function OrdersWorkspace({
-  orders, customerOptions, catalog, date, role, totals, view = "orders",
+  orders, catalog, date, role, totals, view = "orders", totalOrders, page, pageSize, hasNextPage, searchQuery, statusFilter,
 }: {
-  orders: OrderDTO[]; customerOptions: CustomerOption[]; catalog: ProductCatalog; date: string; role: AppRole; totals: Totals;
-  statusLabels: Record<OrderStatus, string>; view?: string;
+  orders: OrderDTO[]; catalog: ProductCatalog; date: string; role: AppRole; totals: Totals; view?: string;
+  totalOrders: number; page: number; pageSize: number; hasNextPage: boolean; searchQuery: string; statusFilter: string;
 }) {
   const router = useRouter();
   const refreshAfterConfirm = useCallback(() => router.refresh(), [router]);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("ALL");
+  const [search, setSearch] = useState(searchQuery);
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerOptions, setCustomerOptions] = useState<CustomerOption[]>([]);
+  const [customerLookupLoading, setCustomerLookupLoading] = useState(false);
+  const [status, setStatus] = useState(statusFilter);
   const [showForm, setShowForm] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const selectedCustomer = customerOptions.find((customer) => customer.id === selectedCustomerId);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(null);
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -219,10 +222,23 @@ export function OrdersWorkspace({
   }, []);
   const planner = ["ADMIN", "PLANNER"].includes(role);
   const canCreate = ["ADMIN", "PLANNER", "SALES"].includes(role);
-  const visible = useMemo(() => orders.filter((order) =>
-    (status === "ALL" || order.status === status)
-      && `${order.bookingNo} ${order.customerName} ${order.siteAddress} ${order.salesRepName}`.toLowerCase().includes(search.toLowerCase())),
-  [orders, status, search]);
+  useEffect(() => {
+    if (!showForm || customerQuery.trim().length < 2) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setCustomerLookupLoading(true);
+      try {
+        const response = await fetch(`/api/customers/lookup?q=${encodeURIComponent(customerQuery.trim())}`, { signal: controller.signal });
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && !controller.signal.aborted) setCustomerOptions(Array.isArray(result.customers) ? result.customers : []);
+      } catch {
+        if (!controller.signal.aborted) setCustomerOptions([]);
+      } finally {
+        if (!controller.signal.aborted) setCustomerLookupLoading(false);
+      }
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [customerQuery, showForm]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 2800);
@@ -245,12 +261,23 @@ export function OrdersWorkspace({
       const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) { setError(result.error || "Không lưu được đơn hàng."); return; }
-      setShowForm(false); setSelectedCustomerId(""); setToast(result.message || "Đã tạo booking."); router.refresh();
+      setShowForm(false); setSelectedCustomerId(""); setSelectedCustomer(null); setCustomerQuery(""); setCustomerOptions([]); setToast(result.message || "Đã tạo booking."); router.refresh();
     } catch {
       setError("Mất kết nối tới máy chủ. Vui lòng thử lại.");
     } finally {
       setBusy(false);
     }
+  }
+  function ordersUrl(nextPage: number, query = searchQuery, nextStatus = statusFilter, nextDate = date) {
+    const params = new URLSearchParams({ date: nextDate, view });
+    if (nextPage > 1) params.set("page", String(nextPage));
+    if (query) params.set("q", query);
+    if (nextStatus !== "ALL") params.set("status", nextStatus);
+    return `/orders?${params.toString()}`;
+  }
+  function submitSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    router.push(ordersUrl(1, search.trim(), statusFilter));
   }
   function exportPlan() {
     const link = document.createElement("a");
@@ -266,29 +293,30 @@ export function OrdersWorkspace({
         <div className="sub">{planner && view === "receiving" ? "Kiểm tra booking chờ duyệt theo ngày; đổi trạng thái sang Đã xác nhận để chuyển vào bảng kế hoạch." : planner ? "Sắp xếp giờ cấp, xác nhận đơn và phân công phương tiện." : "Tạo booking và theo dõi tiến độ cấp bê tông của bạn."}</div>
       </div>
       <div className="heading-actions">
-        <input type="date" aria-label="Ngày kế hoạch" className="date-input" value={date} onChange={(event) => router.push(`/orders?date=${event.target.value}&view=${view}`)} />
+        <input type="date" aria-label="Ngày kế hoạch" className="date-input" value={date} onChange={(event) => router.push(ordersUrl(1, searchQuery, statusFilter, event.target.value))} />
         {planner && view === "planning" && <button className="btn secondary" onClick={exportPlan}><Download size={15} /> Xuất XLSX</button>}
-        {canCreate && <button className="btn" onClick={() => { setSelectedCustomerId(""); setError(""); setShowForm(true); }}><Plus size={17} /> Tạo booking</button>}
+        {canCreate && <button className="btn" onClick={() => { setSelectedCustomerId(""); setSelectedCustomer(null); setCustomerQuery(""); setCustomerOptions([]); setError(""); setShowForm(true); }}><Plus size={17} /> Tạo booking</button>}
       </div>
     </div>
     <div className="stats">
-      <div className="stat"><div className="stathead">Tổng khối lượng đặt</div><strong>{numberVN(totals.ordered)} <small>m³</small></strong><small>{orders.length} booking trong ngày</small></div>
+      <div className="stat"><div className="stathead">Tổng khối lượng đặt</div><strong>{numberVN(totals.ordered)} <small>m³</small></strong><small>{totalOrders} booking trong ngày</small></div>
       <div className="stat"><div className="stathead">Khối lượng thực đổ</div><strong>{numberVN(totals.actual)} <small>m³</small></strong><small>Ghi nhận của kế hoạch</small></div>
       <div className="stat"><div className="stathead">Chờ duyệt</div><strong>{totals.pending}</strong><small>Cần xác nhận lịch cấp</small></div>
       <div className="stat"><div className="stathead">Đang cấp hàng</div><strong>{totals.ongoing}</strong><small>Đang vận chuyển tới công trình</small></div>
     </div>
     <div className="toolbar">
       <div className="filter-row">
-        <select className="pill" value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select className="pill" value={status} onChange={(event) => { setStatus(event.target.value); router.push(ordersUrl(1, searchQuery, event.target.value)); }}>
           <option value="ALL">Tất cả trạng thái</option>
           {Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select>
         {planner && view === "planning" && <button className="pill" onClick={exportPlan}><Download size={14} /> Xuất bảng Excel</button>}
         <button className="pill" onClick={() => router.refresh()} title="Tải lại"><RefreshCw size={14} /></button>
       </div>
-      <div className="search-wrap"><Search size={15} /><input className="search" placeholder="Tìm booking, khách hàng, địa chỉ..." value={search} onChange={(event) => setSearch(event.target.value)} /></div>
+      <form className="search-wrap" onSubmit={submitSearch}><Search size={15} /><input className="search" aria-label="Tìm booking, khách hàng, địa chỉ" placeholder="Tìm booking, khách hàng, địa chỉ... (Enter)" value={search} onChange={(event) => setSearch(event.target.value)} /><button className="pill" type="submit">Tìm</button></form>
     </div>
-    <div className="tablewrap"><PlanGrid rows={visible} canEdit={planner} catalog={catalog} onToast={setToast} onHistory={openHistory} onRefresh={refreshAfterConfirm} view={view} /></div>
+    <div className="tablewrap"><PlanGrid rows={orders} canEdit={planner} catalog={catalog} onToast={setToast} onHistory={openHistory} onRefresh={refreshAfterConfirm} view={view} /></div>
+    <div className="orders-pagination"><span>Trang {page} · {orders.length} dòng đang hiển thị · {totalOrders} booking trong ngày</span><div><button className="pill" disabled={page <= 1} onClick={() => router.push(ordersUrl(page - 1))}>Trước</button><button className="pill" disabled={!hasNextPage} onClick={() => router.push(ordersUrl(page + 1))}>Tiếp</button></div><small>Tối đa {pageSize} booking mỗi trang</small></div>
     <div className="desktop-note">{planner && view === "receiving" ? "Chỉ hiển thị booking đang chờ duyệt của ngày đã chọn. Xác nhận trạng thái để chuyển booking sang tab Bảng kế hoạch." : planner
       ? "Chỉnh trực tiếp giờ, vật liệu, phương tiện hoặc trạng thái. Mỗi thay đổi được lưu và ghi vào lịch sử booking."
       : "Danh sách chỉ hiển thị booking do bạn tạo. Mã booking được cấp tự động."}</div>
@@ -297,7 +325,7 @@ export function OrdersWorkspace({
         <div className="modalhead"><div><div className="eyebrow">ĐẶT LỊCH MỚI</div><h2 id="form-title">Đặt bê tông</h2><div className="sub">Hệ thống tự cấp mã booking khi lưu.</div></div>
           <button className="close" onClick={() => setShowForm(false)} aria-label="Đóng">×</button></div>
         <form onSubmit={createOrder}><div className="formgrid">
-          <div className="field full"><label htmlFor="existing-customer">Chọn khách hàng *</label><select id="existing-customer" required value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)}><option value="" disabled>Chọn khách đã có hoặc tạo khách mới</option><option value="new">Tạo khách hàng mới</option>{customerOptions.map((customer) => <option key={customer.id} value={customer.id}>{customer.name} · {customer.phone || customer.address || "Chưa có liên hệ"}</option>)}</select><small>Chọn khách đã có để theo dõi công nợ chung. Chọn tạo mới nếu đây là khách khác.</small></div>
+          <div className="field full"><label htmlFor="customer-lookup">Tìm khách hàng đã có</label><input id="customer-lookup" type="search" value={customerQuery} onChange={(event) => { setCustomerQuery(event.target.value); setCustomerOptions([]); setCustomerLookupLoading(false); setSelectedCustomerId(""); setSelectedCustomer(null); }} placeholder="Nhập ít nhất 2 ký tự tên, điện thoại hoặc địa chỉ" /><small>{customerLookupLoading ? "Đang tìm khách hàng..." : customerQuery.trim().length < 2 ? "Nhập từ 2 ký tự để tìm; danh sách chỉ tải theo kết quả phù hợp." : customerOptions.length ? `Tìm thấy ${customerOptions.length} kết quả tối đa.` : "Không tìm thấy khách phù hợp. Có thể tạo khách mới."}</small><select id="existing-customer" required value={selectedCustomerId} onChange={(event) => { const value = event.target.value; setSelectedCustomerId(value); setSelectedCustomer(customerOptions.find((customer) => customer.id === value) ?? null); }}><option value="" disabled>Chọn khách hàng hoặc tạo mới</option><option value="new">Tạo khách hàng mới</option>{customerOptions.map((customer) => <option key={customer.id} value={customer.id}>{customer.name} · {customer.phone || customer.address || "Chưa có liên hệ"}</option>)}</select></div>
           <div className="field"><label>Tên khách hàng *</label><input key={`name-${selectedCustomerId}`} name="customerName" required minLength={2} maxLength={180} defaultValue={selectedCustomer?.name ?? ""} readOnly={Boolean(selectedCustomer)} placeholder="VD: Công ty xây dựng ABC" /></div>
           <div className="field"><label>Người liên hệ</label><input name="contactName" maxLength={120} placeholder="Người nhận tại công trình" /></div>
           <div className="field full"><label>Địa chỉ công trình *</label><input key={`address-${selectedCustomerId}`} name="siteAddress" required minLength={3} maxLength={500} defaultValue={selectedCustomer?.address ?? ""} placeholder="Địa chỉ giao bê tông" /></div>

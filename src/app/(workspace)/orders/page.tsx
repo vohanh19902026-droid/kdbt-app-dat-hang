@@ -1,53 +1,92 @@
-import { and, asc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, ilike, isNull, lt, or, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { db } from "@/db";
-import { customers, orders } from "@/db/schema";
+import { orders } from "@/db/schema";
 import { OrdersWorkspace } from "@/components/orders-workspace";
-import { statusLabels } from "@/lib/types";
+import { statusLabels, type OrderStatus } from "@/lib/types";
 import { normalizeIsoDate, vnDateRange } from "@/lib/vn-date";
 import { getAppSettings } from "@/lib/app-settings";
 
 export const runtime = "nodejs";
 
-export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ date?: string; view?: string }> }) {
+const PAGE_SIZE = 20;
+const allowedStatuses = new Set<string>(Object.keys(statusLabels));
+
+export default async function OrdersPage({ searchParams }: {
+  searchParams: Promise<{ date?: string; view?: string; page?: string; q?: string; status?: string }>;
+}) {
   const { appRole, user } = await requireSession();
-  // Kế toán chỉ dùng phân hệ công nợ; không để redirect từ trang bị cấm làm lộ danh sách booking.
   if (appRole === "ACCOUNTANT") redirect("/accounting?denied=1");
   if (appRole === "TECHNICAL") redirect("/technical/catalog");
-  const { date, view } = await searchParams;
-  const selectedDate = normalizeIsoDate(date);
+  const params = await searchParams;
+  const selectedDate = normalizeIsoDate(params.date);
   const { from, to } = vnDateRange(selectedDate);
-  // Bảng điều phối lọc theo ngày cấp hàng; đơn chưa xếp lịch vẫn nằm ở ngày yêu cầu.
-  const planningView = view === "planning";
-  const receivingView = view === "receiving";
+  const planningView = params.view === "planning";
+  const receivingView = params.view === "receiving";
+  const view = params.view || "orders";
   const basis = planningView
     ? sql<Date>`COALESCE(${orders.plannedStartAt}, ${orders.requestedAt})`
     : sql<Date>`${orders.requestedAt}`;
-  const conditions = [gte(basis, from), lt(basis, to)];
-  if (planningView) conditions.push(sql`${orders.status} IN ('APPROVED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED')`);
-  if (receivingView) conditions.push(eq(orders.status, "PENDING"));
-  if (appRole === "SALES") conditions.push(eq(orders.createdBy, user.id));
-  const [rows, customerOptions, settings] = await Promise.all([
-    db.select().from(orders).where(and(...conditions))
-      .orderBy(asc(orders.plannedStartAt), asc(orders.requestedAt)).limit(2000),
-    db.select({ id: customers.id, name: customers.name, phone: customers.phone, address: customers.defaultAddress })
-      .from(customers)
-      .where(and(eq(customers.isActive, true), appRole === "SALES" ? or(eq(customers.salesRepId, user.id), isNull(customers.salesRepId)) : undefined))
-      .orderBy(asc(customers.name), asc(customers.id)),
+  const baseConditions = [gte(basis, from), lt(basis, to)];
+  if (planningView) baseConditions.push(sql`${orders.status} IN ('APPROVED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED')`);
+  if (receivingView) baseConditions.push(eq(orders.status, "PENDING"));
+  if (appRole === "SALES") baseConditions.push(eq(orders.createdBy, user.id));
+
+  const search = (params.q || "").trim().slice(0, 120);
+  const requestedStatus = params.status || "ALL";
+  const status = allowedStatuses.has(requestedStatus) ? requestedStatus as OrderStatus : "ALL";
+  const pageNumber = Number.parseInt(params.page || "1", 10);
+  const page = Number.isSafeInteger(pageNumber) && pageNumber > 0 ? Math.min(pageNumber, 100_000) : 1;
+  const listConditions = [...baseConditions];
+  if (status !== "ALL") listConditions.push(eq(orders.status, status));
+  if (search) {
+    const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+    listConditions.push(or(
+      ilike(orders.bookingNo, pattern), ilike(orders.customerName, pattern),
+      ilike(orders.siteAddress, pattern), ilike(orders.salesRepName, pattern),
+    )!);
+  }
+
+  const [rows, [aggregate], settings] = await Promise.all([
+    db.select().from(orders).where(and(...listConditions))
+      .orderBy(asc(basis), asc(orders.requestedAt), asc(orders.id))
+      .limit(PAGE_SIZE + 1).offset((page - 1) * PAGE_SIZE),
+    db.select({
+      total: count(),
+      ordered: sql<string>`COALESCE(SUM(${orders.quantityM3}), 0)`,
+      actual: sql<string>`COALESCE(SUM(${orders.actualM3}), 0)`,
+      pending: sql<string>`COUNT(*) FILTER (WHERE ${orders.status} = 'PENDING')`,
+      ongoing: sql<string>`COUNT(*) FILTER (WHERE ${orders.status} = 'IN_PROGRESS')`,
+    }).from(orders).where(and(...baseConditions)),
     getAppSettings(),
   ]);
-  const data = rows.map((order) => ({
+  const hasNextPage = rows.length > PAGE_SIZE;
+  const data = rows.slice(0, PAGE_SIZE).map((order) => ({
     ...order,
     quantityM3: Number(order.quantityM3),
     actualM3: Number(order.actualM3),
     truckCapacityM3: order.truckCapacityM3 ? Number(order.truckCapacityM3) : null,
   }));
   const totals = {
-    ordered: data.reduce((sum, order) => sum + order.quantityM3, 0),
-    actual: data.reduce((sum, order) => sum + order.actualM3, 0),
-    pending: data.filter((order) => order.status === "PENDING").length,
-    ongoing: data.filter((order) => order.status === "IN_PROGRESS").length,
+    ordered: Number(aggregate?.ordered || 0),
+    actual: Number(aggregate?.actual || 0),
+    pending: Number(aggregate?.pending || 0),
+    ongoing: Number(aggregate?.ongoing || 0),
   };
-  return <OrdersWorkspace orders={data} customerOptions={customerOptions} catalog={settings.catalog} role={appRole} date={selectedDate} view={view || "orders"} totals={totals} statusLabels={statusLabels} />;
+  return <OrdersWorkspace
+    key={`${selectedDate}:${view}:${page}:${search}:${status}`}
+    orders={data}
+    catalog={settings.catalog}
+    role={appRole}
+    date={selectedDate}
+    view={view}
+    totals={totals}
+    totalOrders={Number(aggregate?.total || 0)}
+    page={page}
+    pageSize={PAGE_SIZE}
+    hasNextPage={hasNextPage}
+    searchQuery={search}
+    statusFilter={status}
+  />;
 }
